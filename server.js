@@ -135,8 +135,10 @@ const userSchema = new mongoose.Schema({
   payQR: {
     wechat: { type: String, default: '' },
     alipay: { type: String, default: '' }
-  }
+  },
+  isGuest: { type: Boolean, default: false }
 });
+
 
 
 const subscriptionSchema = new mongoose.Schema({
@@ -1048,6 +1050,7 @@ app.post('/api/quick-login', async (req, res) => {
       studentId: guestId,
       name: nickname.trim(),
       role: 'user',
+      isGuest: true,
       inviteCode,
       lastLogin: new Date()
     });
@@ -2947,6 +2950,47 @@ app.get('/api/admin/cards/export', adminMiddleware, async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+// ============ 管理员群发邮件 ============
+app.post('/api/admin/send-bulk-email', adminMiddleware, async (req, res) => {
+  try {
+    const { subject, content, recipients, filterGuest } = req.body;
+    if (!RESEND_API_KEY) return res.status(400).json({ success: false, message: '邮件服务未配置' });
+    if (!subject || !content) return res.status(400).json({ success: false, message: '请填写主题和内容' });
+
+    let query = { email: { $ne: null, $ne: '' }, emailVerified: true };
+    if (recipients === 'vip') query.isVip = true;
+    else if (recipients === 'nonVip') query.isVip = { $ne: true };
+    if (filterGuest === true) query.isGuest = { $ne: true };
+
+    const users = await User.find(query).select('email studentId name');
+    if (users.length === 0) return res.json({ success: false, message: '没有符合条件的收件人' });
+
+    let successCount = 0, failCount = 0;
+    for (const user of users) {
+      try {
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST', headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: 'AG工作室 <noreply@agai.online>', to: user.email, subject: subject,
+            html: `<div style="max-width:500px;margin:0 auto;padding:20px;font-family:Arial,sans-serif;"><h2 style="color:#667eea;">📋 AG工作室</h2><div style="background:#f8f9fc;padding:20px;border-radius:12px;">${content.replace(/\n/g,'<br>')}</div><p style="color:#888;margin-top:20px;text-align:center;">此邮件由管理员发送</p></div>` })
+        });
+        if (response.ok) successCount++; else failCount++;
+      } catch(e) { failCount++; }
+      await new Promise(r => setTimeout(r, 500));
+    }
+    res.json({ success: true, message: `发送完成：成功 ${successCount}，失败 ${failCount}` });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.get('/api/admin/email-recipients-count', adminMiddleware, async (req, res) => {
+  try {
+    const all = await User.countDocuments({ email: { $ne: null, $ne: '' }, emailVerified: true });
+    const total = await User.countDocuments({ email: { $ne: null, $ne: '' }, emailVerified: true, isGuest: { $ne: true } });
+    const vip = await User.countDocuments({ email: { $ne: null, $ne: '' }, emailVerified: true, isVip: true });
+    res.json({ success: true, total, vip, all });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 
 // ============ 定时任务 ============
 cron.schedule('25 21 * * *', executeAutoSign, { timezone: "Asia/Shanghai" });
