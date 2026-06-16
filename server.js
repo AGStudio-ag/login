@@ -578,6 +578,71 @@ async function sendVerificationCode(email, code) {
   }
 }
 
+// ============ 发送 VIP 到账邮件 ============
+async function sendVipGrantEmail(user, addedDays, newExpireAt) {
+  if (!RESEND_API_KEY) {
+    console.log('📧 Resend 未配置，跳过 VIP 邮件');
+    return false;
+  }
+  if (!user.email || !user.emailVerified) {
+    console.log(`📧 用户 ${user.studentId} 未绑定邮箱，跳过`);
+    return false;
+  }
+
+  const expireDate = newExpireAt ? new Date(newExpireAt).toLocaleDateString('zh-CN') : '永久';
+  const subject = `🎉 VIP 已到账 - AG工作室`;
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'AG工作室 <noreply@agai.online>',
+        to: user.email,
+        subject: subject,
+        html: `
+          <div style="max-width:500px;margin:0 auto;padding:20px;font-family:Arial,sans-serif;">
+            <div style="text-align:center;margin-bottom:24px;">
+              <h1 style="color:#667eea;margin:0;">📋 AG工作室</h1>
+            </div>
+            <div style="background:#d4edda;padding:24px;border-radius:12px;border-left:4px solid #28a745;">
+              <p style="font-size:18px;font-weight:700;margin:0 0 12px 0;">🎉 VIP 已到账！</p>
+              <p style="margin:8px 0;"><strong>用户：</strong>${user.name || user.studentId}</p>
+              <p style="margin:8px 0;"><strong>增加天数：</strong>${addedDays} 天</p>
+              <p style="margin:8px 0;"><strong>有效期至：</strong>${expireDate}</p>
+            </div>
+            <div style="margin-top:24px;padding:16px;background:#f8f9fc;border-radius:12px;text-align:center;">
+              <p style="margin:0 0 12px 0;font-size:14px;color:#666;">
+                感谢您对 AG工作室 的信任与支持！<br>
+                签到邮件通知、自动签到等权益已正常生效。
+              </p>
+              <a href="https://login.agai.online" style="display:inline-block;padding:10px 24px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;text-decoration:none;border-radius:20px;font-size:14px;">进入仪表盘</a>
+            </div>
+            <hr style="margin:24px 0;border:none;border-top:1px solid #eee;">
+            <p style="color:#999;font-size:12px;text-align:center;">
+              AG工作室 · 智能考勤系统<br>
+              🌐 https://login.agai.online
+            </p>
+          </div>
+        `
+      })
+    });
+    if (response.ok) {
+      console.log(`✅ VIP 到账邮件发送成功: ${user.email}`);
+      return true;
+    } else {
+      console.error(`❌ VIP 邮件发送失败:`, await response.text());
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ 发送 VIP 邮件异常:', error);
+    return false;
+  }
+}
+
 async function sendSignNotification(email, studentId, result, subscriptionName, signTime = null) {
   console.log(`📧 准备发送通知: email=${email}, studentId=${studentId}, success=${result.success}`);
   
@@ -2023,16 +2088,20 @@ app.get('/api/admin/users/:id', adminMiddleware, async (req, res) => {
   }
 });
 
-// 更新用户
+// 更新用户（管理员）
 app.put('/api/admin/users/:id', adminMiddleware, async (req, res) => {
   try {
     const { name, email, attendancePassword, isVip, vipExpireAt, role, isActive } = req.body;
-    
+
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ success: false, message: '用户不存在' });
     }
-    
+
+    // 记录旧的 VIP 状态和过期时间，用于判断是否需要发邮件
+    const oldIsVip = user.isVip;
+    const oldVipExpireAt = user.vipExpireAt ? new Date(user.vipExpireAt) : null;
+
     if (name !== undefined) user.name = name;
     if (email !== undefined) user.email = email;
     if (attendancePassword !== undefined) user.attendancePassword = attendancePassword;
@@ -2040,9 +2109,36 @@ app.put('/api/admin/users/:id', adminMiddleware, async (req, res) => {
     if (vipExpireAt) user.vipExpireAt = new Date(vipExpireAt);
     if (role) user.role = role;
     if (isActive !== undefined) user.isActive = isActive;
-    
+
     await user.save();
-    
+
+    // 🆕 判断是否需要发送 VIP 到账邮件
+    // 条件：当前是 VIP 且（之前不是 VIP，或者过期时间比旧的时间更晚）
+    const now = new Date();
+    const newExpireAt = user.vipExpireAt ? new Date(user.vipExpireAt) : null;
+    const isVipNow = user.isVip && newExpireAt && newExpireAt > now;
+
+    let shouldSendEmail = false;
+    let addedDays = 0;
+
+    if (isVipNow) {
+      if (!oldIsVip) {
+        // 从非 VIP 变为 VIP
+        shouldSendEmail = true;
+        addedDays = Math.ceil((newExpireAt - now) / (1000 * 60 * 60 * 24));
+      } else if (oldVipExpireAt && newExpireAt > oldVipExpireAt) {
+        // VIP 天数增加（过期时间延后）
+        shouldSendEmail = true;
+        addedDays = Math.ceil((newExpireAt - oldVipExpireAt) / (1000 * 60 * 60 * 24));
+      }
+    }
+
+    // 异步发送邮件，不阻塞响应
+    if (shouldSendEmail && addedDays > 0) {
+      sendVipGrantEmail(user, addedDays, user.vipExpireAt)
+        .catch(err => console.error('发送 VIP 邮件失败:', err));
+    }
+
     res.json({ success: true, user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
