@@ -648,6 +648,53 @@ async function sendSignNotification(email, studentId, result, subscriptionName, 
   }
 }
 
+// ============ 发送赞助者通知邮件（供管理员调用） ============
+async function sendSponsorEmailToAllVips(notice) {
+  if (!RESEND_API_KEY) {
+    console.log('📧 Resend 未配置，跳过邮件群发');
+    return;
+  }
+  // 获取所有邮箱已验证且为VIP的用户（排除游客）
+  const users = await User.find({ emailVerified: true, isVip: true, isGuest: { $ne: true } }).select('email studentId name');
+  if (users.length === 0) {
+    console.log('📧 没有符合条件的VIP用户');
+    return;
+  }
+
+  const subject = `🎉 ${notice.title || 'AG工作室感谢您的赞助！'}`;
+  const content = notice.content || '感谢您的支持，我们将继续努力！';
+
+  let successCount = 0, failCount = 0;
+  for (const user of users) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'AG工作室 <noreply@agai.online>',
+          to: user.email,
+          subject: subject,
+          html: `
+            <div style="max-width:500px;margin:0 auto;padding:20px;font-family:Arial,sans-serif;">
+              <h2 style="color:#667eea;">📋 AG工作室</h2>
+              <div style="background:#f8f9fc;padding:20px;border-radius:12px;">
+                ${content.replace(/\n/g, '<br>')}
+              </div>
+              <p style="color:#888;margin-top:20px;text-align:center;">此邮件由管理员发送，感谢您的支持！</p>
+            </div>
+          `
+        })
+      });
+      if (response.ok) successCount++; else failCount++;
+    } catch (e) { failCount++; }
+    // 避免触发邮件发送频率限制
+    await new Promise(r => setTimeout(r, 200));
+  }
+  console.log(`📧 赞助邮件群发完成：成功 ${successCount}，失败 ${failCount}`);
+}
 
 // ============ 调用 Python 签到脚本 ============
 async function realSign(studentId, password, maxRetries = 3) {
@@ -1267,6 +1314,23 @@ app.get('/api/notice', authMiddleware, async (req, res) => {
   }
 });
 
+// VIP 专属通知（仅VIP用户可见）
+app.get('/api/notice/vip', authMiddleware, async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user.isVip) {
+      return res.json({ success: true, notice: { enabled: false } });
+    }
+    const config = await SystemConfig.findOne({ key: 'sponsor_notice' });
+    res.json({
+      success: true,
+      notice: config?.value || { enabled: false, title: '', content: '', style: 'info' }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // ============ 邮箱绑定 ============
 app.post('/api/email/send-code', authMiddleware, async (req, res) => {
   try {
@@ -1875,7 +1939,7 @@ app.put('/api/admin/config/:key', adminMiddleware, async (req, res) => {
   try {
     const { key } = req.params;
     const { value } = req.body;
-    
+
     let config = await SystemConfig.findOne({ key });
     if (!config) {
       config = new SystemConfig({ key, value });
@@ -1884,7 +1948,13 @@ app.put('/api/admin/config/:key', adminMiddleware, async (req, res) => {
       config.updatedAt = new Date();
     }
     await config.save();
-    
+
+    // 🆕 如果更新的是 sponsor_notice，异步发送邮件给所有VIP
+    if (key === 'sponsor_notice' && value && value.enabled) {
+      // 异步执行，不阻塞响应
+      sendSponsorEmailToAllVips(value).catch(err => console.error('群发赞助邮件失败:', err));
+    }
+
     res.json({ success: true, config });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
