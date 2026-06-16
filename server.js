@@ -2951,6 +2951,7 @@ app.get('/api/admin/cards/export', adminMiddleware, async (req, res) => {
   }
 });
 
+
 // ============ 管理员群发邮件 ============
 app.post('/api/admin/send-bulk-email', adminMiddleware, async (req, res) => {
   try {
@@ -2970,16 +2971,23 @@ app.post('/api/admin/send-bulk-email', adminMiddleware, async (req, res) => {
     for (const user of users) {
       try {
         const response = await fetch('https://api.resend.com/emails', {
-          method: 'POST', headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ from: 'AG工作室 <noreply@agai.online>', to: user.email, subject: subject,
-            html: `<div style="max-width:500px;margin:0 auto;padding:20px;font-family:Arial,sans-serif;"><h2 style="color:#667eea;">📋 AG工作室</h2><div style="background:#f8f9fc;padding:20px;border-radius:12px;">${content.replace(/\n/g,'<br>')}</div><p style="color:#888;margin-top:20px;text-align:center;">此邮件由管理员发送</p></div>` })
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'AG工作室 <noreply@agai.online>',
+            to: user.email,
+            subject: subject,
+            html: `<div style="max-width:500px;margin:0 auto;padding:20px;font-family:Arial,sans-serif;"><h2 style="color:#667eea;">📋 AG工作室</h2><div style="background:#f8f9fc;padding:20px;border-radius:12px;">${content.replace(/\n/g, '<br>')}</div><p style="color:#888;margin-top:20px;text-align:center;">此邮件由管理员发送</p></div>`
+          })
         });
         if (response.ok) successCount++; else failCount++;
-      } catch(e) { failCount++; }
+      } catch (e) { failCount++; }
       await new Promise(r => setTimeout(r, 500));
     }
     res.json({ success: true, message: `发送完成：成功 ${successCount}，失败 ${failCount}` });
-  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 app.get('/api/admin/email-recipients-count', adminMiddleware, async (req, res) => {
@@ -2988,7 +2996,9 @@ app.get('/api/admin/email-recipients-count', adminMiddleware, async (req, res) =
     const total = await User.countDocuments({ email: { $ne: null, $ne: '' }, emailVerified: true, isGuest: { $ne: true } });
     const vip = await User.countDocuments({ email: { $ne: null, $ne: '' }, emailVerified: true, isVip: true });
     res.json({ success: true, total, vip, all });
-  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 
