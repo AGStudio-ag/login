@@ -136,7 +136,8 @@ const userSchema = new mongoose.Schema({
     wechat: { type: String, default: '' },
     alipay: { type: String, default: '' }
   },
-  isGuest: { type: Boolean, default: false }
+  isGuest: { type: Boolean, default: false },
+  source: { type: String, enum: ['attendance', 'market'], default: 'attendance' }
 });
 
 
@@ -1163,6 +1164,7 @@ app.post('/api/quick-login', async (req, res) => {
       name: nickname.trim(),
       role: 'user',
       isGuest: true,
+      source: 'market',
       inviteCode,
       lastLogin: new Date()
     });
@@ -1958,8 +1960,8 @@ app.get('/api/feedback/:id', authMiddleware, async (req, res) => {
 // 系统统计
 app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments({ isGuest: { $ne: true } });
-    const vipUsers = await User.countDocuments({ isVip: true, isGuest: { $ne: true } });
+    const totalUsers = await User.countDocuments({ isGuest: { $ne: true }, source: { $ne: 'market' } });
+    const vipUsers = await User.countDocuments({ isVip: true, isGuest: { $ne: true }, source: { $ne: 'market' } });
     const todayUsers = await User.countDocuments({ createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } });
     
     const totalSigns = await SignLog.countDocuments();
@@ -2029,12 +2031,15 @@ app.put('/api/admin/config/:key', adminMiddleware, async (req, res) => {
 // 用户列表
 app.get('/api/admin/users', adminMiddleware, async (req, res) => {
   try {
-    const { page = 1, limit = 20, search = '', showGuests = 'false' } = req.query;
+        const { page = 1, limit = 20, search = '', showGuests = 'false', showMarket = 'false' } = req.query;
     
     const baseQuery = {};
     let query;
     if (showGuests !== 'true') {
       baseQuery.isGuest = { $ne: true };
+    }
+    if (showMarket !== 'true') {
+      baseQuery.source = { $ne: 'market' };
     }
     if (search) {
       query = {
