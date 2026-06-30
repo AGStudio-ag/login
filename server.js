@@ -2877,11 +2877,19 @@ app.get('/api/market/favorite', authMiddleware, async (req, res) => {
 // 创建聊天室
 app.post('/api/market/chat/create', authMiddleware, async (req, res) => {
   try {
-    const { productId } = req.body;
-    const buyerId = req.user._id;
-    const item = await MarketItem.findOne({ _id: productId, status: { $in: ['active', 'reserved'] } });
+    const { productId, buyerId: requestedBuyerId } = req.body;
+    const item = await MarketItem.findOne({ _id: productId, status: { $ne: 'removed' } });
     if (!item) return res.status(404).json({ success: false, message: '商品不存在或已下架' });
     const sellerId = item.userId;
+    let buyerId = req.user._id;
+
+    if (sellerId.toString() === req.user._id.toString()) {
+      if (!requestedBuyerId) return res.status(400).json({ success: false, message: '请指定买家' });
+      const buyer = await User.findById(requestedBuyerId).select('_id');
+      if (!buyer) return res.status(404).json({ success: false, message: '买家不存在' });
+      buyerId = buyer._id;
+    }
+
     if (buyerId.toString() === sellerId.toString()) return res.status(400).json({ success: false, message: '不能和自己聊天' });
     if (await hasMarketBlockBetween(buyerId, sellerId)) {
       return res.status(403).json({ success: false, message: '双方暂不可聊天' });
