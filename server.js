@@ -2026,9 +2026,21 @@ app.get('/api/feedback/:id', authMiddleware, async (req, res) => {
 // 系统统计
 app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments({ isGuest: { $ne: true }, source: { $ne: 'market' } });
+    const attendanceUserQuery = { isGuest: { $ne: true }, source: { $ne: 'market' }, studentId: { $not: /^guest_/ } };
+    const marketUserQuery = {
+      $or: [
+        { source: 'market' },
+        { isGuest: true },
+        { studentId: /^guest_/ }
+      ]
+    };
+    const totalUsers = await User.countDocuments(attendanceUserQuery);
     const vipUsers = await User.countDocuments({ isVip: true, isGuest: { $ne: true }, source: { $ne: 'market' } });
-    const todayUsers = await User.countDocuments({ createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } });
+    const marketUsers = await User.countDocuments(marketUserQuery);
+    const todayUsers = await User.countDocuments({
+      ...attendanceUserQuery,
+      createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+    });
     
     const totalSigns = await SignLog.countDocuments();
     const todaySigns = await SignLog.countDocuments({ executedAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } });
@@ -2043,7 +2055,7 @@ app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
     res.json({
       success: true,
       stats: {
-        users: { total: totalUsers, vip: vipUsers, today: todayUsers },
+        users: { total: totalUsers, attendance: totalUsers, market: marketUsers, vip: vipUsers, today: todayUsers },
         signs: { total: totalSigns, today: todaySigns, success: successSigns, successRate },
         subscriptions: { active: activeAutoSignUsers },
         autoSign: { users: activeAutoSignUsers },
@@ -2097,30 +2109,42 @@ app.put('/api/admin/config/:key', adminMiddleware, async (req, res) => {
 // 用户列表
 app.get('/api/admin/users', adminMiddleware, async (req, res) => {
   try {
-        const { page = 1, limit = 20, search = '', showGuests = 'false', showMarket = 'false' } = req.query;
-    
-    const baseQuery = {};
-    let query;
-    if (showGuests !== 'true') {
-      baseQuery.isGuest = { $ne: true };
-    }
-    if (showMarket !== 'true') {
-      baseQuery.source = { $ne: 'market' };
-    }
-    if (search) {
-      query = {
-        $and: [
-          baseQuery,
-          { $or: [
-            { studentId: { $regex: search, $options: 'i' } },
-            { name: { $regex: search, $options: 'i' } },
-            { email: { $regex: search, $options: 'i' } }
-          ]}
+    const { page = 1, limit = 20, search = '', showGuests = 'false', showMarket = 'false', scope = '' } = req.query;
+
+    const conditions = [];
+    if (scope === 'attendance') {
+      conditions.push(
+        { isGuest: { $ne: true } },
+        { source: { $ne: 'market' } },
+        { studentId: { $not: /^guest_/ } }
+      );
+    } else if (scope === 'market') {
+      conditions.push({
+        $or: [
+          { source: 'market' },
+          { isGuest: true },
+          { studentId: /^guest_/ }
         ]
-      };
+      });
     } else {
-      query = baseQuery;
+      if (showGuests !== 'true') {
+        conditions.push({ isGuest: { $ne: true } });
+      }
+      if (showMarket !== 'true') {
+        conditions.push({ source: { $ne: 'market' } });
+      }
     }
+
+    if (search) {
+      conditions.push({
+        $or: [
+          { studentId: { $regex: search, $options: 'i' } },
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } }
+        ]
+      });
+    }
+    const query = conditions.length > 0 ? { $and: conditions } : {};
     
     
     const users = await User.find(query)
