@@ -213,12 +213,14 @@ const marketItemSchema = new mongoose.Schema({
     qq: { type: String, default: '' },
     wechat: { type: String, default: '' }
   },
-  status: { type: String, enum: ['active', 'sold', 'removed'], default: 'active' },
+  status: { type: String, enum: ['active', 'reserved', 'sold', 'removed'], default: 'active' },
   views: { type: Number, default: 0 },
   contactViews: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
+marketItemSchema.index({ status: 1, category: 1, createdAt: -1 });
+marketItemSchema.index({ title: 'text', description: 'text', productNo: 'text' });
 
 const favoriteSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -297,6 +299,70 @@ const marketOrderSchema = new mongoose.Schema({
 
 const Cart = mongoose.models.Cart || mongoose.model('Cart', cartSchema);
 const MarketOrder = mongoose.models.MarketOrder || mongoose.model('MarketOrder', marketOrderSchema);
+
+const MARKET_CATEGORIES = ['book', 'electronic', 'life', 'other'];
+const MARKET_ORDER_STATUS = ['pending', 'confirmed', 'shipped', 'completed', 'cancelled'];
+
+function escapeRegExp(value = '') {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function clampNumber(value, min, max, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function normalizeMarketText(value, maxLength) {
+  return String(value || '').trim().slice(0, maxLength);
+}
+
+function normalizeMarketPrice(value) {
+  const price = Number(value);
+  if (!Number.isFinite(price) || price < 0 || price > 99999) return null;
+  return Math.round(price * 100) / 100;
+}
+
+function normalizeMarketImages(images) {
+  if (!Array.isArray(images)) return [];
+  return images
+    .filter(img => typeof img === 'string' && /^data:image\/(png|jpe?g|webp);base64,/i.test(img))
+    .slice(0, 5);
+}
+
+function normalizeMarketContact(contact = {}) {
+  return {
+    qq: normalizeMarketText(contact.qq, 40),
+    wechat: normalizeMarketText(contact.wechat, 80)
+  };
+}
+
+function normalizeQrImage(value) {
+  if (value === '') return '';
+  if (typeof value !== 'string') return null;
+  if (value.length > 1024 * 1024) return null;
+  return /^data:image\/(png|jpe?g|webp);base64,/i.test(value) ? value : null;
+}
+
+async function hasMarketBlockBetween(userA, userB) {
+  if (!userA || !userB) return false;
+  return !!(await Block.exists({
+    $or: [
+      { userId: userA, blockedUserId: userB },
+      { userId: userB, blockedUserId: userA }
+    ]
+  }));
+}
+
+async function releaseMarketItemIfNoOpenOrders(productId) {
+  const openOrder = await MarketOrder.exists({
+    productId,
+    status: { $in: ['pending', 'confirmed', 'shipped'] }
+  });
+  if (!openOrder) {
+    await MarketItem.updateOne({ _id: productId, status: 'reserved' }, { status: 'active', updatedAt: new Date() });
+  }
+}
 
 
 // 留言/反馈模型
@@ -1141,7 +1207,7 @@ app.post('/api/quick-login', async (req, res) => {
     }
     
     // 生成一个虚拟学号
-    const guestId = 'guest_' + crypto.randomBytes(6).toString('hex');
+    let guestId = 'guest_' + crypto.randomBytes(6).toString('hex');
     
     // 确保不重复
     let user = await User.findOne({ studentId: guestId });
@@ -2618,28 +2684,68 @@ app.delete('/api/admin/feedback/:id', adminMiddleware, async (req, res) => {
 // 获取商品列表
 app.get('/api/market/items', async (req, res) => {
   try {
-    const { page = 1, limit = 20, category, search, id } = req.query;
+    const { page = 1, limit = 20, category, search, id, sort = 'latest', minPrice, maxPrice } = req.query;
+    const safePage = clampNumber(page, 1, 100000, 1);
+    const safeLimit = clampNumber(limit, 1, 50, 20);
     
     if (id) {
       const item = await MarketItem.findById(id).populate('userId', 'studentId name');
-      if (!item) return res.status(404).json({ success: false, message: '商品不存在' });
+      if (!item || item.status === 'removed') return res.status(404).json({ success: false, message: '商品不存在' });
       item.views = (item.views || 0) + 1;
       await item.save();
       return res.json({ success: true, items: [item] });
     }
     
     const query = { status: 'active' };
-    if (category && category !== 'all') query.category = category;
-    if (search) query.title = { $regex: search, $options: 'i' };
+    if (category && category !== 'all' && MARKET_CATEGORIES.includes(category)) query.category = category;
+    const min = minPrice !== undefined ? normalizeMarketPrice(minPrice) : null;
+    const max = maxPrice !== undefined ? normalizeMarketPrice(maxPrice) : null;
+    if (min !== null || max !== null) {
+      query.price = {};
+      if (min !== null) query.price.$gte = min;
+      if (max !== null) query.price.$lte = max;
+    }
+    if (search) {
+      const regex = new RegExp(escapeRegExp(String(search).trim()).slice(0, 60), 'i');
+      query.$or = [{ title: regex }, { description: regex }, { productNo: regex }];
+    }
+    const sortMap = {
+      latest: { createdAt: -1 },
+      priceAsc: { price: 1, createdAt: -1 },
+      priceDesc: { price: -1, createdAt: -1 },
+      popular: { views: -1, createdAt: -1 }
+    };
     
     const items = await MarketItem.find(query)
       .populate('userId', 'studentId name')
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .sort(sortMap[sort] || sortMap.latest)
+      .skip((safePage - 1) * safeLimit)
+      .limit(safeLimit);
     
     const total = await MarketItem.countDocuments(query);
-    res.json({ success: true, items, total, page: parseInt(page) });
+    res.json({ success: true, items, total, page: safePage, limit: safeLimit });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/market/stats', async (req, res) => {
+  try {
+    const [activeItems, soldItems, activeSellers, completedOrders] = await Promise.all([
+      MarketItem.countDocuments({ status: 'active' }),
+      MarketItem.countDocuments({ status: 'sold' }),
+      MarketItem.distinct('userId', { status: { $in: ['active', 'reserved', 'sold'] } }),
+      MarketOrder.countDocuments({ status: 'completed' })
+    ]);
+    res.json({
+      success: true,
+      stats: {
+        activeItems,
+        soldItems,
+        sellers: activeSellers.length,
+        completedOrders
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -2649,7 +2755,10 @@ app.get('/api/market/items', async (req, res) => {
 app.post('/api/market/items', authMiddleware, async (req, res) => {
   try {
     const { title, description, price, category, contact, images } = req.body;
-    if (!title || !description || price == null) {
+    const cleanTitle = normalizeMarketText(title, 80);
+    const cleanDescription = normalizeMarketText(description, 1000);
+    const cleanPrice = normalizeMarketPrice(price);
+    if (!cleanTitle || !cleanDescription || cleanPrice === null) {
       return res.status(400).json({ success: false, message: '请填写完整信息' });
     }
     // 生成商品专号：AG + 时间戳后6位 + 随机4位
@@ -2657,12 +2766,12 @@ app.post('/api/market/items', authMiddleware, async (req, res) => {
     const item = new MarketItem({
       productNo,
       userId: req.user._id,
-      title,
-      description,
-      price,
-      category: category || 'other',
-      contact: contact || { qq: '', wechat: '' },
-      images: images || [],
+      title: cleanTitle,
+      description: cleanDescription,
+      price: cleanPrice,
+      category: MARKET_CATEGORIES.includes(category) ? category : 'other',
+      contact: normalizeMarketContact(contact),
+      images: normalizeMarketImages(images),
       status: 'active'
     });
     await item.save();
@@ -2674,10 +2783,13 @@ app.post('/api/market/items', authMiddleware, async (req, res) => {
 
 
 // 获取联系方式
-app.get('/api/market/contact/:id', async (req, res) => {
+app.get('/api/market/contact/:id', authMiddleware, async (req, res) => {
   try {
     const item = await MarketItem.findById(req.params.id);
-    if (!item) return res.status(404).json({ success: false, message: '商品不存在' });
+    if (!item || item.status === 'removed') return res.status(404).json({ success: false, message: '商品不存在' });
+    if (await hasMarketBlockBetween(req.user._id, item.userId)) {
+      return res.status(403).json({ success: false, message: '双方暂不可联系' });
+    }
     item.contactViews = (item.contactViews || 0) + 1;
     await item.save();
     res.json({ success: true, contact: item.contact });
@@ -2702,8 +2814,20 @@ app.delete('/api/market/items/:id', authMiddleware, async (req, res) => {
   try {
     const item = await MarketItem.findOne({ _id: req.params.id, userId: req.user._id });
     if (!item) return res.status(404).json({ success: false, message: '商品不存在' });
+    const openOrder = await MarketOrder.exists({
+      productId: item._id,
+      status: { $in: ['pending', 'confirmed', 'shipped'] }
+    });
+    if (openOrder) {
+      return res.status(400).json({ success: false, message: '商品正在交易中，请先处理订单' });
+    }
     item.status = 'removed';
+    item.updatedAt = new Date();
     await item.save();
+    await Promise.all([
+      Cart.deleteMany({ productId: item._id }),
+      Favorite.deleteMany({ productId: item._id })
+    ]);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2716,6 +2840,11 @@ app.delete('/api/market/items/:id', authMiddleware, async (req, res) => {
 app.post('/api/market/favorite', authMiddleware, async (req, res) => {
   try {
     const { productId } = req.body;
+    const item = await MarketItem.findOne({ _id: productId, status: 'active' });
+    if (!item) return res.status(404).json({ success: false, message: '商品不存在或已下架' });
+    if (item.userId.toString() === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: '不能收藏自己的商品' });
+    }
     const existing = await Favorite.findOne({ userId: req.user._id, productId });
     if (existing) {
       await Favorite.deleteOne({ _id: existing._id });
@@ -2748,9 +2877,15 @@ app.get('/api/market/favorite', authMiddleware, async (req, res) => {
 // 创建聊天室
 app.post('/api/market/chat/create', authMiddleware, async (req, res) => {
   try {
-    const { sellerId, productId } = req.body;
+    const { productId } = req.body;
     const buyerId = req.user._id;
-    if (buyerId === sellerId) return res.status(400).json({ success: false, message: '不能和自己聊天' });
+    const item = await MarketItem.findOne({ _id: productId, status: { $in: ['active', 'reserved'] } });
+    if (!item) return res.status(404).json({ success: false, message: '商品不存在或已下架' });
+    const sellerId = item.userId;
+    if (buyerId.toString() === sellerId.toString()) return res.status(400).json({ success: false, message: '不能和自己聊天' });
+    if (await hasMarketBlockBetween(buyerId, sellerId)) {
+      return res.status(403).json({ success: false, message: '双方暂不可聊天' });
+    }
     
     let room = await ChatRoom.findOne({ productId, buyerId, sellerId });
     if (!room) {
@@ -2791,6 +2926,10 @@ app.get('/api/market/chat/list', authMiddleware, async (req, res) => {
 app.get('/api/market/chat/messages', authMiddleware, async (req, res) => {
   try {
     const { roomId } = req.query;
+    const room = await ChatRoom.findById(roomId);
+    if (!room || (room.buyerId.toString() !== req.user._id.toString() && room.sellerId.toString() !== req.user._id.toString())) {
+      return res.status(403).json({ success: false, message: '无权查看该会话' });
+    }
     const messages = await Message.find({ roomId }).sort({ createdAt: 1 }).limit(100);
     res.json({ success: true, messages });
   } catch (error) {
@@ -2802,18 +2941,38 @@ app.get('/api/market/chat/messages', authMiddleware, async (req, res) => {
 app.post('/api/market/chat/send', authMiddleware, async (req, res) => {
   try {
     const { roomId, content } = req.body;
-    if (!content) return res.status(400).json({ success: false, message: '请输入内容' });
+    const cleanContent = normalizeMarketText(content, 500);
+    if (!cleanContent) return res.status(400).json({ success: false, message: '请输入内容' });
+    const room = await ChatRoom.findById(roomId);
+    if (!room || (room.buyerId.toString() !== req.user._id.toString() && room.sellerId.toString() !== req.user._id.toString())) {
+      return res.status(403).json({ success: false, message: '无权发送消息' });
+    }
+    if (await hasMarketBlockBetween(room.buyerId, room.sellerId)) {
+      return res.status(403).json({ success: false, message: '双方暂不可聊天' });
+    }
     
     const message = await Message.create({
       roomId,
       senderId: req.user._id,
-      content
+      content: cleanContent
     });
     
     await ChatRoom.findByIdAndUpdate(roomId, {
-      lastMessage: content,
+      lastMessage: cleanContent,
       lastMessageAt: new Date()
     });
+
+    const receiverId = room.buyerId.toString() === req.user._id.toString() ? room.sellerId : room.buyerId;
+    const receiverSocket = userSockets.get(receiverId.toString());
+    if (receiverSocket) {
+      io.to(receiverSocket).emit('newMessage', {
+        roomId,
+        _id: message._id,
+        senderId: req.user._id,
+        content: cleanContent,
+        createdAt: message.createdAt
+      });
+    }
     
     res.json({ success: true, message });
   } catch (error) {
@@ -2828,15 +2987,19 @@ app.post('/api/market/chat/send', authMiddleware, async (req, res) => {
 app.post('/api/market/report', authMiddleware, async (req, res) => {
   try {
     const { userId, reason, productId } = req.body;
-    if (!userId || !reason) {
+    const cleanReason = normalizeMarketText(reason, 300);
+    if (!userId || !cleanReason) {
       return res.status(400).json({ success: false, message: '请填写举报原因' });
+    }
+    if (userId === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: '不能举报自己' });
     }
     
     const report = new Report({
       reporterId: req.user._id,
       targetUserId: userId,
       productId: productId || null,
-      reason,
+      reason: cleanReason,
       status: 'pending'
     });
     await report.save();
@@ -2873,6 +3036,14 @@ app.post('/api/market/block', authMiddleware, async (req, res) => {
 app.post('/api/market/cart', authMiddleware, async (req, res) => {
   try {
     const { productId } = req.body;
+    const item = await MarketItem.findOne({ _id: productId, status: 'active' });
+    if (!item) return res.status(404).json({ success: false, message: '商品不存在或已下架' });
+    if (item.userId.toString() === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: '不能加购自己的商品' });
+    }
+    if (await hasMarketBlockBetween(req.user._id, item.userId)) {
+      return res.status(403).json({ success: false, message: '双方暂不可交易' });
+    }
     const existing = await Cart.findOne({ userId: req.user._id, productId });
     if (existing) return res.json({ success: false, message: '已在购物车中' });
     await Cart.create({ userId: req.user._id, productId });
@@ -2915,19 +3086,50 @@ app.get('/api/market/cart/seller', authMiddleware, async (req, res) => {
 app.post('/api/market/orders', authMiddleware, async (req, res) => {
   try {
     const { productId, address } = req.body;
-    if (!address || !address.name || !address.phone || !address.detail) {
+    const cleanAddress = {
+      name: normalizeMarketText(address?.name, 40),
+      phone: normalizeMarketText(address?.phone, 30),
+      detail: normalizeMarketText(address?.detail, 300)
+    };
+    if (!cleanAddress.name || !cleanAddress.phone || !cleanAddress.detail) {
       return res.status(400).json({ success: false, message: '请填写完整收货信息' });
     }
-    const item = await MarketItem.findById(productId);
-    if (!item || item.status !== 'active') return res.status(404).json({ success: false, message: '商品不存在或已下架' });
-    if (item.userId.toString() === req.user._id.toString()) return res.status(400).json({ success: false, message: '不能购买自己的商品' });
+    const item = await MarketItem.findOneAndUpdate(
+      { _id: productId, status: 'active' },
+      { status: 'reserved', updatedAt: new Date() },
+      { new: true }
+    );
+    if (!item) return res.status(404).json({ success: false, message: '商品不存在、已下架或正在交易中' });
+    if (item.userId.toString() === req.user._id.toString()) {
+      await MarketItem.updateOne({ _id: item._id }, { status: 'active', updatedAt: new Date() });
+      return res.status(400).json({ success: false, message: '不能购买自己的商品' });
+    }
+    if (await hasMarketBlockBetween(req.user._id, item.userId)) {
+      await MarketItem.updateOne({ _id: item._id }, { status: 'active', updatedAt: new Date() });
+      return res.status(403).json({ success: false, message: '双方暂不可交易' });
+    }
     const orderNo = 'ORD' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,6).toUpperCase();
-    const order = await MarketOrder.create({
-      orderNo, buyerId: req.user._id, sellerId: item.userId, productId,
-      productNo: item.productNo, title: item.title, price: item.price,
-      address, status: 'pending'
-    });
+    let order;
+    try {
+      order = await MarketOrder.create({
+        orderNo, buyerId: req.user._id, sellerId: item.userId, productId,
+        productNo: item.productNo, title: item.title, price: item.price,
+        address: cleanAddress, status: 'pending'
+      });
+    } catch (error) {
+      await MarketItem.updateOne({ _id: item._id }, { status: 'active', updatedAt: new Date() });
+      throw error;
+    }
     await Cart.deleteOne({ userId: req.user._id, productId });
+    const sellerSocket = userSockets.get(item.userId.toString());
+    if (sellerSocket) {
+      io.to(sellerSocket).emit('marketOrderCreated', {
+        orderId: order._id,
+        orderNo: order.orderNo,
+        title: order.title,
+        price: order.price
+      });
+    }
     res.json({ success: true, order });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
@@ -2950,14 +3152,50 @@ app.get('/api/market/orders/seller', authMiddleware, async (req, res) => {
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
 
-// 卖家确认/取消订单
+// 买卖双方更新订单状态
 app.put('/api/market/orders/:id', authMiddleware, async (req, res) => {
   try {
     const { status } = req.body;
-    const order = await MarketOrder.findOne({ _id: req.params.id, sellerId: req.user._id });
+    if (!MARKET_ORDER_STATUS.includes(status)) {
+      return res.status(400).json({ success: false, message: '无效的订单状态' });
+    }
+    const order = await MarketOrder.findOne({
+      _id: req.params.id,
+      $or: [{ sellerId: req.user._id }, { buyerId: req.user._id }]
+    });
     if (!order) return res.status(404).json({ success: false, message: '订单不存在' });
-    order.status = status; order.updatedAt = new Date();
+    const isSeller = order.sellerId.toString() === req.user._id.toString();
+    const isBuyer = order.buyerId.toString() === req.user._id.toString();
+    const sellerNext = {
+      pending: ['confirmed', 'cancelled'],
+      confirmed: ['shipped', 'cancelled']
+    };
+    const buyerNext = {
+      pending: ['cancelled'],
+      shipped: ['completed']
+    };
+    const allowed = isSeller ? sellerNext[order.status] : (isBuyer ? buyerNext[order.status] : []);
+    if (!allowed?.includes(status)) {
+      return res.status(400).json({ success: false, message: '当前订单状态不能这样变更' });
+    }
+    order.status = status;
+    order.updatedAt = new Date();
     await order.save();
+    if (status === 'cancelled') {
+      await releaseMarketItemIfNoOpenOrders(order.productId);
+    } else if (status === 'completed') {
+      await MarketItem.updateOne({ _id: order.productId }, { status: 'sold', updatedAt: new Date() });
+      await Cart.deleteMany({ productId: order.productId });
+    }
+    const notifyUserId = isSeller ? order.buyerId : order.sellerId;
+    const notifySocket = userSockets.get(notifyUserId.toString());
+    if (notifySocket) {
+      io.to(notifySocket).emit('marketOrderUpdated', {
+        orderId: order._id,
+        orderNo: order.orderNo,
+        status: order.status
+      });
+    }
     res.json({ success: true, order });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
@@ -2968,8 +3206,16 @@ app.post('/api/user/payqr', authMiddleware, async (req, res) => {
   try {
     const { wechat, alipay } = req.body;
     const update = {};
-    if (wechat !== undefined) update['payQR.wechat'] = wechat;
-    if (alipay !== undefined) update['payQR.alipay'] = alipay;
+    if (wechat !== undefined) {
+      const normalized = normalizeQrImage(wechat);
+      if (normalized === null) return res.status(400).json({ success: false, message: '微信收款码图片无效或过大' });
+      update['payQR.wechat'] = normalized;
+    }
+    if (alipay !== undefined) {
+      const normalized = normalizeQrImage(alipay);
+      if (normalized === null) return res.status(400).json({ success: false, message: '支付宝收款码图片无效或过大' });
+      update['payQR.alipay'] = normalized;
+    }
     await User.findByIdAndUpdate(req.user._id, update);
     res.json({ success: true, message: '收款码已更新' });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
@@ -3023,7 +3269,7 @@ app.delete('/api/admin/market-items/:id', adminMiddleware, async (req, res) => {
   try {
     const item = await MarketItem.findById(req.params.id);
     if (!item) return res.status(404).json({ success: false, message: '商品不存在' });
-    item.status = 'deleted';
+    item.status = 'removed';
     await item.save();
     res.json({ success: true, message: '商品已下架' });
   } catch (error) {
