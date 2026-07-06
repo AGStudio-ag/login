@@ -209,6 +209,7 @@ const marketItemSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   category: { type: String, enum: ['book', 'electronic', 'life', 'other'], default: 'other' },
   images: { type: [String], default: [] },
+  paymentQR: { type: String, default: '' },
   contact: {
     qq: { type: String, default: '' },
     wechat: { type: String, default: '' }
@@ -326,7 +327,7 @@ function normalizeMarketPrice(value) {
 function normalizeMarketImages(images) {
   if (!Array.isArray(images)) return [];
   return images
-    .filter(img => typeof img === 'string' && /^data:image\/(png|jpe?g|webp);base64,/i.test(img))
+    .filter(img => typeof img === 'string' && img.length <= 2 * 1024 * 1024 && /^data:image\/(png|jpe?g|webp);base64,/i.test(img))
     .slice(0, 5);
 }
 
@@ -2717,7 +2718,7 @@ app.get('/api/market/items', async (req, res) => {
       if (!item || item.status === 'removed') return res.status(404).json({ success: false, message: '商品不存在' });
       item.views = (item.views || 0) + 1;
       await item.save();
-      return res.json({ success: true, items: [item] });
+      return res.json({ success: true, item, items: [item] });
     }
     
     const query = { status: 'active' };
@@ -2741,6 +2742,7 @@ app.get('/api/market/items', async (req, res) => {
     };
     
     const items = await MarketItem.find(query)
+      .select('-paymentQR')
       .populate('userId', 'studentId name')
       .sort(sortMap[sort] || sortMap.latest)
       .skip((safePage - 1) * safeLimit)
@@ -2778,14 +2780,18 @@ app.get('/api/market/stats', async (req, res) => {
 //fa布商品
 app.post('/api/market/items', authMiddleware, async (req, res) => {
   try {
-    const { title, description, price, category, contact, images } = req.body;
+    const { title, description, price, category, contact, images, paymentQR } = req.body;
     const cleanTitle = normalizeMarketText(title, 80);
     const cleanDescription = normalizeMarketText(description, 1000);
     const cleanPrice = normalizeMarketPrice(price);
+    const cleanPaymentQR = normalizeQrImage(paymentQR || '');
     if (!cleanTitle || !cleanDescription || cleanPrice === null) {
       return res.status(400).json({ success: false, message: '请填写完整信息' });
     }
     // 生成商品专号：AG + 时间戳后6位 + 随机4位
+    if (cleanPaymentQR === null) {
+      return res.status(400).json({ success: false, message: '收款码图片无效或过大' });
+    }
     const productNo = 'AG' + Date.now().toString(36).slice(-6).toUpperCase() + Math.random().toString(36).slice(2,6).toUpperCase();
     const item = new MarketItem({
       productNo,
@@ -2796,6 +2802,7 @@ app.post('/api/market/items', authMiddleware, async (req, res) => {
       category: MARKET_CATEGORIES.includes(category) ? category : 'other',
       contact: normalizeMarketContact(contact),
       images: normalizeMarketImages(images),
+      paymentQR: cleanPaymentQR,
       status: 'active'
     });
     await item.save();
@@ -2826,6 +2833,7 @@ app.get('/api/market/contact/:id', authMiddleware, async (req, res) => {
 app.get('/api/market/my', authMiddleware, async (req, res) => {
   try {
     const items = await MarketItem.find({ userId: req.user._id, status: { $ne: 'removed' } })
+      .select('-paymentQR')
       .sort({ createdAt: -1 });
     res.json({ success: true, items });
   } catch (error) {
@@ -2887,6 +2895,7 @@ app.get('/api/market/favorite', authMiddleware, async (req, res) => {
     const favorites = await Favorite.find({ userId: req.user._id }).populate({
       path: 'productId',
       match: { status: 'active' },
+      select: '-paymentQR',
       populate: { path: 'userId', select: 'studentId name' }
     });
     const items = favorites.filter(f => f.productId).map(f => f.productId);
@@ -2901,10 +2910,13 @@ app.get('/api/market/favorite', authMiddleware, async (req, res) => {
 // 创建聊天室
 app.post('/api/market/chat/create', authMiddleware, async (req, res) => {
   try {
-    const { productId, buyerId: requestedBuyerId } = req.body;
+    const { productId, sellerId: requestedSellerId, buyerId: requestedBuyerId } = req.body;
     const item = await MarketItem.findOne({ _id: productId, status: { $ne: 'removed' } });
     if (!item) return res.status(404).json({ success: false, message: '商品不存在或已下架' });
     const sellerId = item.userId;
+    if (requestedSellerId && requestedSellerId !== sellerId.toString()) {
+      return res.status(400).json({ success: false, message: '卖家信息与商品不匹配' });
+    }
     let buyerId = req.user._id;
 
     if (sellerId.toString() === req.user._id.toString()) {
@@ -3027,6 +3039,11 @@ app.post('/api/market/report', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: '不能举报自己' });
     }
     
+    const targetUser = await User.findById(userId).select('_id');
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: '被举报用户不存在' });
+    }
+
     const report = new Report({
       reporterId: req.user._id,
       targetUserId: userId,
@@ -3049,6 +3066,9 @@ app.post('/api/market/block', authMiddleware, async (req, res) => {
     if (!userId) return res.status(400).json({ success: false, message: '请指定用户' });
     if (userId === req.user._id.toString()) return res.status(400).json({ success: false, message: '不能拉黑自己' });
     
+    const targetUser = await User.findById(userId).select('_id');
+    if (!targetUser) return res.status(404).json({ success: false, message: '用户不存在' });
+
     const existing = await Block.findOne({ userId: req.user._id, blockedUserId: userId });
     if (existing) {
       await Block.deleteOne({ _id: existing._id });
@@ -3337,6 +3357,9 @@ app.get('/api/admin/reports', adminMiddleware, async (req, res) => {
 app.put('/api/admin/reports/:id', adminMiddleware, async (req, res) => {
   try {
     const { status } = req.body;
+    if (!['pending', 'handled', 'dismissed'].includes(status)) {
+      return res.status(400).json({ success: false, message: '无效的举报状态' });
+    }
     const report = await Report.findByIdAndUpdate(req.params.id, { status }, { new: true });
     if (!report) return res.status(404).json({ success: false, message: '举报不存在' });
     res.json({ success: true, report });
