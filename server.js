@@ -592,7 +592,7 @@ async function initSystemConfig() {
       value: { 
         enabled: true, 
         title: '📢 系统公告', 
-        content: '欢迎使用智能考勤系统！绑定邮箱即可获得 30 天 VIP。邀请好友注册，双方各得 10 天 VIP！', 
+        content: '欢迎使用智能考勤系统！邀请好友注册，双方各得 10 天 VIP！', 
         style: 'info' 
       } 
     },
@@ -769,7 +769,7 @@ async function sendVerificationCode(email, code) {
             <p style="margin-top: 20px; color: #666;">验证码 5 分钟内有效，请勿泄露给他人。</p>
             
             <div style="margin-top: 24px; padding: 16px; background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%); border-radius: 12px; text-align: center;">
-              <p style="margin: 0 0 8px 0; font-weight: 600; color: #667eea;">🎉 绑定邮箱即送 30 天 VIP</p>
+              <p style="margin: 0 0 8px 0; font-weight: 600; color: #667eea;">🎉 邀请好友注册，双方各得 10 天 VIP</p>
               <p style="margin: 0 0 12px 0; font-size: 13px; color: #666;">享受签到邮件通知 · 邀请好友再送 VIP</p>
               <a href="https://login.agai.online" style="display: inline-block; padding: 8px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; text-decoration: none; border-radius: 20px; font-size: 14px; font-weight: 500;">立即体验</a>
             </div>
@@ -1088,6 +1088,8 @@ async function verifyPassword(studentId, password) {
 // ============ 自动签到执行函数 ============
 // ============ 自动签到执行函数（并发优化版）============
 async function executeAutoSign(options = {}) {
+  const paused = await SystemConfig.findOne({ key: 'auto_sign_paused' });
+  if (paused && paused.value === true) { console.log('⏸️ 假期暂停自动签到'); return; }
   const targetTime = normalizeSignTime(options.targetTime);
   const planTime = targetTime || AUTO_SIGN_TIME;
   console.log('⏰ 自动签到任务开始:', getBeijingTime());
@@ -1489,9 +1491,13 @@ app.post('/api/login', async (req, res) => {
       
       const userData = { 
         studentId,
-        name: realName,  // ← 使用学校系统的真实姓名
+        name: realName,
         inviteCode,
-        lastLogin: new Date()
+        lastLogin: new Date(),
+        isVip: true,
+        vipTier: 'VIP',
+        vipStartAt: new Date(),
+        vipExpireAt: new Date(Date.now() + 3 * 24 * 3600 * 1000)
       };
 
       if (isAdminAccount) {
@@ -1685,17 +1691,7 @@ app.post('/api/email/verify', authMiddleware, async (req, res) => {
     
     user.email = email;
     user.emailVerified = true;
-    user.isVip = true;
-    
-    // 在原到期时间基础上延长 30 天，避免把年费/长期会员缩短
-    const now = new Date();
-    const vipExpireAt = user.vipExpireAt && user.vipExpireAt > now
-      ? new Date(user.vipExpireAt)
-      : new Date();
-    vipExpireAt.setDate(vipExpireAt.getDate() + 30);
-    user.vipExpireAt = vipExpireAt;
-    applyVipTier(user, 'VIP');
-    
+
     await user.save();
     
     res.json({
@@ -2608,6 +2604,8 @@ async function sendTierEmail(user, subject, opts) {
 
 async function sendSponsorMail(user, order, kind) {
   const tier = getTierProfile(user);
+  const orderPkg = await SponsorPackage.findOne({ packageId: order.packageId }).catch(() => null);
+  const packageName = orderPkg ? orderPkg.name : tier.label;
   if (kind === 'revoked') {
     return sendTierEmail(user, '⚠️ 赞助权益已取消', {
       title: '赞助权益已取消',
@@ -2629,7 +2627,7 @@ async function sendSponsorMail(user, order, kind) {
       <p style="margin:0 0 8px;">订单：<strong>${order.orderNo}</strong></p>
       <p style="margin:0 0 8px;">档位：<strong>${packageText}</strong></p>
       <p style="margin:0 0 8px;">金额：<strong>¥${Number(order.amount).toFixed(2)}</strong></p>
-      <p style="margin:0;">权益已发放${isCounts ? '，剩余次数可在仪表盘查看。' : `，当前等级：<strong>${tier.label}</strong>。`}</p>
+      <p style="margin:0;">权益已发放${isCounts ? '，剩余次数可在仪表盘查看。' : `，当前等级：<strong>${packageName}</strong>。`}</p>
     </div>`,
     ctaText: '登录查看权益',
     ctaUrl: 'https://login.agai.online',
