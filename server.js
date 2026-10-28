@@ -2988,6 +2988,28 @@ app.delete('/api/admin/sponsor-packages/:id', adminMiddleware, async (req, res) 
     res.status(500).json({ success: false, message: error.message });
   }
 });
+// ============ 管理员：假期暂停自动签到 ============
+app.get('/api/admin/holiday', adminMiddleware, async (req, res) => {
+  try {
+    const cfg = await SystemConfig.findOne({ key: 'auto_sign_paused' });
+    res.json({ success: true, paused: !!(cfg && cfg.value === true) });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/admin/holiday', adminMiddleware, async (req, res) => {
+  try {
+    const paused = !!req.body.paused;
+    let cfg = await SystemConfig.findOne({ key: 'auto_sign_paused' });
+    if (!cfg) cfg = new SystemConfig({ key: 'auto_sign_paused', value: paused });
+    else { cfg.value = paused; cfg.updatedAt = new Date(); }
+    await cfg.save();
+    res.json({ success: true, paused, message: paused ? '已暂停自动签到（不影响到期时间）' : '已恢复自动签到' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 app.post('/api/admin/announcement', adminMiddleware, async (req, res) => {
   try {
     const users = await User.find({ email: { $ne: '' }, isGuest: { $ne: true } });
