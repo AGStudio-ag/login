@@ -130,7 +130,7 @@ const userSchema = new mongoose.Schema({
   emailVerified: { type: Boolean, default: false },
   isVip: { type: Boolean, default: false },
   vipExpireAt: { type: Date, default: null },
-  vipTier: { type: String, enum: ['FREE', 'VIP', 'SVIP', 'YEARLY', 'TERM', 'LEGACY'], default: 'FREE' },
+  vipTier: { type: String, enum: ['FREE', 'MONTHLY', 'TERM', 'YEARLY', 'VIP', 'SVIP', 'LEGACY'], default: 'FREE' },
   vipStartAt: { type: Date, default: null },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   isActive: { type: Boolean, default: true },
@@ -191,6 +191,7 @@ const cardSchema = new mongoose.Schema({
   code: { type: String, required: true, unique: true },
   days: { type: Number, default: 30 },
   type: { type: String, enum: ['vip_30d', 'vip_90d', 'vip_120d', 'vip_365d'], default: 'vip_30d' },
+  vipTier: { type: String, enum: ['MONTHLY', 'TERM', 'YEARLY', 'VIP', 'SVIP'], default: 'MONTHLY' },
   status: { type: String, enum: ['unused', 'used'], default: 'unused' },
   usedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   usedAt: Date,
@@ -396,16 +397,29 @@ const feedbackSchema = new mongoose.Schema({
 const paymentOrderSchema = new mongoose.Schema({
   orderNo: { type: String, required: true, unique: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  packageId: { type: String, default: '' },
+  tier: { type: String, enum: ['MONTHLY', 'TERM', 'YEARLY', 'VIP', 'SVIP'], default: 'MONTHLY' },
   amount: { type: Number, required: true },
   days: { type: Number, default: 0 },
   times: { type: Number, default: 0 },
   cardCategory: { type: String, enum: ['days', 'times'], default: 'days' },
   payMethod: { type: String, enum: ['wechat', 'alipay'], default: 'wechat' },
-  status: { type: String, enum: ['pending', 'paid', 'expired'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'claimed', 'paid', 'granted', 'expired', 'rejected'], default: 'pending' },
+  reviewStatus: { type: String, enum: ['unreviewed', 'confirmed', 'rejected'], default: 'unreviewed' },
+  paymentRef: { type: String, default: '' },
+  claimNote: { type: String, default: '' },
+  claimAt: Date,
+  provider: { type: String, default: '' },
+  mark: { type: String, default: '' },
   cardId: { type: mongoose.Schema.Types.ObjectId, ref: 'Card' },
-  expireAt: { type: Date },  // ← 新增：订单过期时间
+  expireAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
-  paidAt: Date
+  paidAt: Date,
+  grantedAt: Date,
+  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  reviewedAt: Date,
+  reviewNote: { type: String, default: '' },
+  revokedAt: Date
 });
 
 const PaymentOrder = mongoose.models.PaymentOrder || mongoose.model('PaymentOrder', paymentOrderSchema);
@@ -423,14 +437,38 @@ const AUTO_SIGN_NAME = '自动签到';
 const AUTO_SIGN_TIME = '21:35';
 const AUTO_SIGN_CRON = '35 21 * * *';
 const DEFAULT_AUTO_SIGN_DAYS = [1, 2, 3, 4, 5];
-const VIP_TIER_RANK = { FREE: 0, VIP: 1, TERM: 2, YEARLY: 3, SVIP: 4, LEGACY: 4 };
+const VIP_TIER_RANK = { FREE: 0, MONTHLY: 1, TERM: 2, YEARLY: 3, VIP: 4, SVIP: 5, LEGACY: 5 };
 
 function applyVipTier(user, tier) {
-  if (!VIP_TIER_RANK[tier]) return;
+  if (VIP_TIER_RANK[tier] === undefined) return;
   if (VIP_TIER_RANK[tier] >= (VIP_TIER_RANK[user.vipTier] || 0)) {
     user.vipTier = tier;
   }
   if (!user.vipStartAt) user.vipStartAt = new Date();
+}
+
+function addVipDays(user, days) {
+  const now = new Date();
+  const base = user.isVip && user.vipExpireAt && user.vipExpireAt > now ? new Date(user.vipExpireAt) : now;
+  base.setDate(base.getDate() + Number(days || 0));
+  user.isVip = true;
+  user.vipExpireAt = base;
+  if (!user.vipStartAt) user.vipStartAt = now;
+  return base;
+}
+
+async function grantSponsorTier(user, tier, days) {
+  const expireAt = addVipDays(user, days);
+  applyVipTier(user, tier);
+  await user.save();
+  return expireAt;
+}
+
+async function revokeSponsorTier(user) {
+  user.isVip = false;
+  user.vipExpireAt = new Date(0);
+  user.vipTier = 'FREE';
+  await user.save();
 }
 
 function normalizeAutoSignDays(days) {
@@ -692,131 +730,60 @@ async function sendVipGrantEmail(user, addedDays, newExpireAt) {
     console.log('📧 Resend 未配置，跳过 VIP 邮件');
     return false;
   }
-  if (!user.email || !user.emailVerified) {
-    console.log(`📧 用户 ${user.studentId} 未绑定邮箱，跳过`);
-    return false;
-  }
-
+  const p = getTierProfile(user);
   const expireDate = newExpireAt ? new Date(newExpireAt).toLocaleDateString('zh-CN') : '永久';
-  const subject = `🎉 VIP 已到账 - AG工作室`;
-
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'AG工作室 <noreply@agai.online>',
-        to: user.email,
-        subject: subject,
-        html: `
-          <div style="max-width:500px;margin:0 auto;padding:20px;font-family:Arial,sans-serif;">
-            <div style="text-align:center;margin-bottom:24px;">
-              <h1 style="color:#667eea;margin:0;">📋 AG工作室</h1>
-            </div>
-            <div style="background:#d4edda;padding:24px;border-radius:12px;border-left:4px solid #28a745;">
-              <p style="font-size:18px;font-weight:700;margin:0 0 12px 0;">🎉 VIP 已到账！</p>
-              <p style="margin:8px 0;"><strong>用户：</strong>${user.name || user.studentId}</p>
-              <p style="margin:8px 0;"><strong>增加天数：</strong>${addedDays} 天</p>
-              <p style="margin:8px 0;"><strong>有效期至：</strong>${expireDate}</p>
-            </div>
-            <div style="margin-top:24px;padding:16px;background:#f8f9fc;border-radius:12px;text-align:center;">
-              <p style="margin:0 0 12px 0;font-size:14px;color:#666;">
-                感谢您对 AG工作室 的信任与支持！<br>
-                签到邮件通知、自动签到等权益已正常生效。
-              </p>
-              <a href="https://login.agai.online" style="display:inline-block;padding:10px 24px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;text-decoration:none;border-radius:20px;font-size:14px;">进入仪表盘</a>
-            </div>
-            <hr style="margin:24px 0;border:none;border-top:1px solid #eee;">
-            <p style="color:#999;font-size:12px;text-align:center;">
-              AG工作室 · 智能考勤系统<br>
-              🌐 https://login.agai.online
-            </p>
-          </div>
-        `
-      })
-    });
-    if (response.ok) {
-      console.log(`✅ VIP 到账邮件发送成功: ${user.email}`);
-      return true;
-    } else {
-      console.error(`❌ VIP 邮件发送失败:`, await response.text());
-      return false;
-    }
-  } catch (error) {
-    console.error('❌ 发送 VIP 邮件异常:', error);
-    return false;
-  }
+  return sendTierEmail(user, `🎉 ${p.label} 已到账 - AG工作室`, {
+    title: '会员权益已到账',
+    bodyHtml: `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;color:#166534;font-size:14px;line-height:1.9;">
+      <p style="margin:0 0 8px;">当前等级：<strong>${p.label}</strong></p>
+      <p style="margin:0 0 8px;">增加天数：<strong>${addedDays} 天</strong></p>
+      <p style="margin:0;">有效期至：<strong>${expireDate}</strong></p>
+    </div>`,
+    ctaText: '进入仪表盘',
+    ctaUrl: 'https://login.agai.online',
+    footerNote: '感谢你对 AG工作室 的信任与支持。'
+  });
 }
 
 async function sendSignNotification(email, studentId, result, subscriptionName, signTime = null) {
   console.log(`📧 准备发送通知: email=${email}, studentId=${studentId}, success=${result.success}`);
-  
   if (!RESEND_API_KEY) {
     console.log('📧 Resend 未配置，跳过通知');
     return false;
   }
-  
-  const emoji = result.success ? '✅' : '❌';
-  const statusText = result.success ? '成功' : '失败';
-  const statusColor = result.success ? '#28a745' : '#dc3545';
-  const displayTime = signTime 
-    ? signTime.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) 
-    : getBeijingTime();
-  
+
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'AG工作室 <noreply@agai.online>',
-        to: email,
-        subject: `${emoji} 签到${statusText}通知 - ${subscriptionName}`,
-        html: `
-          <div style="max-width: 450px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h1 style="color: #667eea; margin: 0;">📋 签到通知</h1>
-            </div>
-            <div style="background: #f5f7fa; padding: 20px; border-radius: 12px;">
-              <p><strong>学号：</strong>${studentId}</p>
-              <p><strong>任务：</strong>${subscriptionName}</p>
-              <p><strong>时间：</strong>${displayTime}</p>
-              <p><strong>结果：</strong><span style="color: ${statusColor};">${result.message || statusText}</span></p>
-            </div>
-            
-            <div style="margin-top: 24px; padding: 16px; background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%); border-radius: 12px; text-align: center;">
-              <p style="margin: 0 0 8px 0; font-weight: 600; color: #667eea;">🚀 智能考勤 · 让签到更简单</p>
-              <p style="margin: 0 0 12px 0; font-size: 13px; color: #666;">自动签到 · 邮件通知 · 永久免费</p>
-              <a href="https://login.agai.online" style="display: inline-block; padding: 8px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; text-decoration: none; border-radius: 20px; font-size: 14px; font-weight: 500;">访问官网</a>
-              <p style="margin: 12px 0 0 0; font-size: 12px; color: #999;">邀请好友注册，双方各得 10 天 VIP！</p>
-            </div>
-            
-            <hr style="margin: 24px 0; border: none; border-top: 1px solid #eee;">
-            <p style="color: #999; font-size: 12px; text-align: center;">
-              AG工作室 · 智能考勤系统<br>
-              📧 客服邮箱：support@agai.online<br>
-              🌐 官网：https://login.agai.online
-            </p>
-          </div>
-        `
-      })
-    });
-    
-    if (response.ok) {
-      console.log('✅ 签到通知发送成功:', email);
-      return true;
-    } else {
-      const error = await response.text();
-      console.error('❌ 通知发送失败:', error);
+    const user = await User.findOne({
+      $or: [{ email: String(email || '') }, { studentId: String(studentId || '') }]
+    }).select('studentId name email emailVerified vipTier isVip inviteCode');
+    if (!user) {
+      console.log('📧 未找到对应用户，跳过通知:', email, studentId);
       return false;
     }
+
+    const p = getTierProfile(user);
+    const statusText = result.success ? '成功' : '失败';
+    const displayTime = signTime
+      ? signTime.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+      : getBeijingTime();
+    const color = result.success ? '#166534' : '#991b1b';
+    const bg = result.success ? '#f0fdf4' : '#fef2f2';
+    const border = result.success ? '#bbf7d0' : '#fecaca';
+
+    return await sendTierEmail(user, `${result.success ? '✅' : '❌'} 签到${statusText}通知 - ${subscriptionName}`, {
+      title: `签到${statusText}`,
+      bodyHtml: `<div style="background:${bg};border:1px solid ${border};border-radius:12px;padding:16px;color:${color};font-size:14px;line-height:1.9;">
+        <p style="margin:0 0 8px;">学号：<strong>${user.studentId || studentId}</strong></p>
+        <p style="margin:0 0 8px;">任务：<strong>${subscriptionName}</strong></p>
+        <p style="margin:0 0 8px;">时间：<strong>${displayTime}</strong></p>
+        <p style="margin:0;">结果：<strong>${result.message || statusText}</strong></p>
+      </div>`,
+      ctaText: '查看签到记录',
+      ctaUrl: 'https://login.agai.online',
+      footerNote: '这是一封自动发送的签到通知邮件。'
+    });
   } catch (error) {
-    console.error('❌ 发送通知异常:', error);
+    console.error('❌ 发送通知异常:', error.message);
     return false;
   }
 }
@@ -827,8 +794,8 @@ async function sendSponsorEmailToAllVips(notice) {
     console.log('📧 Resend 未配置，跳过邮件群发');
     return;
   }
-  // 获取所有邮箱已验证且为VIP的用户（排除游客）
-  const users = await User.find({ emailVerified: true, isVip: true, isGuest: { $ne: true } }).select('email studentId name');
+  const users = await User.find({ email: { $ne: '' }, isVip: true, isGuest: { $ne: true } })
+    .select('email studentId name emailVerified vipTier isVip inviteCode');
   if (users.length === 0) {
     console.log('📧 没有符合条件的VIP用户');
     return;
@@ -839,31 +806,14 @@ async function sendSponsorEmailToAllVips(notice) {
 
   let successCount = 0, failCount = 0;
   for (const user of users) {
-    try {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${RESEND_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: 'AG工作室 <noreply@agai.online>',
-          to: user.email,
-          subject: subject,
-          html: `
-            <div style="max-width:500px;margin:0 auto;padding:20px;font-family:Arial,sans-serif;">
-              <h2 style="color:#667eea;">📋 AG工作室</h2>
-              <div style="background:#f8f9fc;padding:20px;border-radius:12px;">
-                ${content.replace(/\n/g, '<br>')}
-              </div>
-              <p style="color:#888;margin-top:20px;text-align:center;">此邮件由管理员发送，感谢您的支持！</p>
-            </div>
-          `
-        })
-      });
-      if (response.ok) successCount++; else failCount++;
-    } catch (e) { failCount++; }
-    // 避免触发邮件发送频率限制
+    const sent = await sendTierEmail(user, subject, {
+      title: notice.title || 'AG工作室感谢您的赞助',
+      bodyHtml: `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;color:#334155;font-size:14px;line-height:1.9;">${String(content).replace(/\n/g, '<br>')}</div>`,
+      ctaText: '登录官网',
+      ctaUrl: 'https://login.agai.online',
+      footerNote: '此邮件由管理员发送，感谢您的支持！'
+    });
+    if (sent) successCount++; else failCount++;
     await new Promise(r => setTimeout(r, 200));
   }
   console.log(`📧 赞助邮件群发完成：成功 ${successCount}，失败 ${failCount}`);
@@ -1732,18 +1682,8 @@ app.post('/api/vip/redeem', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: '卡密无效或已被使用' });
     }
     
-    const now = new Date();
-    let expireAt;
-    if (user.isVip && user.vipExpireAt && user.vipExpireAt > now) {
-      expireAt = new Date(user.vipExpireAt);
-    } else {
-      expireAt = new Date();
-    }
-    expireAt.setDate(expireAt.getDate() + card.days);
-    
-    const cardTier = card.days >= 365 ? 'YEARLY' : card.days >= 120 ? 'TERM' : 'VIP';
-    user.isVip = true;
-    user.vipExpireAt = expireAt;
+    const cardTier = card.vipTier || (card.days >= 365 ? 'YEARLY' : card.days >= 120 ? 'TERM' : 'MONTHLY');
+    const expireAt = addVipDays(user, card.days);
     applyVipTier(user, cardTier);
     await user.save();
     
@@ -2426,253 +2366,427 @@ app.post('/api/admin/sign/:userId', adminMiddleware, async (req, res) => {
 
 // ============ 支付 API ============
 // 收款码图片地址
+// ============ 赞助/支付系统 ============
 const PAY_QR_URLS = {
-  wechat: 'https://login.agai.online/vxcode.png',   // 微信收款码
-  alipay: 'https://login.agai.online/zfbcode.png'    // 支付宝收款码
+  wechat: 'https://login.agai.online/vxcode.png',
+  alipay: 'https://login.agai.online/zfbcode.png'
 };
-
-// 默认收款码（兼容旧版）
 const PAY_QR_URL = PAY_QR_URLS.wechat;
 
-// ============ 生成唯一金额 ============
+const SPONSOR_PACKAGES = [
+  { id: 'monthly', tier: 'MONTHLY', days: 30,  price: 6.66,  name: '月卡',  description: '30 天月卡会员',        badge: '轻量体验' },
+  { id: 'term',    tier: 'TERM',    days: 120, price: 9.99,  name: '学期',  description: '一学期会员 · 120 天',  badge: '性价比' },
+  { id: 'yearly',  tier: 'YEARLY',  days: 365, price: 15.00, name: '学年',  description: '一学年会员 · 365 天',  badge: '最划算' },
+  { id: 'vip',     tier: 'VIP',     days: 365, price: 20.00, name: 'VIP',   description: 'VIP 会员 · 365 天',    badge: '进阶' },
+  { id: 'svip',    tier: 'SVIP',    days: 365, price: 55.00, name: 'SVIP',  description: 'SVIP 会员 · 365 天',   badge: '最高等级' }
+];
+
+// 卡密后台仍可生成，作为线下/手动备用
+const CARD_PACKAGES = [
+  { days: 30,  times: 0, cardCategory: 'days', price: 6.66,  name: '30天月卡',   description: '月卡会员', vipTier: 'MONTHLY' },
+  { days: 120, times: 0, cardCategory: 'days', price: 9.99,  name: '一学期会员', description: '学期会员', vipTier: 'TERM' },
+  { days: 365, times: 0, cardCategory: 'days', price: 15.00, name: '一学年会员', description: '年费会员', vipTier: 'YEARLY' },
+  { days: 365, times: 0, cardCategory: 'days', price: 20.00, name: 'VIP会员',    description: 'VIP 会员', vipTier: 'VIP' },
+  { days: 365, times: 0, cardCategory: 'days', price: 55.00, name: 'SVIP会员',   description: 'SVIP 会员', vipTier: 'SVIP' },
+  { days: 0, times: 30, cardCategory: 'times', price: 19.9, name: '30次签到卡', description: '可签到30次', vipTier: '' },
+  { days: 0, times: 10, cardCategory: 'times', price: 8.8,  name: '10次签到卡', description: '可签到10次', vipTier: '' }
+];
+
+const TIER_EMAIL_PROFILES = {
+  FREE:    { label: '免费用户',  emoji: '🌱', gradient: 'linear-gradient(135deg,#64748b,#94a3b8)', accent: '#475569' },
+  MONTHLY: { label: '月卡会员',  emoji: '🌙', gradient: 'linear-gradient(135deg,#0f766e,#14b8a6)', accent: '#0f766e' },
+  TERM:    { label: '学期会员',  emoji: '📚', gradient: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', accent: '#1d4ed8' },
+  YEARLY:  { label: '年费会员',  emoji: '🏆', gradient: 'linear-gradient(135deg,#7c3aed,#a855f7)', accent: '#7c3aed' },
+  VIP:     { label: 'VIP会员',   emoji: '👑', gradient: 'linear-gradient(135deg,#b45309,#f59e0b)', accent: '#b45309' },
+  SVIP:    { label: 'SVIP会员',  emoji: '💎', gradient: 'linear-gradient(135deg,#be123c,#fb7185)', accent: '#be123c' },
+  LEGACY:  { label: '元老会员',  emoji: '🏛️', gradient: 'linear-gradient(135deg,#111827,#4b5563)', accent: '#111827' }
+};
+
+function getTierProfile(user) {
+  return TIER_EMAIL_PROFILES[user && user.vipTier] || TIER_EMAIL_PROFILES[user && user.isVip ? 'VIP' : 'FREE'];
+}
+
+function renderTierEmail(user, opts) {
+  const p = getTierProfile(user);
+  const name = (user && (user.name || user.studentId)) || '同学';
+  const inviteCode = (user && user.inviteCode) || '';
+  const inviteUrl = inviteCode ? `https://login.agai.online?invite=${inviteCode}` : 'https://login.agai.online';
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:20px;background:#f4f6f8;font-family:'Microsoft YaHei',Arial,sans-serif;">
+<div style="max-width:640px;margin:0 auto;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.08);">
+  <div style="background:${p.gradient};padding:28px 26px;color:#fff;">
+    <div style="font-size:12px;letter-spacing:.12em;opacity:.85;font-weight:700;">AG ATTENDANCE</div>
+    <h1 style="margin:10px 0 6px;font-size:24px;line-height:1.3;">${opts.title || 'AG 智能考勤'}</h1>
+    <div style="display:inline-block;margin-top:6px;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.18);font-size:12px;font-weight:700;">${p.emoji} ${p.label}</div>
+  </div>
+  <div style="padding:26px;">
+    <p style="margin:0 0 14px;color:#334155;font-size:14px;">${name}，你好：</p>
+    ${opts.bodyHtml || ''}
+    <div style="text-align:center;margin:26px 0;">
+      <a href="${opts.ctaUrl || 'https://login.agai.online'}" style="display:inline-block;padding:13px 28px;border-radius:999px;background:${p.accent};color:#fff;text-decoration:none;font-weight:800;font-size:14px;">${opts.ctaText || '打开官网'}</a>
+    </div>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;font-size:13px;color:#475569;line-height:1.8;">
+      <strong>官网：</strong><a href="https://login.agai.online" style="color:${p.accent};">https://login.agai.online</a><br>
+      <strong>你的专属邀请链接：</strong><a href="${inviteUrl}" style="color:${p.accent};">${inviteUrl}</a><br>
+      <span style="color:#64748b;">把链接分享给同学，双方都有奖励。</span>
+    </div>
+    ${opts.footerNote ? `<p style="margin:18px 0 0;color:#64748b;font-size:12px;line-height:1.8;">${opts.footerNote}</p>` : ''}
+  </div>
+  <div style="padding:18px 26px;background:#0f172a;color:#94a3b8;font-size:12px;line-height:1.8;">
+    AG工作室 · 智能考勤系统<br>
+    自动签到 · 手动签到 · 邮件提醒 · 记录查询<br>
+    客服邮箱：support@agai.online
+  </div>
+</div></body></html>`;
+}
+
+async function sendTierEmail(user, subject, opts) {
+  if (!RESEND_API_KEY || !user || !user.email) return false;
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'AG工作室 <noreply@agai.online>',
+        to: user.email,
+        subject,
+        html: renderTierEmail(user, opts)
+      })
+    });
+    if (!response.ok) console.error('❌ 等级邮件发送失败:', await response.text());
+    return response.ok;
+  } catch (e) {
+    console.error('❌ 等级邮件异常:', e.message);
+    return false;
+  }
+}
+
+async function sendSponsorMail(user, order, kind) {
+  const tier = getTierProfile(user);
+  if (kind === 'revoked') {
+    return sendTierEmail(user, '⚠️ 赞助权益已取消', {
+      title: '赞助权益已取消',
+      bodyHtml: `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px;color:#991b1b;font-size:14px;line-height:1.9;">
+        <p style="margin:0 0 8px;">订单：<strong>${order.orderNo}</strong></p>
+        <p style="margin:0 0 8px;">原赞助档位：<strong>${order.tier} · ${order.days} 天</strong></p>
+        <p style="margin:0;">经核对未匹配到对应付款，权益已取消。如有疑问，请通过客服邮箱联系。</p>
+      </div>`,
+      ctaText: '联系客服',
+      ctaUrl: 'mailto:support@agai.online',
+      footerNote: '如你确实已完成支付，请把支付截图和订单号发到 support@agai.online，我们会人工补发。'
+    });
+  }
+  return sendTierEmail(user, kind === 'confirmed' ? '✅ 赞助已核对到账' : '🎉 赞助已到账', {
+    title: kind === 'confirmed' ? '赞助已核对到账' : '赞助已到账',
+    bodyHtml: `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;color:#166534;font-size:14px;line-height:1.9;">
+      <p style="margin:0 0 8px;">订单：<strong>${order.orderNo}</strong></p>
+      <p style="margin:0 0 8px;">档位：<strong>${tier.label} · ${order.days} 天</strong></p>
+      <p style="margin:0 0 8px;">金额：<strong>¥${Number(order.amount).toFixed(2)}</strong></p>
+      <p style="margin:0;">权益已发放，当前等级：<strong>${tier.label}</strong>。</p>
+    </div>`,
+    ctaText: '登录查看权益',
+    ctaUrl: 'https://login.agai.online',
+    footerNote: '本次赞助为自愿支持。若为“我已支付”提交，后台会进行核对；未匹配到付款的订单可能被取消并邮件通知。'
+  });
+}
+
 async function generateUniqueAmount(basePrice) {
   for (let i = 0; i < 10; i++) {
     const offset = parseFloat((Math.random() * 0.09 + 0.01).toFixed(2));
     const amount = parseFloat((basePrice + offset).toFixed(2));
-
     const exists = await PaymentOrder.findOne({
       amount,
-      status: 'pending',
-      createdAt: { $gt: new Date(Date.now() - 30 * 60 * 1000) }  // 30分钟内的待支付订单
+      status: { $in: ['pending', 'claimed'] },
+      createdAt: { $gt: new Date(Date.now() - 30 * 60 * 1000) }
     });
-
     if (!exists) return amount;
   }
-
-  // 如果 10 次都没生成唯一金额，加一个时间戳后缀
-  const timestamp = Date.now().toString().slice(-2);
-  return parseFloat((basePrice + parseFloat('0.' + timestamp)).toFixed(2));
+  return parseFloat((basePrice + 0.09).toFixed(2));
 }
-// 卡密套餐配置
-const CARD_PACKAGES = [
-  { days: 30, times: 0, cardCategory: 'days', price: 9.9, name: '30天VIP卡', description: '适合短期使用' },
-  { days: 120, times: 0, cardCategory: 'days', price: 32.8, name: '一学期VIP卡', description: '性价比之选（上岸吧）' },
-  { days: 365, times: 0, cardCategory: 'days', price: 53.2, name: '一学年VIP卡', description: '年度最划算（我上岸）' },
-  { days: 0, times: 0, cardCategory: 'days', price: 0.01, name: '测试用勿拍', description: '仅测试' },
-  // 如果以后需要次数卡，可以在这里追加
-   { days: 0, times: 30, cardCategory: 'times', price: 19.9, name: '30次签到卡', description: '可签到30次，永久有效' },
-   { days: 0, times: 10, cardCategory: 'times', price: 8.8, name: '10次签到卡', description: '可签到10次，永久有效' }
-];
 
-
-// 获取套餐列表
-app.get('/api/payment/packages', authMiddleware, async (req, res) => {
-  res.json({ success: true, packages: CARD_PACKAGES });
+app.get('/api/payment/packages', authMiddleware, (req, res) => {
+  res.json({ success: true, packages: SPONSOR_PACKAGES });
 });
 
-// 创建订单
 app.post('/api/payment/create-order', authMiddleware, async (req, res) => {
   try {
-    const { days, times, cardCategory, payMethod } = req.body;
-    const user = req.user;
-    
-    // 根据类别查找套餐
-    let pkg;
-    if (cardCategory === 'times') {
-      pkg = CARD_PACKAGES.find(p => p.times === parseInt(times) && p.cardCategory === 'times');
-    } else {
-      pkg = CARD_PACKAGES.find(p => p.days === parseInt(days) && p.cardCategory === 'days');
-    }
-    
-    if (!pkg) {
-      return res.status(400).json({ success: false, message: '无效的套餐' });
-    }
-    
-    // 生成唯一金额
+    const { packageId, payMethod } = req.body;
+    const pkg = SPONSOR_PACKAGES.find(p => p.id === packageId);
+    if (!pkg) return res.status(400).json({ success: false, message: '无效的赞助档位' });
+
     const amount = await generateUniqueAmount(pkg.price);
-    
     const orderNo = 'PAY' + Date.now() + Math.random().toString(36).substring(2, 8).toUpperCase();
-    
     const order = new PaymentOrder({
       orderNo,
-      userId: user._id,
+      userId: req.user._id,
+      packageId: pkg.id,
+      tier: pkg.tier,
       amount,
       days: pkg.days,
-      times: pkg.times,
-      cardCategory: pkg.cardCategory,
-      payMethod: payMethod || 'wechat',
+      payMethod: payMethod === 'alipay' ? 'alipay' : 'wechat',
       status: 'pending',
-      expireAt: new Date(Date.now() + 30 * 60 * 1000)  // 30分钟过期
+      mark: orderNo,
+      provider: 'self',
+      expireAt: new Date(Date.now() + 30 * 60 * 1000)
     });
     await order.save();
-    
-    // 返回双收款码
+
     res.json({
       success: true,
       order: {
         orderNo: order.orderNo,
         amount: order.amount,
+        tier: order.tier,
         days: order.days,
-        times: order.times,
-        cardCategory: order.cardCategory,
+        packageId: order.packageId,
         payMethod: order.payMethod,
+        status: order.status,
+        mark: order.orderNo,
         expireAt: order.expireAt
       },
-      qrCodes: {
-        wechat: PAY_QR_URLS.wechat,
-        alipay: PAY_QR_URLS.alipay
-      }
+      qrCodes: { wechat: PAY_QR_URLS.wechat, alipay: PAY_QR_URLS.alipay }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// V免签心跳检测与配置验证
-app.get('/api/payment/notify', (req, res) => {
-  console.log('📡 收到V免签配置验证请求:', req.query);
-  // 返回标准JSON响应
-  res.json({ 
-    code: 1, 
-    msg: 'ok',
-    data: {
-      heartbeat: 'ok',
-      time: new Date().toISOString()
+app.post('/api/payment/claim', authMiddleware, async (req, res) => {
+  try {
+    const { orderNo, paymentRef, note } = req.body;
+    if (!orderNo) return res.status(400).json({ success: false, message: '订单号不能为空' });
+    if (!paymentRef || String(paymentRef).trim().length < 4) {
+      return res.status(400).json({ success: false, message: '请填写支付备注或交易单号后 4 位，方便核对' });
     }
-  });
+
+    const order = await PaymentOrder.findOne({ orderNo, userId: req.user._id });
+    if (!order) return res.status(404).json({ success: false, message: '订单不存在' });
+
+    if (order.status === 'granted') {
+      return res.json({
+        success: true,
+        already: true,
+        message: '该订单已发放权益，等待后台核对',
+        order: { orderNo: order.orderNo, tier: order.tier, days: order.days, status: order.status, reviewStatus: order.reviewStatus },
+        vipTier: req.user.vipTier,
+        vipExpireAt: req.user.vipExpireAt
+      });
+    }
+    if (order.status !== 'pending') return res.status(400).json({ success: false, message: '该订单当前不能提交' });
+    if (order.expireAt && new Date(order.expireAt) < new Date()) {
+      order.status = 'expired'; await order.save();
+      return res.status(400).json({ success: false, message: '订单已过期，请重新创建' });
+    }
+
+    const user = await User.findById(order.userId);
+    const expireAt = await grantSponsorTier(user, order.tier, order.days);
+
+    order.status = 'granted';
+    order.reviewStatus = 'unreviewed';
+    order.paymentRef = String(paymentRef).trim().slice(0, 120);
+    order.claimNote = String(note || '').trim().slice(0, 300);
+    order.claimAt = new Date();
+    order.grantedAt = new Date();
+    order.paidAt = new Date();
+    order.provider = 'self-claim';
+    await order.save();
+
+    sendSponsorMail(user, order, 'granted').catch(e => console.error('赞助邮件失败:', e.message));
+
+    res.json({
+      success: true,
+      message: '赞助已到账，权益已发放（后台会核对付款）',
+      order: {
+        orderNo: order.orderNo,
+        tier: order.tier,
+        days: order.days,
+        amount: order.amount,
+        status: order.status,
+        reviewStatus: order.reviewStatus
+      },
+      vipTier: user.vipTier,
+      vipExpireAt: expireAt
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
-// 接收支付通知（V免签回调）
+app.get('/api/payment/order/:orderNo', authMiddleware, async (req, res) => {
+  try {
+    const order = await PaymentOrder.findOne({ orderNo: req.params.orderNo, userId: req.user._id });
+    if (!order) return res.status(404).json({ success: false, message: '订单不存在' });
+    res.json({
+      success: true,
+      order: {
+        orderNo: order.orderNo,
+        amount: order.amount,
+        tier: order.tier,
+        days: order.days,
+        status: order.status,
+        reviewStatus: order.reviewStatus,
+        expireAt: order.expireAt,
+        grantedAt: order.grantedAt,
+        claimAt: order.claimAt
+      },
+      vipTier: req.user.vipTier,
+      vipExpireAt: req.user.vipExpireAt
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/payment/notify', (req, res) => {
+  res.json({ code: 1, msg: 'ok', data: { heartbeat: 'ok', time: new Date().toISOString() } });
+});
+
 app.post('/api/payment/notify', async (req, res) => {
   try {
     const { money, mark, sign } = req.body;
-    
-    // 验证签名（简化版，实际需要验证）
-    const SECRET_KEY = process.env.PAYMENT_SECRET || 'my-secret-key-2024';
-    const expectedSign = crypto.createHash('md5').update(money + mark + SECRET_KEY).digest('hex');
-    
-    // 这里先用简化验证，正式使用要严格验证
-    console.log(`💰 收到支付通知: 金额=${money}, 备注=${mark}`);
-    
-    // 查找匹配的待支付订单
-    const order = await PaymentOrder.findOne({
-      amount: parseFloat(money),
-      status: 'pending'
-    }).sort({ createdAt: 1 });
-    
+    const SECRET = process.env.PAYMENT_SECRET;
+    if (!SECRET) {
+      console.error('❌ PAYMENT_SECRET 未配置，拒绝支付回调');
+      return res.json({ code: 0, msg: 'secret not configured' });
+    }
+    const expected = crypto.createHash('md5').update(String(money) + String(mark || '') + SECRET).digest('hex');
+    if (!sign || String(sign).toLowerCase() !== expected) {
+      console.log('❌ 支付回调验签失败:', { money, mark });
+      return res.json({ code: 0, msg: 'invalid sign' });
+    }
+
+    const amount = parseFloat(money);
+    let order = mark ? await PaymentOrder.findOne({ orderNo: String(mark) }) : null;
     if (!order) {
-      console.log('⚠️ 没有找到匹配的订单');
-      return res.json({ code: 0, msg: '没有找到匹配的订单' });
+      order = await PaymentOrder.findOne({ amount, status: { $in: ['pending', 'granted'] } }).sort({ createdAt: 1 });
     }
-    
-    // 生成卡密
-    const code = 'VIP' + crypto.randomBytes(6).toString('hex').toUpperCase();
-    const card = new Card({
-      code,
-      days: order.days,
-      type: `vip_${order.days}d`,
-      status: 'unused',
-      createdAt: new Date()
-    });
-    await card.save();
-    
-    // 更新订单
-    order.status = 'paid';
+    if (!order) return res.json({ code: 0, msg: 'order not found' });
+
+    if (order.status === 'granted') {
+      order.reviewStatus = 'confirmed';
+      order.provider = 'v免签';
+      order.paidAt = order.paidAt || new Date();
+      await order.save();
+      return res.json({ code: 1, msg: '支付成功' });
+    }
+    if (order.status !== 'pending') return res.json({ code: 0, msg: 'order not payable' });
+
+    const user = await User.findById(order.userId);
+    if (!user) return res.json({ code: 0, msg: 'user not found' });
+
+    const expireAt = await grantSponsorTier(user, order.tier, order.days);
+    order.status = 'granted';
+    order.reviewStatus = 'confirmed';
+    order.provider = 'v免签';
+    order.paymentRef = 'v免签:' + (mark || amount);
     order.paidAt = new Date();
-    order.cardId = card._id;
+    order.grantedAt = new Date();
     await order.save();
-    
-    // ========== WebSocket 实时推送 ==========
-    const socketId = userSockets.get(order.userId.toString());
-    if (socketId) {
-      io.to(socketId).emit('paymentSuccess', {
-        orderNo: order.orderNo,
-        cardCode: code,
-        amount: order.amount,
-        days: order.days,
-        times: order.times,
-        cardCategory: order.cardCategory
-      });
-      console.log(`📡 WebSocket 推送支付成功: 用户=${order.userId}, 卡密=${code}`);
-    }
-    
-    // 发送邮件通知用户（如果已绑定邮箱）
-    const buyer = await User.findById(order.userId);
-    if (buyer && buyer.email && buyer.emailVerified) {
-      // 发送卡密邮件
-      if (RESEND_API_KEY) {
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${RESEND_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            from: 'AG工作室 <noreply@agai.online>',
-            to: buyer.email,
-            subject: '🎉 卡密购买成功 - AG工作室',
-            html: `
-              <div style="max-width: 450px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-                <div style="text-align: center; margin-bottom: 24px;">
-                  <h1 style="color: #667eea; margin: 0;">🎉 购买成功</h1>
-                </div>
-                <div style="background: #d4edda; padding: 20px; border-radius: 12px;">
-                  <p style="margin: 0 0 15px 0;"><strong>订单号：</strong>${order.orderNo}</p>
-                  <p style="margin: 0 0 15px 0;"><strong>套餐：</strong>${order.days}天VIP</p>
-                  <p style="margin: 0 0 20px 0;"><strong>金额：</strong>¥${order.amount}</p>
-                  <div style="background: #fff; padding: 15px; border-radius: 8px; text-align: center;">
-                    <p style="margin: 0 0 10px 0;">您的卡密是：</p>
-                    <div style="font-size: 28px; font-weight: bold; color: #667eea; letter-spacing: 3px;">${code}</div>
-                  </div>
-                </div>
-                <p style="margin-top: 20px; color: #888; font-size: 13px; text-align: center;">
-                  请前往 <a href="https://login.agai.online">AG工作室</a> 兑换使用
-                </p>
-              </div>
-            `
-          })
-        }).catch(e => console.error('发送邮件失败:', e));
-      }
-    }
-    
-    console.log(`✅ 支付成功: 订单${order.orderNo}, 卡密${code}`);
+
+    sendSponsorMail(user, order, 'granted').catch(e => console.error('赞助邮件失败:', e.message));
+    console.log(`✅ V免签支付到账: 订单${order.orderNo}, 用户${user.studentId}, ${order.tier}+${order.days}天`);
     res.json({ code: 1, msg: '支付成功' });
-    
   } catch (error) {
     console.error('支付回调错误:', error);
     res.json({ code: 0, msg: error.message });
   }
 });
 
-// 查询订单状态
-app.get('/api/payment/order/:orderNo', authMiddleware, async (req, res) => {
+app.get('/api/admin/sponsor-orders', adminMiddleware, async (req, res) => {
   try {
-    const order = await PaymentOrder.findOne({ 
-      orderNo: req.params.orderNo,
-      userId: req.user._id 
-    });
-    
-    if (!order) {
-      return res.status(404).json({ success: false, message: '订单不存在' });
-    }
-    
-    res.json({
-      success: true,
-      order: {
-        orderNo: order.orderNo,
-        amount: order.amount,
-        days: order.days,
-        status: order.status,
-        paidAt: order.paidAt
-      },
-      // 如果已支付，返回卡密
-      cardCode: order.status === 'paid' && order.cardId ? 
-        (await Card.findById(order.cardId))?.code : null
-    });
+    const { page = 1, limit = 30, status, reviewStatus } = req.query;
+    const query = {};
+    if (status) query.status = status;
+    if (reviewStatus) query.reviewStatus = reviewStatus;
+    const orders = await PaymentOrder.find(query)
+      .populate('userId', 'studentId name email vipTier isVip vipExpireAt')
+      .populate('reviewedBy', 'studentId name')
+      .sort({ createdAt: -1 })
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .limit(parseInt(limit));
+    const total = await PaymentOrder.countDocuments(query);
+    res.json({ success: true, orders, total, page: parseInt(page) });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+app.post('/api/admin/sponsor-orders/:id/confirm', adminMiddleware, async (req, res) => {
+  try {
+    const order = await PaymentOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, message: '订单不存在' });
+    const user = await User.findById(order.userId);
+    if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
+
+    if (order.status !== 'granted') {
+      await grantSponsorTier(user, order.tier, order.days);
+      order.status = 'granted';
+      order.grantedAt = new Date();
+    }
+    order.reviewStatus = 'confirmed';
+    order.reviewedBy = req.user._id;
+    order.reviewedAt = new Date();
+    order.reviewNote = String(req.body.note || '').slice(0, 300);
+    await order.save();
+
+    sendSponsorMail(user, order, 'confirmed').catch(e => console.error('赞助邮件失败:', e.message));
+    res.json({ success: true, message: '已确认到账并发送通知' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/admin/sponsor-orders/:id/revoke', adminMiddleware, async (req, res) => {
+  try {
+    const order = await PaymentOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, message: '订单不存在' });
+    const user = await User.findById(order.userId);
+    if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
+
+    await revokeSponsorTier(user);
+
+    order.status = 'rejected';
+    order.reviewStatus = 'rejected';
+    order.reviewedBy = req.user._id;
+    order.reviewedAt = new Date();
+    order.revokedAt = new Date();
+    order.reviewNote = String(req.body.note || '').slice(0, 300);
+    await order.save();
+
+    sendSponsorMail(user, order, 'revoked').catch(e => console.error('赞助邮件失败:', e.message));
+    res.json({ success: true, message: '已取消该订单权益并发送通知' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/admin/announcement', adminMiddleware, async (req, res) => {
+  try {
+    const users = await User.find({ email: { $ne: '' }, isGuest: { $ne: true } });
+    const title = 'AG 智能考勤已恢复运行';
+    const bodyHtml = `<p style="margin:0 0 12px;color:#334155;font-size:14px;line-height:1.9;">同学们好：</p>
+      <p style="margin:0 0 12px;color:#334155;font-size:14px;line-height:1.9;">AG 智能考勤网站已完成迁移和恢复，现在正常运行。</p>
+      <p style="margin:0 0 12px;color:#334155;font-size:14px;line-height:1.9;">登录方式：<strong>学号 + 考勤密码</strong>（默认 Ahgydx@920，改过用新密码）。</p>
+      <p style="margin:0 0 12px;color:#334155;font-size:14px;line-height:1.9;">自动签到每天 <strong>21:35</strong> 执行；手动签到免费。</p>
+      <p style="margin:0 0 12px;color:#334155;font-size:14px;line-height:1.9;">欢迎把官网分享给同学：使用你的专属邀请链接注册，双方都有奖励。</p>`;
+
+    let ok = 0, fail = 0;
+    for (const user of users) {
+      const sent = await sendTierEmail(user, '🎉 AG 智能考勤已恢复运行', {
+        title,
+        bodyHtml,
+        ctaText: '立即登录',
+        ctaUrl: 'https://login.agai.online',
+        footerNote: '这是一封系统公告邮件。'
+      });
+      if (sent) ok++; else fail++;
+    }
+    res.json({ success: true, message: `公告发送完成：成功 ${ok}，失败 ${fail}`, ok, fail });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 
 // ============ 管理员一键签到 ============
 app.post('/api/admin/trigger-sign', adminMiddleware, async (req, res) => {
@@ -3459,12 +3573,13 @@ app.put('/api/admin/reports/:id', adminMiddleware, async (req, res) => {
 
 app.post('/api/admin/cards/generate', adminMiddleware, async (req, res) => {
   try {
-    const { count = 10, days = 30 } = req.body;
+    const { count = 10, days = 30, tier } = req.body;
+    const vipTier = tier || (days >= 365 ? 'YEARLY' : days >= 120 ? 'TERM' : 'MONTHLY');
     
     const cards = [];
     for (let i = 0; i < count; i++) {
       const code = 'VIP' + crypto.randomBytes(6).toString('hex').toUpperCase();
-      cards.push({ code, days, type: `vip_${days}d` });
+      cards.push({ code, days, type: `vip_${days}d`, vipTier });
     }
     
     await Card.insertMany(cards);
