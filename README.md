@@ -2,6 +2,15 @@
 
 这是一个基于 Node.js、Express、MongoDB 和 Python 签到脚本的智能考勤服务，包含学号登录、考勤密码验证、自动签到订阅、邮箱验证码、VIP/卡密、支付回调、管理员后台和植物工厂数据接口。
 
+> **2026-10 恢复部署说明**
+> - 推荐平台：Northflank 免费 Sandbox（无需信用卡、常驻不休眠、2 服务 + 2 任务 + 1 数据库、每月 $20 免费资源、支持自定义域名）。
+> - 容器：`Dockerfile` 同时安装 Node.js 22 和 Python 3.11，`npm start` 启动 `server.js`。
+> - 自动签到：每天 **21:35（Asia/Shanghai）** 执行，仅对 `isVip=true` 且未过期的用户生效；手动签到仍然免费。
+> - 健康检查：`GET /health`，数据库已连接返回 200，未连接返回 503（含 `db` 字段），便于平台判断真实可用性。
+> - VIP 标签：新增 `vipTier`（FREE/VIP/TERM/YEARLY/SVIP/LEGACY）与 `vipStartAt`，用于保留 main.py 中的学期/年费/元老标签。
+> - 迁移工具：`scripts/backup-mongo.js` 先备份；`scripts/import-vip-users.js` 幂等导入付费用户，不删除用户、不缩短已有会员。
+> - 本地 Windows 任务计划中的 `main.py` 是保底方案，不属于本仓库，部署时不会修改它。
+
 ## 技术栈
 
 - 后端：Node.js、Express、Mongoose、Socket.IO
@@ -9,7 +18,7 @@
 - 定时任务：node-cron
 - 邮件服务：Resend API
 - 签到脚本：Python 3.11、aiohttp
-- 部署：Railway / Nixpacks
+- 部署：Northflank / Docker（推荐），兼容 Railway / Nixpacks
 
 ## 目录说明
 
@@ -77,6 +86,46 @@ npm start
 ```bash
 curl http://localhost:8080/health
 ```
+
+## 生产部署（Northflank 免费 Sandbox）
+
+### 1. 平台配置
+
+1. 用 GitHub 注册/登录 Northflank，创建免费 Sandbox 项目。
+2. 新建 Service，选择本仓库和部署分支，构建方式选 Dockerfile。
+3. 端口填 `8080`，健康检查路径填 `/health`。
+4. 在环境变量/Secret 中配置：`MONGODB_URI`、`JWT_SECRET`、`ADMIN_CREDENTIALS`、`RESEND_API_KEY`、`PAYMENT_SECRET`、`PORT=8080`、`PYTHON_BIN=python3`。
+5. 部署完成后先用平台临时域名验证，再绑定 `api.agai.online`。
+
+### 2. 数据迁移
+
+```bash
+# 1) 先全量备份（输出到 backups/<时间戳>/）
+MONGODB_URI='...' node scripts/backup-mongo.js
+
+# 2) 先 dry-run，确认数量
+MONGODB_URI='...' node scripts/import-vip-users.js paid-users.json --dry-run --mark-email-verified
+
+# 3) 正式导入（幂等，可重复执行）
+MONGODB_URI='...' node scripts/import-vip-users.js paid-users.json --mark-email-verified
+```
+
+`paid-users.json` 由 main.py 导出，含邮箱/考勤密码，**只放本机，不要提交到仓库**。导入脚本不会删除用户，也不会把已有到期时间改短。
+
+### 3. 验证
+
+```bash
+curl https://api.agai.online/health
+```
+
+预期：`status=healthy`、`db=connected`、`autoSignTime=21:35`。
+
+### 4. 已知限制
+
+- Northflank 免费额度与具体资源价格以平台实时页面为准，部署前需确认仍在免费范围内。
+- `/uploads` 使用容器本地文件系统，重新部署会丢失；二手市场图片需要后续接对象存储。
+- 免费平台无法保证绝对 SLA；桌面任务计划在完全验收前继续作为保底。
+- 支付回调当前没有严格验签（原代码遗留），上线前建议按实际支付服务商规范修复。
 
 ## 登录流程
 
@@ -173,8 +222,8 @@ Content-Type: application/json
 4. 管理员账号硬编码且可绕过密码验证。（已修复）
    `/api/login` 已改为通过 `ADMIN_CREDENTIALS` 配置管理员账号，并要求管理员密码校验通过后才发放 token。默认管理员为 `111`，密码为 `0101`。生产环境建议通过环境变量改成更强密码。
 
-5. CORS 白名单没有真正生效。
-   当前 `allowedOrigins` 不匹配时仍然 `callback(null, true)`，等同于放开所有来源。建议非白名单来源返回错误，并让 WebSocket CORS 也使用同一份白名单。
+5. CORS 白名单已生效（2026-10 核实）。
+   非白名单来源会被拒绝；Socket.IO 仍使用 `origin: '*'`，建议后续收紧到同一份白名单。
 
 ### 中优先级问题
 

@@ -6,7 +6,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
 const cors = require('cors');
 const cron = require('node-cron');
 const { spawn } = require('child_process');
@@ -23,6 +22,8 @@ const app = express();
 const server = http.createServer(app);
 const PlantData = require('./PlantData');//zhiwu
 const ControlCmd = require('./ControlCmd');
+const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
+const AUTO_SIGN_DRY_RUN = process.env.AUTO_SIGN_DRY_RUN === 'true';
 const io = new Server(server, {
   cors: {
     origin: '*',
@@ -92,14 +93,23 @@ app.use('/uploads', express.static(uploadsDir));
 
 // ============ 数据库连接 ============
 const MONGODB_URI = process.env.MONGODB_URI;
+let mongoRetryTimer = null;
 
-if (!MONGODB_URI) {
-  console.error('❌ MONGODB_URI 未设置！');
-} else {
-  mongoose.connect(MONGODB_URI)
-    .then(() => console.log('✅ MongoDB 连接成功'))
-    .catch(err => console.error('❌ MongoDB 连接失败:', err.message));
+async function connectMongo() {
+  if (!MONGODB_URI) {
+    console.error('❌ MONGODB_URI 未设置！');
+    return;
+  }
+  try {
+    await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 15000 });
+    console.log('✅ MongoDB 连接成功');
+  } catch (err) {
+    console.error('❌ MongoDB 连接失败:', err.message);
+    if (mongoRetryTimer) clearTimeout(mongoRetryTimer);
+    mongoRetryTimer = setTimeout(connectMongo, 15000);
+  }
 }
+connectMongo();
 
 // ============ 时区辅助函数 ============
 function getBeijingTime(date = new Date()) {
@@ -120,6 +130,8 @@ const userSchema = new mongoose.Schema({
   emailVerified: { type: Boolean, default: false },
   isVip: { type: Boolean, default: false },
   vipExpireAt: { type: Date, default: null },
+  vipTier: { type: String, enum: ['FREE', 'VIP', 'SVIP', 'YEARLY', 'TERM', 'LEGACY'], default: 'FREE' },
+  vipStartAt: { type: Date, default: null },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   isActive: { type: Boolean, default: true },
   attendancePassword: { type: String, default: 'Ahgydx@920' },
@@ -148,7 +160,7 @@ const subscriptionSchema = new mongoose.Schema({
   enabled: { type: Boolean, default: true },
   scheduleType: { type: String, enum: ['daily', 'weekdays', 'custom'], default: 'weekdays' },
   customDays: { type: [Number], default: [1, 2, 3, 4, 5] },
-  signTime: { type: String, default: '21:25' },
+  signTime: { type: String, default: '21:35' },
   maxRetries: { type: Number, default: 3 },
   notifyOnSuccess: { type: Boolean, default: true },
   notifyOnFailure: { type: Boolean, default: true },
@@ -178,7 +190,7 @@ const emailCodeSchema = new mongoose.Schema({
 const cardSchema = new mongoose.Schema({
   code: { type: String, required: true, unique: true },
   days: { type: Number, default: 30 },
-  type: { type: String, enum: ['vip_30d', 'vip_90d', 'vip_365d'], default: 'vip_30d' },
+  type: { type: String, enum: ['vip_30d', 'vip_90d', 'vip_120d', 'vip_365d'], default: 'vip_30d' },
   status: { type: String, enum: ['unused', 'used'], default: 'unused' },
   usedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   usedAt: Date,
@@ -408,8 +420,18 @@ const InviteLog = mongoose.models.InviteLog || mongoose.model('InviteLog', invit
 const Feedback = mongoose.models.Feedback || mongoose.model('Feedback', feedbackSchema);
 
 const AUTO_SIGN_NAME = '自动签到';
-const AUTO_SIGN_TIME = '21:25';
+const AUTO_SIGN_TIME = '21:35';
+const AUTO_SIGN_CRON = '35 21 * * *';
 const DEFAULT_AUTO_SIGN_DAYS = [1, 2, 3, 4, 5];
+const VIP_TIER_RANK = { FREE: 0, VIP: 1, TERM: 2, YEARLY: 3, SVIP: 4, LEGACY: 4 };
+
+function applyVipTier(user, tier) {
+  if (!VIP_TIER_RANK[tier]) return;
+  if (VIP_TIER_RANK[tier] >= (VIP_TIER_RANK[user.vipTier] || 0)) {
+    user.vipTier = tier;
+  }
+  if (!user.vipStartAt) user.vipStartAt = new Date();
+}
 
 function normalizeAutoSignDays(days) {
   const source = Array.isArray(days) && days.length > 0 ? days : DEFAULT_AUTO_SIGN_DAYS;
@@ -583,6 +605,24 @@ const adminMiddleware = async (req, res, next) => {
     res.status(401).json({ success: false, message: '未授权' });
   }
 };
+
+// ============ 会员权限 ============
+function hasActiveVip(user) {
+  if (!user || user.isVip !== true) return false;
+  // 兼容历史永久 VIP：没有过期时间视为长期有效
+  if (!user.vipExpireAt) return true;
+  return new Date(user.vipExpireAt).getTime() > Date.now();
+}
+
+function requireActiveVip(req, res, next) {
+  if (!hasActiveVip(req.user)) {
+    return res.status(403).json({
+      success: false,
+      message: '自动签到为付费会员功能，请先开通或续费 VIP'
+    });
+  }
+  next();
+}
 
 // ============ 邮箱配置（Resend API）============
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
@@ -833,7 +873,9 @@ async function sendSponsorEmailToAllVips(notice) {
 async function realSign(studentId, password, maxRetries = 3) {
   return new Promise((resolve) => {
     const pythonScript = path.join(__dirname, 'attendance_runner.py');
-    const pythonProcess = spawn('python3', [pythonScript], {
+    const pythonProcess = spawn(PYTHON_BIN, [pythonScript], {
+      cwd: __dirname,
+      env: { ...process.env, PYTHONUNBUFFERED: '1' },
       timeout: 60000  // 60秒超时
     });
     
@@ -908,7 +950,9 @@ async function realSign(studentId, password, maxRetries = 3) {
 async function verifyPassword(studentId, password) {
   return new Promise((resolve) => {
     const pythonScript = path.join(__dirname, 'attendance_runner.py');
-    const pythonProcess = spawn('python3', [pythonScript], {
+    const pythonProcess = spawn(PYTHON_BIN, [pythonScript], {
+      cwd: __dirname,
+      env: { ...process.env, PYTHONUNBUFFERED: '1' },
       timeout: 30000
     });
     
@@ -990,9 +1034,15 @@ async function executeAutoSign() {
     
     // 按用户分组
     const userMap = new Map();
+    let skippedNonVip = 0;
     for (const sub of todaySubscriptions) {
       const user = sub.userId;
       if (user && user.isActive !== false) {
+        // 自动签到仅对有效付费会员开放；手动签到不受此限制
+        if (!hasActiveVip(user)) {
+          skippedNonVip++;
+          continue;
+        }
         if (!userMap.has(user._id.toString())) {
           userMap.set(user._id.toString(), { user, subscriptions: [] });
         }
@@ -1000,8 +1050,16 @@ async function executeAutoSign() {
       }
     }
     
+    if (skippedNonVip > 0) {
+      console.log(`⏭️ 跳过 ${skippedNonVip} 个非有效VIP用户`);
+    }
     const userArray = Array.from(userMap.entries());
     console.log(`📊 今天需要签到: ${userArray.length} 个用户`);
+
+    if (AUTO_SIGN_DRY_RUN) {
+      console.log(`🧪 dry-run: 命中 ${userArray.length} 个有效VIP用户，跳过实际签到`);
+      return;
+    }
     
     // 并发处理：每批 5 个用户同时签到
     const CONCURRENCY = 5;
@@ -1165,7 +1223,16 @@ app.get('/api/plant/control/pending', async (req, res) => {
 
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', time: getBeijingTime() });
+  const dbStates = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+  const db = dbStates[mongoose.connection.readyState] || 'unknown';
+  const ok = mongoose.connection.readyState === 1;
+  res.status(ok ? 200 : 503).json({
+    status: ok ? 'healthy' : 'degraded',
+    db,
+    autoSignTime: AUTO_SIGN_TIME,
+    version: '3.6.0',
+    time: getBeijingTime()
+  });
 });
 
 app.get('/', (req, res) => {
@@ -1250,6 +1317,8 @@ app.post('/api/quick-login', async (req, res) => {
         emailVerified: false,
         isVip: false,
         vipExpireAt: null,
+        vipTier: 'FREE',
+        vipStartAt: null,
         role: 'user',
         inviteCode: user.inviteCode,
         totalSignCount: 0,
@@ -1382,6 +1451,8 @@ app.post('/api/login', async (req, res) => {
         emailVerified: user.emailVerified,
         isVip: user.isVip,
         vipExpireAt: user.vipExpireAt,
+        vipTier: user.vipTier || (user.isVip ? 'VIP' : 'FREE'),
+        vipStartAt: user.vipStartAt || null,
         role: user.role,
         inviteCode: user.inviteCode,
         invitedBy: user.invitedBy,
@@ -1409,6 +1480,8 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
       emailVerified: user.emailVerified,
       isVip: user.isVip,
       vipExpireAt: user.vipExpireAt,
+      vipTier: user.vipTier || (user.isVip ? 'VIP' : 'FREE'),
+      vipStartAt: user.vipStartAt || null,
       role: user.role,
       inviteCode: user.inviteCode,
       invitedBy: user.invitedBy,
@@ -1525,9 +1598,14 @@ app.post('/api/email/verify', authMiddleware, async (req, res) => {
     user.emailVerified = true;
     user.isVip = true;
     
-    const vipExpireAt = new Date();
+    // 在原到期时间基础上延长 30 天，避免把年费/长期会员缩短
+    const now = new Date();
+    const vipExpireAt = user.vipExpireAt && user.vipExpireAt > now
+      ? new Date(user.vipExpireAt)
+      : new Date();
     vipExpireAt.setDate(vipExpireAt.getDate() + 30);
     user.vipExpireAt = vipExpireAt;
+    applyVipTier(user, 'VIP');
     
     await user.save();
     
@@ -1537,7 +1615,8 @@ app.post('/api/email/verify', authMiddleware, async (req, res) => {
         email: user.email,
         emailVerified: user.emailVerified,
         isVip: user.isVip,
-        vipExpireAt: user.vipExpireAt
+        vipExpireAt: user.vipExpireAt,
+        vipTier: user.vipTier || 'FREE'
       }
     });
   } catch (error) {
@@ -1662,8 +1741,10 @@ app.post('/api/vip/redeem', authMiddleware, async (req, res) => {
     }
     expireAt.setDate(expireAt.getDate() + card.days);
     
+    const cardTier = card.days >= 365 ? 'YEARLY' : card.days >= 120 ? 'TERM' : 'VIP';
     user.isVip = true;
     user.vipExpireAt = expireAt;
+    applyVipTier(user, cardTier);
     await user.save();
     
     card.status = 'used';
@@ -1674,7 +1755,8 @@ app.post('/api/vip/redeem', authMiddleware, async (req, res) => {
     res.json({
       success: true,
       message: `兑换成功！VIP 有效期至 ${expireAt.toLocaleDateString()}`,
-      vipExpireAt: expireAt
+      vipExpireAt: expireAt,
+      vipTier: user.vipTier || 'FREE'
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -1730,12 +1812,14 @@ app.post('/api/invite/apply', authMiddleware, async (req, res) => {
     expireAt.setDate(expireAt.getDate() + rewardDays);
     user.isVip = true;
     user.vipExpireAt = expireAt;
+    applyVipTier(user, 'VIP');
     await user.save();
     
     let inviterExpireAt = inviter.vipExpireAt && inviter.vipExpireAt > now ? new Date(inviter.vipExpireAt) : now;
     inviterExpireAt.setDate(inviterExpireAt.getDate() + rewardDays);
     inviter.isVip = true;
     inviter.vipExpireAt = inviterExpireAt;
+    applyVipTier(inviter, 'VIP');
     inviter.inviteCount = (inviter.inviteCount || 0) + 1;
     await inviter.save();
     
@@ -1766,7 +1850,7 @@ app.get('/api/subscriptions', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/subscriptions', authMiddleware, async (req, res) => {
+app.post('/api/subscriptions', authMiddleware, requireActiveVip, async (req, res) => {
   try {
     const savedSubscription = await saveAutoSignSetting(req.user._id, req.body);
     res.json({ success: true, subscription: formatAutoSignSetting(savedSubscription) });
@@ -1784,7 +1868,7 @@ app.get('/api/auto-sign', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/auto-sign', authMiddleware, async (req, res) => {
+app.post('/api/auto-sign', authMiddleware, requireActiveVip, async (req, res) => {
   try {
     const setting = await saveAutoSignSetting(req.user._id, req.body);
     res.json({ success: true, setting: formatAutoSignSetting(setting) });
@@ -1793,7 +1877,7 @@ app.post('/api/auto-sign', authMiddleware, async (req, res) => {
   }
 });
 
-app.put('/api/auto-sign', authMiddleware, async (req, res) => {
+app.put('/api/auto-sign', authMiddleware, requireActiveVip, async (req, res) => {
   try {
     const setting = await saveAutoSignSetting(req.user._id, req.body);
     res.json({ success: true, setting: formatAutoSignSetting(setting) });
@@ -1802,7 +1886,7 @@ app.put('/api/auto-sign', authMiddleware, async (req, res) => {
   }
 });
 
-app.put('/api/subscriptions/:id', authMiddleware, async (req, res) => {
+app.put('/api/subscriptions/:id', authMiddleware, requireActiveVip, async (req, res) => {
   try {
     const subscription = await Subscription.findOne({ _id: req.params.id, userId: req.user._id });
     if (!subscription) {
@@ -1825,7 +1909,7 @@ app.delete('/api/subscriptions/:id', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/subscriptions/:id/toggle', authMiddleware, async (req, res) => {
+app.post('/api/subscriptions/:id/toggle', authMiddleware, requireActiveVip, async (req, res) => {
   try {
     const subscription = await Subscription.findOne({ _id: req.params.id, userId: req.user._id });
     if (!subscription) {
@@ -1953,7 +2037,8 @@ app.get('/api/stats', authMiddleware, async (req, res) => {
         activeSubscriptions: autoSignEnabled ? 1 : 0,
         autoSignEnabled,
         isVip: user.isVip,
-        vipExpireAt: user.vipExpireAt
+        vipExpireAt: user.vipExpireAt,
+        vipTier: user.vipTier || (user.isVip ? 'VIP' : 'FREE')
       }
     });
   } catch (error) {
@@ -2187,7 +2272,7 @@ app.get('/api/admin/users/:id', adminMiddleware, async (req, res) => {
 // 更新用户（管理员）
 app.put('/api/admin/users/:id', adminMiddleware, async (req, res) => {
   try {
-    const { name, email, attendancePassword, isVip, vipExpireAt, role, isActive } = req.body;
+    const { name, email, attendancePassword, isVip, vipExpireAt, vipTier, role, isActive } = req.body;
 
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -2203,6 +2288,8 @@ app.put('/api/admin/users/:id', adminMiddleware, async (req, res) => {
     if (attendancePassword !== undefined) user.attendancePassword = attendancePassword;
     if (isVip !== undefined) user.isVip = isVip;
     if (vipExpireAt) user.vipExpireAt = new Date(vipExpireAt);
+    if (vipTier !== undefined) user.vipTier = vipTier;
+    if (user.vipExpireAt && !user.vipStartAt) user.vipStartAt = new Date();
     if (role) user.role = role;
     if (isActive !== undefined) user.isActive = isActive;
 
@@ -3475,19 +3562,20 @@ app.get('/api/admin/email-recipients-count', adminMiddleware, async (req, res) =
 
 
 // ============ 定时任务 ============
-cron.schedule('25 21 * * *', executeAutoSign, { timezone: "Asia/Shanghai" });
-//cron.schedule('30 21 * * *', executeAutoSign, { timezone: "Asia/Shanghai" });
+cron.schedule(AUTO_SIGN_CRON, executeAutoSign, { timezone: "Asia/Shanghai" });
 
 // ============ 启动服务 ============
 const PORT = process.env.PORT || 8080;
 
-initSystemConfig().then(() => {
-  // 使用 server.listen 而不是 app.listen（支持 WebSocket）
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 服务器运行在端口 ${PORT}`);
-    console.log(`📍 版本: 3.6.0 (V免签升级 + WebSocket实时推送)`);
-    console.log(`📧 邮件服务: ${RESEND_API_KEY ? 'Resend 已配置' : '未配置'}`);
-    console.log(`🤖 自动签到已启用 (每天 21:25)`);
-    console.log(`🔌 WebSocket 已启用`);
-  });
+// 先启动 HTTP 服务，保证数据库暂时不可用时 /health 仍可返回真实状态
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 服务器运行在端口 ${PORT}`);
+  console.log(`📍 版本: 3.6.0 (V免签升级 + WebSocket实时推送)`);
+  console.log(`📧 邮件服务: ${RESEND_API_KEY ? 'Resend 已配置' : '未配置'}`);
+  console.log(`🤖 自动签到已启用 (每天 ${AUTO_SIGN_TIME}, dry-run=${AUTO_SIGN_DRY_RUN})`);
+  console.log(`🔌 WebSocket 已启用`);
+});
+
+initSystemConfig().catch(err => {
+  console.error('❌ 系统配置初始化失败:', err.message);
 });
