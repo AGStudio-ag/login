@@ -133,6 +133,7 @@ const userSchema = new mongoose.Schema({
   vipTier: { type: String, enum: ['FREE', 'MONTHLY', 'TERM', 'YEARLY', 'VIP', 'SVIP', 'LEGACY'], default: 'FREE' },
   vipStartAt: { type: Date, default: null },
   signCredits: { type: Number, default: 0 },
+  signCreditsExpireAt: { type: Date, default: null },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   isActive: { type: Boolean, default: true },
   attendancePassword: { type: String, default: 'Ahgydx@920' },
@@ -477,8 +478,24 @@ function addVipDays(user, days) {
   return base;
 }
 
+function getGraduationDate(studentId) {
+  const sid = String(studentId || '');
+  if (sid.length < 2 || !/^\\d{2}/.test(sid)) return null;
+  const enrollYear = 2000 + parseInt(sid.slice(0, 2), 10);
+  return new Date(enrollYear + 4 + '-07-15T23:59:59+08:00');
+}
+
 async function grantSponsorTier(user, tier, days) {
-  const expireAt = addVipDays(user, days);
+  const now = new Date();
+  let expireAt;
+  if (tier === 'SVIP' || tier === 'LEGACY') {
+    expireAt = getGraduationDate(user.studentId) || new Date(now.getTime() + 365 * 24 * 3600 * 1000);
+  } else {
+    expireAt = new Date(now.getTime() + Number(days || 0) * 24 * 3600 * 1000);
+  }
+  user.isVip = true;
+  user.vipExpireAt = expireAt;
+  if (!user.vipStartAt) user.vipStartAt = now;
   applyVipTier(user, tier);
   await user.save();
   return expireAt;
@@ -510,7 +527,7 @@ function formatAutoSignSetting(setting) {
     enabled: !!setting?.enabled,
     scheduleType: 'custom',
     customDays: setting ? normalizeAutoSignDays(setting.customDays) : DEFAULT_AUTO_SIGN_DAYS,
-    signTime: AUTO_SIGN_TIME,
+    signTime: setting?.signTime || AUTO_SIGN_TIME,
     maxRetries: 3,
     notifyOnSuccess: setting ? setting.notifyOnSuccess !== false : true,
     notifyOnFailure: setting ? setting.notifyOnFailure !== false : true,
@@ -523,6 +540,19 @@ async function getAutoSignSetting(userId) {
   return Subscription.findOne({ userId }).sort({ createdAt: 1 });
 }
 
+function normalizeSignTime(value) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(value || '').trim());
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+}
+
+function canCustomSignTime(user) {
+  return hasActiveVip(user) && ['VIP', 'SVIP'].includes(user.vipTier);
+}
+
 async function saveAutoSignSetting(userId, options = {}, targetId = null) {
   const query = targetId ? { _id: targetId, userId } : { userId };
   let setting = await Subscription.findOne(query).sort({ createdAt: 1 });
@@ -531,11 +561,15 @@ async function saveAutoSignSetting(userId, options = {}, targetId = null) {
     setting = new Subscription({ userId });
   }
 
+  const user = await User.findById(userId).select('vipTier isVip vipExpireAt');
+  const requestedTime = normalizeSignTime(options.signTime);
+  const allowedCustom = canCustomSignTime(user) && requestedTime;
+
   setting.name = AUTO_SIGN_NAME;
   setting.enabled = options.enabled !== false;
   setting.scheduleType = 'custom';
   setting.customDays = normalizeAutoSignDays(options.customDays);
-  setting.signTime = AUTO_SIGN_TIME;
+  setting.signTime = allowedCustom ? requestedTime : AUTO_SIGN_TIME;
   setting.maxRetries = 3;
   setting.notifyOnSuccess = options.notifyOnSuccess !== false;
   setting.notifyOnFailure = options.notifyOnFailure !== false;
@@ -683,7 +717,9 @@ function requireActiveVip(req, res, next) {
 }
 
 function hasSignAccess(user) {
-  return hasActiveVip(user) || Number((user && user.signCredits) || 0) > 0;
+  const credits = Number((user && user.signCredits) || 0);
+  const creditsValid = credits > 0 && (!user.signCreditsExpireAt || new Date(user.signCreditsExpireAt).getTime() > Date.now());
+  return hasActiveVip(user) || creditsValid;
 }
 
 function requireSignAccess(req, res, next) {
@@ -993,7 +1029,9 @@ async function verifyPassword(studentId, password) {
 
 // ============ 自动签到执行函数 ============
 // ============ 自动签到执行函数（并发优化版）============
-async function executeAutoSign() {
+async function executeAutoSign(options = {}) {
+  const targetTime = normalizeSignTime(options.targetTime);
+  const planTime = targetTime || AUTO_SIGN_TIME;
   console.log('⏰ 自动签到任务开始:', getBeijingTime());
   
   if (!MONGODB_URI) {
@@ -1009,6 +1047,9 @@ async function executeAutoSign() {
     
     // 筛选今天需要签到的订阅
     const todaySubscriptions = subscriptions.filter(sub => {
+      const subTime = normalizeSignTime(sub.signTime) || AUTO_SIGN_TIME;
+      if (subTime !== planTime) return false;
+      if (targetTime && !canCustomSignTime(sub.userId)) return false;
       if (sub.scheduleType === 'daily') return true;
       if (sub.scheduleType === 'weekdays') return dayOfWeek >= 1 && dayOfWeek <= 5;
       if (sub.scheduleType === 'custom') {
@@ -2662,6 +2703,7 @@ app.post('/api/payment/claim', authMiddleware, async (req, res) => {
     let expireAt = null;
     if (order.packageType === 'counts' || order.tier === 'COUNTS') {
       user.signCredits = Number(user.signCredits || 0) + Number(order.counts || 0);
+      user.signCreditsExpireAt = getGraduationDate(user.studentId) || new Date(Date.now() + 4 * 365 * 24 * 3600 * 1000);
       await user.save();
     } else {
       expireAt = await grantSponsorTier(user, order.tier, order.days);
@@ -3798,7 +3840,13 @@ app.get('/api/admin/email-recipients-count', adminMiddleware, async (req, res) =
 
 
 // ============ 定时任务 ============
-cron.schedule(AUTO_SIGN_CRON, executeAutoSign, { timezone: "Asia/Shanghai" });
+cron.schedule(AUTO_SIGN_CRON, () => executeAutoSign({ targetTime: AUTO_SIGN_TIME }), { timezone: "Asia/Shanghai" });
+
+cron.schedule('* * * * *', () => {
+  const now = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+  if (now === AUTO_SIGN_TIME) return;
+  executeAutoSign({ targetTime: now }).catch(err => console.error('自定义时间签到失败:', err.message));
+}, { timezone: "Asia/Shanghai" });
 
 // ============ 启动服务 ============
 const PORT = process.env.PORT || 8080;
