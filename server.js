@@ -134,6 +134,8 @@ const userSchema = new mongoose.Schema({
   vipStartAt: { type: Date, default: null },
   signCredits: { type: Number, default: 0 },
   signCreditsExpireAt: { type: Date, default: null },
+  lastRenewalReminderDays: { type: Number, default: 0 },
+  lastRenewalReminderAt: { type: Date, default: null },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   isActive: { type: Boolean, default: true },
   attendancePassword: { type: String, default: 'Ahgydx@920' },
@@ -415,6 +417,7 @@ const paymentOrderSchema = new mongoose.Schema({
   claimAt: Date,
   provider: { type: String, default: '' },
   mark: { type: String, default: '' },
+  payCode: { type: String, default: '' },
   cardId: { type: mongoose.Schema.Types.ObjectId, ref: 'Card' },
   expireAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
@@ -860,6 +863,61 @@ async function sendSignNotification(email, studentId, result, subscriptionName, 
 }
 
 // ============ 发送赞助者通知邮件（供管理员调用） ============
+async function sendWelcomeEmail(user) {
+  const p = getTierProfile(user);
+  return sendTierEmail(user, '🎉 欢迎使用 AG 智能考勤', {
+    title: '欢迎加入 AG 智能考勤',
+    bodyHtml: `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;color:#334155;font-size:14px;line-height:1.9;">
+      <p style="margin:0 0 8px;">你的账号已创建，当前等级：<strong>${p.label}</strong></p>
+      <p style="margin:0 0 8px;">登录后可以手动签到、查看记录、设置自动签到和邮件提醒。</p>
+      <p style="margin:0;">默认签到时间 21:35；VIP / SVIP 可在自动签到页自定义时间。</p>
+    </div>`,
+    ctaText: '进入仪表盘',
+    ctaUrl: 'https://login.agai.online/dashboard.html',
+    footerNote: '如果这不是你本人操作，请忽略本邮件。'
+  });
+}
+
+async function sendRenewalEmail(user, daysLeft) {
+  const p = getTierProfile(user);
+  const expireText = user.vipExpireAt ? new Date(user.vipExpireAt).toLocaleDateString('zh-CN') : '';
+  return sendTierEmail(user, `⏰ ${p.label} ${daysLeft} 天后到期提醒`, {
+    title: '续费提醒',
+    bodyHtml: `<div style="background:#fff8e1;border:1px solid #fde68a;border-radius:12px;padding:16px;color:#92400e;font-size:14px;line-height:1.9;">
+      <p style="margin:0 0 8px;">当前等级：<strong>${p.label}</strong></p>
+      <p style="margin:0 0 8px;">到期日期：<strong>${expireText}</strong></p>
+      <p style="margin:0;">还剩 <strong>${daysLeft}</strong> 天。续费后有效期按付款日重新计算，假期暂停不叠加。</p>
+    </div>`,
+    ctaText: '去续费',
+    ctaUrl: 'https://login.agai.online/dashboard.html',
+    footerNote: '续费提醒会在到期前 7 天和 1 天各发送一次。'
+  });
+}
+
+async function checkRenewalReminders() {
+  const now = new Date();
+  for (const days of [7, 1]) {
+    const start = new Date(now.getTime() + days * 24 * 3600 * 1000);
+    const end = new Date(start.getTime() + 24 * 3600 * 1000);
+    const users = await User.find({
+      isVip: true,
+      email: { $ne: '' },
+      vipExpireAt: { $gte: start, $lt: end },
+      lastRenewalReminderDays: { $ne: days }
+    });
+    for (const user of users) {
+      try {
+        await sendRenewalEmail(user, days);
+        user.lastRenewalReminderDays = days;
+        user.lastRenewalReminderAt = new Date();
+        await user.save();
+        console.log(`📧 续费提醒已发: ${user.studentId} (${days} 天)`);
+      } catch (e) {
+        console.error(`续费提醒失败 ${user.studentId}:`, e.message);
+      }
+    }
+  }
+}
 async function sendSponsorEmailToAllVips(notice) {
   if (!RESEND_API_KEY) {
     console.log('📧 Resend 未配置，跳过邮件群发');
@@ -2632,6 +2690,13 @@ app.post('/api/payment/create-order', authMiddleware, async (req, res) => {
     if (!pkg) return res.status(400).json({ success: false, message: '无效的赞助档位' });
 
     const amount = await generateUniqueAmount(pkg.price);
+    let payCode = '';
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const candidate = String(Math.floor(1000 + Math.random() * 9000));
+      const exists = await PaymentOrder.findOne({ payCode: candidate, status: { $in: ['pending'] } });
+      if (!exists) { payCode = candidate; break; }
+    }
+    if (!payCode) payCode = String(Date.now()).slice(-4);
     const orderNo = 'PAY' + Date.now() + Math.random().toString(36).substring(2, 8).toUpperCase();
     const order = new PaymentOrder({
       orderNo,
@@ -2644,7 +2709,8 @@ app.post('/api/payment/create-order', authMiddleware, async (req, res) => {
       counts: pkg.counts,
       payMethod: payMethod === 'alipay' ? 'alipay' : 'wechat',
       status: 'pending',
-      mark: orderNo,
+      mark: payCode,
+      payCode,
       provider: 'self',
       expireAt: new Date(Date.now() + 30 * 60 * 1000)
     });
@@ -2662,7 +2728,8 @@ app.post('/api/payment/create-order', authMiddleware, async (req, res) => {
         packageId: order.packageId,
         payMethod: order.payMethod,
         status: order.status,
-        mark: order.orderNo,
+        mark: order.payCode || order.orderNo,
+        payCode: order.payCode || '',
         expireAt: order.expireAt
       },
       qrCodes: { wechat: PAY_QR_URLS.wechat, alipay: PAY_QR_URLS.alipay }
@@ -3841,6 +3908,8 @@ app.get('/api/admin/email-recipients-count', adminMiddleware, async (req, res) =
 
 // ============ 定时任务 ============
 cron.schedule(AUTO_SIGN_CRON, () => executeAutoSign({ targetTime: AUTO_SIGN_TIME }), { timezone: "Asia/Shanghai" });
+
+cron.schedule('0 10 * * *', () => { checkRenewalReminders().catch(err => console.error('续费提醒任务失败:', err.message)); }, { timezone: "Asia/Shanghai" });
 
 cron.schedule('* * * * *', () => {
   const now = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
