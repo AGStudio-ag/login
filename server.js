@@ -544,6 +544,20 @@ async function getAutoSignSetting(userId) {
   return Subscription.findOne({ userId }).sort({ createdAt: 1 });
 }
 
+function isWithinSignWindow(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(date);
+  const hour = Number((parts.find(p => p.type === 'hour') || {}).value);
+  const minute = Number((parts.find(p => p.type === 'minute') || {}).value);
+  return hour * 60 + minute >= 21 * 60 + 30;
+}
+
+function isSignTimeInWindow(value) {
+  const t = normalizeSignTime(value);
+  if (!t) return false;
+  const [hour, minute] = t.split(':').map(Number);
+  return hour * 60 + minute >= 21 * 60 + 30;
+}
+
 function normalizeSignTime(value) {
   const match = /^(\d{1,2}):(\d{2})$/.exec(String(value || '').trim());
   if (!match) return null;
@@ -567,7 +581,7 @@ async function saveAutoSignSetting(userId, options = {}, targetId = null) {
 
   const user = await User.findById(userId).select('vipTier isVip vipExpireAt');
   const requestedTime = normalizeSignTime(options.signTime);
-  const allowedCustom = canCustomSignTime(user) && requestedTime;
+  const allowedCustom = canCustomSignTime(user) && isSignTimeInWindow(requestedTime);
 
   setting.name = AUTO_SIGN_NAME;
   setting.enabled = options.enabled !== false;
@@ -2124,6 +2138,10 @@ app.post('/api/sign/manual', authMiddleware, async (req, res) => {
     }
 
     
+    if (!isWithinSignWindow()) {
+      return res.status(400).json({ success: false, message: '未到签到时间，签到时间为每天 21:30–24:00' });
+    }
+
     const signPassword = attendancePassword || user.attendancePassword || 'Ahgydx@920';
     const signTime = new Date();
     
