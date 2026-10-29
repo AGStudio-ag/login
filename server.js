@@ -460,6 +460,7 @@ const Feedback = mongoose.models.Feedback || mongoose.model('Feedback', feedback
 const AUTO_SIGN_NAME = '自动签到';
 const AUTO_SIGN_TIME = '21:35';
 const AUTO_SIGN_CRON = '35 21 * * *';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'ag985211ag@qq.com';
 const DEFAULT_AUTO_SIGN_DAYS = [1, 2, 3, 4, 5];
 const VIP_TIER_RANK = { FREE: 0, MONTHLY: 1, TERM: 2, YEARLY: 3, VIP: 4, SVIP: 5, LEGACY: 5 };
 
@@ -1087,6 +1088,19 @@ async function verifyPassword(studentId, password) {
 
 // ============ 自动签到执行函数 ============
 // ============ 自动签到执行函数（并发优化版）============
+async function sendAdminSignSummary() {
+  try {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const end = new Date(); end.setHours(23, 59, 59, 999);
+    const autoTotal = await SignLog.countDocuments({ signTime: { $gte: start, $lte: end }, subscriptionName: AUTO_SIGN_NAME });
+    const success = await SignLog.countDocuments({ signTime: { $gte: start, $lte: end }, subscriptionName: AUTO_SIGN_NAME, status: 'success' });
+    const failed = await SignLog.countDocuments({ signTime: { $gte: start, $lte: end }, subscriptionName: AUTO_SIGN_NAME, status: 'failed' });
+    const dateText = new Date().toLocaleDateString('zh-CN');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:20px;background:#f4f6f8;font-family:'Microsoft YaHei',Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;"><div style="background:linear-gradient(135deg,#173b36,#245a52);padding:24px;color:#fff;"><h1 style="margin:0;font-size:20px;">${dateText} 今日签到汇总</h1><p style="margin:6px 0 0;opacity:.85;font-size:13px;">AG 智能考勤 · 管理员汇总</p></div><div style="padding:24px;color:#334155;font-size:14px;line-height:2;"><p style="margin:0;">自动签到总数：<strong>${autoTotal}</strong></p><p style="margin:0;">成功：<strong style="color:#166534;">${success}</strong></p><p style="margin:0;">失败：<strong style="color:#b42318;">${failed}</strong></p></div></div></body></html>`;
+    const res = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'AG工作室 <noreply@agai.online>', to: ADMIN_EMAIL, subject: `📊 ${dateText} 今日签到汇总 · 成功 ${success} / 失败 ${failed}`, html }) });
+    console.log(`📊 管理员汇总邮件: ${res.ok ? '已发送' : '发送失败'} (成功 ${success} / 失败 ${failed})`);
+  } catch (e) { console.error('管理员汇总邮件失败:', e.message); }
+}
 async function executeAutoSign(options = {}) {
   const paused = await SystemConfig.findOne({ key: 'auto_sign_paused' });
   if (paused && paused.value === true) { console.log('⏸️ 假期暂停自动签到'); return; }
