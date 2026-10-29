@@ -1390,6 +1390,7 @@ async function executeAutoSign(options = {}) {
   } catch (error) {
     console.error('❌ 定时任务错误:', error);
   }
+  await maybeSendAdminSignSummary();
 }
 
 // ============ API 路由 ============
