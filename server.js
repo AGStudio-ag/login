@@ -1180,6 +1180,31 @@ async function sendAdminSignSummary(day = new Date()) {
     console.log(`📊 管理员汇总邮件: ${res.ok ? '已发送' : '发送失败'} (成功 ${success} / 失败 ${failed})`);
   } catch (e) { console.error('管理员汇总邮件失败:', e.message); }
 }
+async function maybeSendAdminSignSummary(day = new Date()) {
+  try {
+    const dayKey = day.toLocaleDateString('zh-CN');
+    const sentCfg = await SystemConfig.findOne({ key: 'admin_summary_sent_date' });
+    if (sentCfg && sentCfg.value === dayKey) return;
+    const start = new Date(day); start.setHours(0, 0, 0, 0);
+    const end = new Date(day); end.setHours(23, 59, 59, 999);
+    const subs = await Subscription.find({ enabled: true }).select('userId').lean();
+    const uniqueIds = [...new Set(subs.map(s => String(s.userId)))];
+    if (!uniqueIds.length) return;
+    const logs = await SignLog.find({
+      userId: { $in: uniqueIds.map(id => new mongoose.Types.ObjectId(id)) },
+      signTime: { $gte: start, $lte: end }
+    }).select('userId').lean();
+    const done = new Set(logs.map(l => String(l.userId)));
+    const allDone = uniqueIds.every(id => done.has(id));
+    if (!allDone) return;
+    await sendAdminSignSummary(day);
+    let cfg = await SystemConfig.findOne({ key: 'admin_summary_sent_date' });
+    if (!cfg) cfg = new SystemConfig({ key: 'admin_summary_sent_date', value: dayKey });
+    else { cfg.value = dayKey; cfg.updatedAt = new Date(); }
+    await cfg.save();
+    console.log('📊 管理员汇总已发送（所有人已完成）: ' + dayKey);
+  } catch (e) { console.error('管理员汇总判断失败:', e.message); }
+}
 async function executeAutoSign(options = {}) {
   const paused = await SystemConfig.findOne({ key: 'auto_sign_paused' });
   if (paused && paused.value === true) { console.log('⏸️ 假期暂停自动签到'); return; }
@@ -4050,7 +4075,7 @@ cron.schedule(AUTO_SIGN_CRON, () => executeAutoSign({ targetTime: AUTO_SIGN_TIME
 cron.schedule('0 10 * * *', () => { checkRenewalReminders().catch(err => console.error('续费提醒任务失败:', err.message)); }, { timezone: "Asia/Shanghai" });
 
 // 每天 00:05 汇总前一天（等所有自定义时间签完）
-cron.schedule('5 0 * * *', () => { const d = new Date(); d.setDate(d.getDate() - 1); sendAdminSignSummary(d).catch(err => console.error('管理员汇总失败:', err.message)); }, { timezone: "Asia/Shanghai" });
+cron.schedule('5 0 * * *', () => { const d = new Date(); d.setDate(d.getDate() - 1); maybeSendAdminSignSummary(d).catch(err => console.error('管理员汇总兜底失败:', err.message)); }, { timezone: "Asia/Shanghai" });
 
 cron.schedule('* * * * *', () => {
   const now = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
