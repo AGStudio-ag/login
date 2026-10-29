@@ -1026,6 +1026,53 @@ async function realSign(studentId, password, maxRetries = 3) {
   });
 }
 
+// ============ 批量签到（新逻辑：一个进程处理一批用户，复用会话）============
+const USE_SIGN_BATCH = process.env.SIGN_USE_BATCH !== 'false';
+
+async function realSignBatch(users, maxRetries = 3) {
+  return new Promise((resolve) => {
+    const pythonScript = path.join(__dirname, 'attendance_runner.py');
+    const pythonProcess = spawn(PYTHON_BIN, [pythonScript], {
+      cwd: __dirname,
+      env: { ...process.env, PYTHONUNBUFFERED: '1' },
+      timeout: 120000
+    });
+    let output = '';
+    let errorOutput = '';
+    let isResolved = false;
+    const timeout = setTimeout(() => {
+      if (!isResolved) {
+        isResolved = true;
+        try { pythonProcess.kill(); } catch (e) {}
+        resolve(users.map(u => ({ success: false, message: '批量签到脚本执行超时', studentId: u.studentId })));
+      }
+    }, 115000);
+    pythonProcess.stdout.on('data', (data) => { output += data.toString(); });
+    pythonProcess.stderr.on('data', (data) => { errorOutput += data.toString(); });
+    pythonProcess.on('close', (code) => {
+      if (isResolved) return;
+      isResolved = true;
+      clearTimeout(timeout);
+      try {
+        const parsed = JSON.parse(output);
+        if (parsed && parsed.success && Array.isArray(parsed.results)) resolve(parsed.results);
+        else resolve(users.map(u => ({ success: false, message: parsed && parsed.message ? parsed.message : '批量签到无结果', studentId: u.studentId })));
+      } catch (e) {
+        console.error('解析批量签到输出失败:', output.substring(0, 300), errorOutput.substring(0, 300));
+        resolve(users.map(u => ({ success: false, message: '批量签到解析失败', studentId: u.studentId })));
+      }
+    });
+    pythonProcess.on('error', (err) => {
+      if (isResolved) return;
+      isResolved = true;
+      clearTimeout(timeout);
+      resolve(users.map(u => ({ success: false, message: '无法启动签到脚本: ' + err.message, studentId: u.studentId })));
+    });
+    pythonProcess.stdin.write(JSON.stringify({ action: 'sign_batch', users, maxRetries, concurrency: 5 }));
+    pythonProcess.stdin.end();
+  });
+}
+
 // ============ 只验证密码（获取Token，不跑完整签到）============
 async function verifyPassword(studentId, password) {
   return new Promise((resolve) => {
@@ -1178,17 +1225,39 @@ async function executeAutoSign(options = {}) {
       
       console.log(`🔄 处理第 ${Math.floor(i / CONCURRENCY) + 1} 批，共 ${batch.length} 人`);
       
+        // 先排除今天已成功的用户，再整批交给新 runner 处理
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+        const batchUserIds = batch.map(([userId]) => userId);
+        const existingBatch = await SignLog.find({
+          userId: { $in: batchUserIds },
+          status: 'success',
+          signTime: { $gte: todayStart, $lte: todayEnd }
+        }).select('userId').lean();
+        const alreadySigned = new Set(existingBatch.map(e => String(e.userId)));
+        const pendingBatch = batch.filter(([userId]) => !alreadySigned.has(String(userId)));
+        let batchResults = new Map();
+        if (pendingBatch.length > 0) {
+          const batchInput = pendingBatch.map(([userId, data]) => ({
+            studentId: data.user.studentId,
+            password: data.user.attendancePassword || 'Ahgydx@920'
+          }));
+          const results = USE_SIGN_BATCH
+            ? await realSignBatch(batchInput, 3)
+            : await Promise.all(batchInput.map(u => realSign(u.studentId, u.password, 3)));
+          results.forEach((r, i) => {
+            const sid = String((r && r.studentId) || batchInput[i].studentId);
+            batchResults.set(sid, r);
+          });
+        }
+
         await Promise.allSettled(
       batch.map(async ([userId, data]) => {
         const { user, subscriptions } = data;
         
         try {
-          // ========== 防止重复签到 ==========
-          const todayStart = new Date();
-          todayStart.setHours(0, 0, 0, 0);
-          const todayEnd = new Date();
-          todayEnd.setHours(23, 59, 59, 999);
-    
           const existingLog = await SignLog.findOne({
             userId: user._id,
             status: 'success',
@@ -1202,9 +1271,8 @@ async function executeAutoSign(options = {}) {
     
           console.log(`🔄 签到: ${user.studentId}`);
           
-          const signPassword = user.attendancePassword || 'Ahgydx@920';
           const signTime = new Date();
-          const signResult = await realSign(user.studentId, signPassword, 3);
+          const signResult = batchResults.get(String(user.studentId)) || { success: false, message: '未执行签到' };
           
           // 更新用户统计
           user.totalSignCount = (user.totalSignCount || 0) + 1;

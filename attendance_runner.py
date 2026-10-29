@@ -480,6 +480,30 @@ async def main():
             print(json.dumps(result, ensure_ascii=False))
             return
 
+        elif action == 'sign_batch':
+            users_data = input_data.get('users', [])
+            max_retries = input_data.get('maxRetries', 3)
+            concurrency = int(input_data.get('concurrency', 5))
+            sem = asyncio.Semaphore(max(1, concurrency))
+
+            async def one(u):
+                async with sem:
+                    user = User(
+                        student_Id=str(u.get('studentId')),
+                        password=u.get('password', '')
+                    )
+                    try:
+                        r = await sign_in_single(user, max_retries=max_retries)
+                        r['studentId'] = str(u.get('studentId'))
+                        return r
+                    except Exception as e:
+                        return {"success": False, "message": str(e), "studentId": str(u.get('studentId'))}
+                    finally:
+                        await user.close()
+
+            results = await asyncio.gather(*[one(u) for u in users_data])
+            print(json.dumps({"success": True, "results": results}, ensure_ascii=False))
+            return
         else:
             print(json.dumps({
                 "success": False,
