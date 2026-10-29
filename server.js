@@ -1094,7 +1094,7 @@ async function verifyPassword(studentId, password) {
     const pythonProcess = spawn(PYTHON_BIN, [pythonScript], {
       cwd: __dirname,
       env: { ...process.env, PYTHONUNBUFFERED: '1', PYTHONIOENCODING: 'utf-8' },
-      timeout: 30000
+      timeout: 65000
     });
     
     let output = '';
@@ -1107,7 +1107,7 @@ async function verifyPassword(studentId, password) {
         pythonProcess.kill();
         resolve({ success: false, message: '验证超时，请重试' });
       }
-    }, 25000);
+    }, 60000);
     
     pythonProcess.stdout.on('data', (data) => { output += data.toString(); });
     pythonProcess.stderr.on('data', (data) => { 
