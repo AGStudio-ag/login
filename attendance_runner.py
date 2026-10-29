@@ -433,6 +433,12 @@ async def sign_in_single(user: User, max_retries: int = 3) -> dict:
 # ================= 主入口 =================
 
 async def main():
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
     # 静默 DNS 诊断（不输出错误，只做内部测试）
     try:
         import socket
