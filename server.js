@@ -1088,10 +1088,11 @@ async function verifyPassword(studentId, password) {
 
 // ============ 自动签到执行函数 ============
 // ============ 自动签到执行函数（并发优化版）============
-async function sendAdminSignSummary() {
+async function sendAdminSignSummary(day = new Date()) {
   try {
-    const start = new Date(); start.setHours(0, 0, 0, 0);
-    const end = new Date(); end.setHours(23, 59, 59, 999);
+    const dayDate = new Date(day);
+    const start = new Date(dayDate); start.setHours(0, 0, 0, 0);
+    const end = new Date(dayDate); end.setHours(23, 59, 59, 999);
     const autoUsers = await Subscription.countDocuments({ enabled: true });
     const autoTotal = await SignLog.countDocuments({ signTime: { $gte: start, $lte: end }, subscriptionName: AUTO_SIGN_NAME });
     const success = await SignLog.countDocuments({ signTime: { $gte: start, $lte: end }, subscriptionName: AUTO_SIGN_NAME, status: 'success' });
@@ -1103,7 +1104,7 @@ async function sendAdminSignSummary() {
     const orderRows = orders.length ? orders.map(o => '<p style="margin:2px 0;color:#334155;font-size:13px;">' + (o.payCode || o.orderNo || '') + ' · ' + (o.packageType === 'counts' ? ('次数卡 ' + (o.counts || 0) + ' 次') : ((o.tier || '') + ' ' + (o.days || 0) + ' 天')) + ' · ¥' + Number(o.amount || 0) + ' · ' + (o.status || '') + '</p>').join('') : '<p style="margin:0;color:#64748b;font-size:13px;">今日无赞助订单</p>';
     const failedLogs = await SignLog.find({ signTime: { $gte: start, $lte: end }, subscriptionName: AUTO_SIGN_NAME, status: 'failed' }).populate('userId').lean();
     const failRows = failedLogs.map(f => '<p style="margin:2px 0;color:#b42318;font-size:13px;">' + ((f.userId && f.userId.studentId) || '') + ' ' + ((f.userId && f.userId.name) || '') + '：' + (f.message || '未知原因') + '</p>').join('');
-    const dateText = new Date().toLocaleDateString('zh-CN');
+    const dateText = dayDate.toLocaleDateString('zh-CN');
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:20px;background:#f4f6f8;font-family:'Microsoft YaHei',Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;"><div style="background:linear-gradient(135deg,#173b36,#245a52);padding:24px;color:#fff;"><h1 style="margin:0;font-size:20px;">${dateText} 今日签到汇总</h1><p style="margin:6px 0 0;opacity:.85;font-size:13px;">AG 智能考勤 · 管理员汇总</p></div><div style="padding:24px;color:#334155;font-size:14px;line-height:2;"><p style="margin:0;">自动签到用户：<strong>${autoUsers}</strong></p><p style="margin:0;">今日签到次数：<strong>${autoTotal}</strong></p><p style="margin:0;">成功：<strong style="color:#166534;">${success}</strong>　失败：<strong style="color:#b42318;">${failed}</strong></p><p style="margin:12px 0 0;color:#64748b;font-size:13px;">用户总数：<strong>${totalUsers}</strong>　今日新增：<strong>${newUsers}</strong>　付费用户：<strong>${vipUsers}</strong></p></div><div style="padding:16px 24px;border-top:1px solid #e2e8f0;"><h3 style="margin:0 0 8px;font-size:14px;color:#173b36;">今日赞助订单（${orders.length} 笔）</h3>${orderRows}</div><div style="padding:16px 24px;border-top:1px solid #e2e8f0;"><h3 style="margin:0 0 8px;font-size:14px;color:#173b36;">签到失败明细</h3>${failRows || '<p style="margin:0;color:#64748b;font-size:13px;">无失败记录</p>'}</div></div></body></html>`;
     const res = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'AG工作室 <noreply@agai.online>', to: ADMIN_EMAIL, subject: `📊 ${dateText} 今日签到汇总 · 成功 ${success} / 失败 ${failed}`, html }) });
     console.log(`📊 管理员汇总邮件: ${res.ok ? '已发送' : '发送失败'} (成功 ${success} / 失败 ${failed})`);
