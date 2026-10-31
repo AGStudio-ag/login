@@ -1510,6 +1510,9 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/', (req, res) => {
+  // 前端迁移至本服务后，根路径优先返回登录页；无前端文件时保留原状态 JSON
+  const indexFile = path.join(__dirname, 'public', 'index.html');
+  if (fs.existsSync(indexFile)) return res.sendFile(indexFile);
   res.json({ status: 'running', version: '3.5.0', emailService: RESEND_API_KEY ? 'Resend' : '未配置' });
 });
 
