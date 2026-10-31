@@ -22,6 +22,7 @@ const app = express();
 const server = http.createServer(app);
 const PlantData = require('./PlantData');//zhiwu
 const ControlCmd = require('./ControlCmd');
+const membership = require('./membership');
 const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
 const AUTO_SIGN_DRY_RUN = process.env.AUTO_SIGN_DRY_RUN === 'true';
 const io = new Server(server, {
@@ -130,7 +131,7 @@ const userSchema = new mongoose.Schema({
   emailVerified: { type: Boolean, default: false },
   isVip: { type: Boolean, default: false },
   vipExpireAt: { type: Date, default: null },
-  vipTier: { type: String, enum: ['FREE', 'MONTHLY', 'TERM', 'YEARLY', 'VIP', 'SVIP', 'LEGACY'], default: 'FREE' },
+  vipTier: { type: String, enum: membership.TIER_VALUES, default: 'FREE' },
   vipStartAt: { type: Date, default: null },
   signCredits: { type: Number, default: 0 },
   signCreditsExpireAt: { type: Date, default: null },
@@ -194,8 +195,8 @@ const emailCodeSchema = new mongoose.Schema({
 const cardSchema = new mongoose.Schema({
   code: { type: String, required: true, unique: true },
   days: { type: Number, default: 30 },
-  type: { type: String, enum: ['vip_30d', 'vip_90d', 'vip_120d', 'vip_365d'], default: 'vip_30d' },
-  vipTier: { type: String, enum: ['MONTHLY', 'TERM', 'YEARLY', 'VIP', 'SVIP'], default: 'MONTHLY' },
+  type: { type: String, default: 'vip_30d' },
+  vipTier: { type: String, enum: membership.TIER_VALUES, default: 'MONTHLY' },
   status: { type: String, enum: ['unused', 'used'], default: 'unused' },
   usedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   usedAt: Date,
@@ -402,9 +403,15 @@ const paymentOrderSchema = new mongoose.Schema({
   orderNo: { type: String, required: true, unique: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   packageId: { type: String, default: '' },
-  tier: { type: String, enum: ['MONTHLY', 'TERM', 'YEARLY', 'VIP', 'SVIP', 'COUNTS'], default: 'MONTHLY' },
+  planCode: { type: String, default: '' },
+  packageName: { type: String, default: '' },
+  durationLabel: { type: String, default: '' },
+  tier: { type: String, enum: membership.TIER_VALUES.concat(['COUNTS']), default: 'MONTHLY' },
   packageType: { type: String, enum: ['days', 'counts'], default: 'days' },
   amount: { type: Number, required: true },
+  couponCode: { type: String, default: '' },
+  couponDiscount: { type: Number, default: 0 },
+  originalAmount: { type: Number, default: 0 },
   days: { type: Number, default: 0 },
   counts: { type: Number, default: 0 },
   times: { type: Number, default: 0 },
@@ -433,14 +440,22 @@ const PaymentOrder = mongoose.models.PaymentOrder || mongoose.model('PaymentOrde
 
 const sponsorPackageSchema = new mongoose.Schema({
   packageId: { type: String, required: true, unique: true },
+  planCode: { type: String, default: '' },
   name: { type: String, required: true },
   price: { type: Number, required: true },
+  pricePerYear: { type: Number, default: null },
   description: { type: String, default: '' },
   badge: { type: String, default: '' },
   type: { type: String, enum: ['days', 'counts'], default: 'days' },
+  kind: { type: String, enum: ['days', 'grade'], default: 'days' },
+  group: { type: String, enum: ['basic', 'pro', 'grade'], default: 'basic' },
   tier: { type: String, default: 'MONTHLY' },
   days: { type: Number, default: 0 },
+  years: { type: Number, default: 0 },
   counts: { type: Number, default: 0 },
+  audience: { type: String, default: '不限' },
+  customTime: { type: Boolean, default: false },
+  durationLabel: { type: String, default: '' },
   active: { type: Boolean, default: true },
   sort: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
@@ -462,12 +477,13 @@ const AUTO_SIGN_TIME = '21:35';
 const AUTO_SIGN_CRON = '35 21 * * *';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'ag985211ag@qq.com';
 const DEFAULT_AUTO_SIGN_DAYS = [1, 2, 3, 4, 5];
-const VIP_TIER_RANK = { FREE: 0, MONTHLY: 1, TERM: 2, YEARLY: 3, VIP: 4, SVIP: 5, LEGACY: 5 };
+const VIP_TIER_RANK = membership.TIER_RANK;
 
 function applyVipTier(user, tier) {
-  if (VIP_TIER_RANK[tier] === undefined) return;
-  if (VIP_TIER_RANK[tier] >= (VIP_TIER_RANK[user.vipTier] || 0)) {
-    user.vipTier = tier;
+  const normalized = membership.normalizeTier(tier);
+  if (!membership.TIER_VALUES.includes(normalized)) return;
+  if (membership.tierRank(normalized) >= membership.tierRank(user.vipTier)) {
+    user.vipTier = normalized;
   }
   if (!user.vipStartAt) user.vipStartAt = new Date();
 }
@@ -483,26 +499,55 @@ function addVipDays(user, days) {
 }
 
 function getGraduationDate(studentId) {
-  const sid = String(studentId || '');
-  if (sid.length < 2 || !/^\\d{2}/.test(sid)) return null;
-  const enrollYear = 2000 + parseInt(sid.slice(0, 2), 10);
-  return new Date(enrollYear + 4 + '-07-15T23:59:59+08:00');
+  return membership.graduationDate(studentId);
 }
 
-async function grantSponsorTier(user, tier, days) {
-  const now = new Date();
-  let expireAt;
-  if (tier === 'SVIP' || tier === 'LEGACY') {
-    expireAt = getGraduationDate(user.studentId) || new Date(now.getTime() + 365 * 24 * 3600 * 1000);
-  } else {
-    expireAt = new Date(now.getTime() + Number(days || 0) * 24 * 3600 * 1000);
+/** 兼容历史订单的套餐解析：优先用订单里快照的天数 */
+function planForOrder(order) {
+  if (!order) return null;
+  const plan = membership.planForCode(order.packageId) || membership.planForTier(order.tier);
+  if (!plan) return null;
+  if (plan.kind === 'days' && Number(order.days) > 0 && Number(order.days) !== Number(plan.days)) {
+    return { ...plan, days: Number(order.days) };
   }
+  return plan;
+}
+
+/**
+ * 统一发放会员权益。
+ * planOrTier 可以是套餐对象、套餐 code、或会员等级。
+ * opts.expireAt 用于管理员自定义到期时间（仅支持自定义时间的套餐使用）。
+ */
+async function grantMembership(user, planOrTier, opts = {}) {
+  const now = new Date();
+  const plan = planOrTier && typeof planOrTier === 'object'
+    ? planOrTier
+    : (membership.planForCode(planOrTier) || membership.planForTier(planOrTier));
+
+  let expireAt;
+  if (opts.expireAt) {
+    expireAt = new Date(opts.expireAt);
+  } else if (plan) {
+    expireAt = membership.computeExpireAt(plan, user, now);
+  } else {
+    const days = Number(opts.days || 0);
+    const grad = membership.graduationDate(user.studentId);
+    expireAt = days > 0
+      ? new Date(now.getTime() + days * membership.DAY_MS)
+      : (grad && grad > now ? grad : new Date(now.getTime() + 365 * membership.DAY_MS));
+  }
+
   user.isVip = true;
   user.vipExpireAt = expireAt;
   if (!user.vipStartAt) user.vipStartAt = now;
-  applyVipTier(user, tier);
+  applyVipTier(user, plan ? plan.tier : planOrTier);
   await user.save();
   return expireAt;
+}
+
+async function grantSponsorTier(user, tier, days) {
+  const plan = membership.planForTier(tier);
+  return grantMembership(user, plan || tier, { days });
 }
 
 async function revokeSponsorTier(user) {
@@ -568,7 +613,7 @@ function normalizeSignTime(value) {
 }
 
 function canCustomSignTime(user) {
-  return hasActiveVip(user) && ['VIP', 'SVIP'].includes(user.vipTier);
+  return hasActiveVip(user) && membership.tierAllowsCustomTime(user && user.vipTier);
 }
 
 async function saveAutoSignSetting(userId, options = {}, targetId = null) {
@@ -607,7 +652,7 @@ async function initSystemConfig() {
       value: { 
         enabled: true, 
         title: '📢 系统公告', 
-        content: '欢迎使用智能考勤系统！邀请好友注册，双方各得 10 天 VIP！', 
+        content: '欢迎使用智能考勤系统！邀请好友注册，双方各得 10 天会员！', 
         style: 'info' 
       } 
     },
@@ -728,7 +773,7 @@ function requireActiveVip(req, res, next) {
   if (!hasActiveVip(req.user)) {
     return res.status(403).json({
       success: false,
-      message: '自动签到为付费会员功能，请先开通或续费 VIP'
+      message: '自动签到为付费会员功能，请先开通或续费会员'
     });
   }
   next();
@@ -784,8 +829,8 @@ async function sendVerificationCode(email, code) {
             <p style="margin-top: 20px; color: #666;">验证码 5 分钟内有效，请勿泄露给他人。</p>
             
             <div style="margin-top: 24px; padding: 16px; background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%); border-radius: 12px; text-align: center;">
-              <p style="margin: 0 0 8px 0; font-weight: 600; color: #667eea;">🎉 邀请好友注册，双方各得 10 天 VIP</p>
-              <p style="margin: 0 0 12px 0; font-size: 13px; color: #666;">享受签到邮件通知 · 邀请好友再送 VIP</p>
+              <p style="margin: 0 0 8px 0; font-weight: 600; color: #667eea;">🎉 邀请好友注册，双方各得 10 天会员</p>
+              <p style="margin: 0 0 12px 0; font-size: 13px; color: #666;">享受签到邮件通知 · 邀请好友再送会员天数</p>
               <a href="https://login.agai.online" style="display: inline-block; padding: 8px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; text-decoration: none; border-radius: 20px; font-size: 14px; font-weight: 500;">立即体验</a>
             </div>
             
@@ -885,7 +930,7 @@ async function sendWelcomeEmail(user) {
     bodyHtml: `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;color:#334155;font-size:14px;line-height:1.9;">
       <p style="margin:0 0 8px;">你的账号已创建，当前等级：<strong>${p.label}</strong></p>
       <p style="margin:0 0 8px;">登录后可以手动签到、查看记录、设置自动签到和邮件提醒。</p>
-      <p style="margin:0;">默认签到时间 21:35；VIP / SVIP 可在自动签到页自定义时间。</p>
+      <p style="margin:0;">默认签到时间 21:35；学年卡 Pro 与大一/大二/大三学年卡可在自动签到页自定义时间。</p>
     </div>`,
     ctaText: '进入仪表盘',
     ctaUrl: 'https://login.agai.online/dashboard.html',
@@ -1635,7 +1680,7 @@ app.post('/api/login', async (req, res) => {
         inviteCode,
         lastLogin: new Date(),
         isVip: true,
-        vipTier: 'VIP',
+        vipTier: 'YEARLY_PRO',
         vipStartAt: new Date(),
         vipExpireAt: new Date(Date.now() + 3 * 24 * 3600 * 1000)
       };
@@ -1685,8 +1730,10 @@ app.post('/api/login', async (req, res) => {
         isVip: user.isVip,
         vipExpireAt: user.vipExpireAt,
         signCredits: user.signCredits || 0,
-        vipTier: user.vipTier || (user.isVip ? 'VIP' : 'FREE'),
+        vipTier: user.vipTier || (user.isVip ? 'YEARLY_PRO' : 'FREE'),
         vipStartAt: user.vipStartAt || null,
+        canCustomTime: hasActiveVip(user) && membership.tierAllowsCustomTime(user.vipTier),
+        membership: membership.membershipView(user),
         role: user.role,
         inviteCode: user.inviteCode,
         invitedBy: user.invitedBy,
@@ -1715,8 +1762,10 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
       isVip: user.isVip,
       vipExpireAt: user.vipExpireAt,
       signCredits: user.signCredits || 0,
-        vipTier: user.vipTier || (user.isVip ? 'VIP' : 'FREE'),
+      vipTier: user.vipTier || (user.isVip ? 'YEARLY_PRO' : 'FREE'),
       vipStartAt: user.vipStartAt || null,
+      canCustomTime: hasActiveVip(user) && membership.tierAllowsCustomTime(user.vipTier),
+      membership: membership.membershipView(user),
       role: user.role,
       inviteCode: user.inviteCode,
       invitedBy: user.invitedBy,
@@ -1959,21 +2008,29 @@ app.post('/api/vip/redeem', authMiddleware, async (req, res) => {
     }
     
     const cardTier = card.vipTier || (card.days >= 365 ? 'YEARLY' : card.days >= 120 ? 'TERM' : 'MONTHLY');
-    const expireAt = addVipDays(user, card.days);
-    applyVipTier(user, cardTier);
-    await user.save();
-    
+    const cardPlan = membership.planForTier(cardTier)
+      || (card.days >= 365 ? membership.planForCode('yearly') : card.days >= 120 ? membership.planForCode('term') : membership.planForCode('monthly'));
+    let expireAt;
+    if (cardPlan) {
+      expireAt = await grantMembership(user, cardPlan);
+    } else {
+      expireAt = addVipDays(user, card.days);
+      applyVipTier(user, cardTier);
+      await user.save();
+    }
+
     card.status = 'used';
     card.usedBy = user._id;
     card.usedAt = new Date();
     await card.save();
-    
+
     res.json({
       success: true,
-      message: `兑换成功！VIP 有效期至 ${expireAt.toLocaleDateString()}`,
+      message: `兑换成功！${membership.tierLabel(user.vipTier)} 有效期至 ${expireAt.toLocaleDateString('zh-CN')}`,
       vipExpireAt: expireAt,
       signCredits: user.signCredits || 0,
-        vipTier: user.vipTier || 'FREE'
+      vipTier: user.vipTier || 'FREE',
+      membership: membership.membershipView(user)
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2029,14 +2086,14 @@ app.post('/api/invite/apply', authMiddleware, async (req, res) => {
     expireAt.setDate(expireAt.getDate() + rewardDays);
     user.isVip = true;
     user.vipExpireAt = expireAt;
-    applyVipTier(user, 'VIP');
+    applyVipTier(user, 'YEARLY_PRO');
     await user.save();
     
     let inviterExpireAt = inviter.vipExpireAt && inviter.vipExpireAt > now ? new Date(inviter.vipExpireAt) : now;
     inviterExpireAt.setDate(inviterExpireAt.getDate() + rewardDays);
     inviter.isVip = true;
     inviter.vipExpireAt = inviterExpireAt;
-    applyVipTier(inviter, 'VIP');
+    applyVipTier(inviter, 'YEARLY_PRO');
     inviter.inviteCount = (inviter.inviteCount || 0) + 1;
     await inviter.save();
     
@@ -2049,7 +2106,7 @@ app.post('/api/invite/apply', authMiddleware, async (req, res) => {
     
     res.json({
       success: true,
-      message: `成功绑定邀请人！您和邀请人各获得 ${rewardDays} 天 VIP`,
+      message: `成功绑定邀请人！您和邀请人各获得 ${rewardDays} 天会员`,
       rewardDays
     });
   } catch (error) {
@@ -2259,7 +2316,7 @@ app.get('/api/stats', authMiddleware, async (req, res) => {
         autoSignEnabled,
         isVip: user.isVip,
         vipExpireAt: user.vipExpireAt,
-        vipTier: user.vipTier || (user.isVip ? 'VIP' : 'FREE')
+        vipTier: user.vipTier || (user.isVip ? 'YEARLY_PRO' : 'FREE')
       }
     });
   } catch (error) {
@@ -2493,7 +2550,7 @@ app.get('/api/admin/users/:id', adminMiddleware, async (req, res) => {
 // 更新用户（管理员）
 app.put('/api/admin/users/:id', adminMiddleware, async (req, res) => {
   try {
-    const { name, email, attendancePassword, isVip, vipExpireAt, vipTier, role, isActive } = req.body;
+    const { name, email, attendancePassword, isVip, vipExpireAt, vipStartAt, vipTier, role, isActive } = req.body;
 
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -2509,7 +2566,15 @@ app.put('/api/admin/users/:id', adminMiddleware, async (req, res) => {
     if (attendancePassword !== undefined) user.attendancePassword = attendancePassword;
     if (isVip !== undefined) user.isVip = isVip;
     if (vipExpireAt) user.vipExpireAt = new Date(vipExpireAt);
-    if (vipTier !== undefined) user.vipTier = vipTier;
+    if (vipStartAt) user.vipStartAt = new Date(vipStartAt);
+    if (vipTier !== undefined) {
+      const normalizedTier = membership.normalizeTier(vipTier);
+      if (membership.TIER_VALUES.includes(normalizedTier)) user.vipTier = normalizedTier;
+    }
+    // 管理员直接开通会员但未指定套餐时，默认按学年卡 Pro 处理
+    if (user.isVip && (!user.vipTier || user.vipTier === 'FREE')) {
+      user.vipTier = 'YEARLY_PRO';
+    }
     if (user.vipExpireAt && !user.vipStartAt) user.vipStartAt = new Date();
     if (role) user.role = role;
     if (isActive !== undefined) user.isActive = isActive;
@@ -2654,41 +2719,69 @@ const PAY_QR_URLS = {
 };
 const PAY_QR_URL = PAY_QR_URLS.wechat;
 
-const SPONSOR_PACKAGES = [
-  { packageId: 'monthly', tier: 'MONTHLY', type: 'days',   days: 30,  counts: 0,  price: 6.66,  name: '月卡',   description: '30 天月卡会员，适合短期使用',             badge: '轻量体验', sort: 1 },
-  { packageId: 'term',    tier: 'TERM',    type: 'days',   days: 120, counts: 0,  price: 9.99,  name: '学期卡', description: '一学期会员 · 120 天，覆盖整个学期',       badge: '性价比',   sort: 2 },
-  { packageId: 'yearly',  tier: 'YEARLY',  type: 'days',   days: 365, counts: 0,  price: 15.01, name: '学年卡', description: '一学年会员 · 365 天，长期使用更省心',     badge: '最划算',   sort: 3 },
-  { packageId: 'vip',     tier: 'VIP',     type: 'days',   days: 365, counts: 0,  price: 20.00, name: 'VIP',    description: 'VIP 会员 · 365 天，进阶权益',             badge: '进阶',     sort: 4 },
-  { packageId: 'svip',    tier: 'SVIP',    type: 'days',   days: 365, counts: 0,  price: 50.33, name: 'SVIP',   description: 'SVIP 会员 · 365 天，最高等级',            badge: '最高等级', sort: 5 },
-  { packageId: 'trial',   tier: 'COUNTS',  type: 'counts', days: 0,   counts: 3,  price: 5.00,  name: '体验卡', description: '永久有效 · 3 次签到',                     badge: '先试试',   sort: 6 },
-  { packageId: 'standard',tier: 'COUNTS',  type: 'counts', days: 0,   counts: 10, price: 12.00, name: '标准卡', description: '永久有效 · 10 次签到',                    badge: '常用',     sort: 7 },
-  { packageId: 'value',   tier: 'COUNTS',  type: 'counts', days: 0,   counts: 30, price: 28.00, name: '超值卡', description: '永久有效 · 30 次签到，单次更划算',        badge: '超值',     sort: 8 }
-];
+// 优惠码（价格立减）。服务端校验，前端只做展示
+const COUPONS = {
+  aggzsnb: { code: 'aggzsnb', discount: 5.88, label: '立减 5.88 元' }
+};
 
-// 卡密后台仍可生成，作为线下/手动备用
-const CARD_PACKAGES = [
-  { days: 30,  times: 0, cardCategory: 'days', price: 6.66,  name: '30天月卡',   description: '月卡会员', vipTier: 'MONTHLY' },
-  { days: 120, times: 0, cardCategory: 'days', price: 9.99,  name: '一学期会员', description: '学期会员', vipTier: 'TERM' },
-  { days: 365, times: 0, cardCategory: 'days', price: 15.01, name: '一学年会员', description: '年费会员', vipTier: 'YEARLY' },
-  { days: 365, times: 0, cardCategory: 'days', price: 20.00, name: 'VIP会员',    description: 'VIP 会员', vipTier: 'VIP' },
-  { days: 365, times: 0, cardCategory: 'days', price: 50.33, name: 'SVIP会员',   description: 'SVIP 会员', vipTier: 'SVIP' },
-  { days: 0, times: 30, cardCategory: 'times', price: 28.00, name: '30次签到卡', description: '可签到30次', vipTier: '' },
-  { days: 0, times: 10, cardCategory: 'times', price: 12.00, name: '10次签到卡', description: '可签到10次', vipTier: '' },
-  { days: 0, times: 3,  cardCategory: 'times', price: 5.00,  name: '3次签到卡',  description: '可签到3次',  vipTier: '' }
-];
+function findCoupon(input) {
+  const code = String(input || '').trim().toLowerCase();
+  if (!code) return null;
+  return COUPONS[code] || null;
+}
+
+// 七种在售套餐：以 membership.js 为唯一配置源
+const SPONSOR_PACKAGES = membership.PLANS.map((plan) => ({
+  packageId: plan.packageId,
+  planCode: plan.code,
+  tier: plan.tier,
+  type: 'days',
+  kind: plan.kind,
+  group: plan.group,
+  days: plan.kind === 'days' ? plan.days : 0,
+  years: plan.years || 0,
+  counts: 0,
+  price: plan.price,
+  pricePerYear: plan.pricePerYear,
+  name: plan.name,
+  description: plan.description,
+  badge: plan.badge,
+  audience: plan.audience,
+  customTime: !!plan.customTime,
+  durationLabel: plan.durationLabel,
+  sort: plan.sort,
+  active: true
+}));
+
+// 卡密后台仍可生成，作为线下/手动备用（按七套餐生成，不含次数卡）
+const CARD_PACKAGES = membership.PLANS.map((plan) => ({
+  days: plan.kind === 'days' ? plan.days : 0,
+  times: 0,
+  cardCategory: 'days',
+  price: plan.price,
+  name: plan.name,
+  description: plan.description,
+  vipTier: plan.tier
+}));
 
 const TIER_EMAIL_PROFILES = {
-  FREE:    { label: '免费用户',  emoji: '🌱', gradient: 'linear-gradient(135deg,#64748b,#94a3b8)', accent: '#475569' },
-  MONTHLY: { label: '月卡会员',  emoji: '🌙', gradient: 'linear-gradient(135deg,#0f766e,#14b8a6)', accent: '#0f766e' },
-  TERM:    { label: '学期会员',  emoji: '📚', gradient: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', accent: '#1d4ed8' },
-  YEARLY:  { label: '年费会员',  emoji: '🏆', gradient: 'linear-gradient(135deg,#7c3aed,#a855f7)', accent: '#7c3aed' },
-  VIP:     { label: 'VIP会员',   emoji: '👑', gradient: 'linear-gradient(135deg,#b45309,#f59e0b)', accent: '#b45309' },
-  SVIP:    { label: 'SVIP会员',  emoji: '💎', gradient: 'linear-gradient(135deg,#be123c,#fb7185)', accent: '#be123c' },
-  LEGACY:  { label: '元老会员',  emoji: '🏛️', gradient: 'linear-gradient(135deg,#111827,#4b5563)', accent: '#111827' }
+  FREE:       { label: '免费用户',        emoji: '🌱', gradient: 'linear-gradient(135deg,#64748b,#94a3b8)', accent: '#475569' },
+  MONTHLY:    { label: '月卡会员',        emoji: '🌙', gradient: 'linear-gradient(135deg,#0f766e,#14b8a6)', accent: '#0f766e' },
+  TERM:       { label: '学期卡会员',      emoji: '📚', gradient: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', accent: '#1d4ed8' },
+  YEARLY:     { label: '学年卡会员',      emoji: '🏆', gradient: 'linear-gradient(135deg,#7c3aed,#a855f7)', accent: '#7c3aed' },
+  YEARLY_PRO: { label: '学年卡 Pro 会员', emoji: '👑', gradient: 'linear-gradient(135deg,#b45309,#f59e0b)', accent: '#b45309' },
+  FRESHMAN:   { label: '大一学年卡会员',  emoji: '🚀', gradient: 'linear-gradient(135deg,#0f766e,#22c55e)', accent: '#0f766e' },
+  SOPHOMORE:  { label: '大二学年卡会员',  emoji: '⛵', gradient: 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', accent: '#1d4ed8' },
+  JUNIOR:     { label: '大三学年卡会员',  emoji: '🎯', gradient: 'linear-gradient(135deg,#7c3aed,#d946ef)', accent: '#7c3aed' },
+  VIP:        { label: '学年卡 Pro 会员', emoji: '👑', gradient: 'linear-gradient(135deg,#b45309,#f59e0b)', accent: '#b45309' },
+  SVIP:       { label: '长期会员',        emoji: '💎', gradient: 'linear-gradient(135deg,#be123c,#fb7185)', accent: '#be123c' },
+  LEGACY:     { label: '元老会员',        emoji: '🏛️', gradient: 'linear-gradient(135deg,#111827,#4b5563)', accent: '#111827' }
 };
 
 function getTierProfile(user) {
-  return TIER_EMAIL_PROFILES[user && user.vipTier] || TIER_EMAIL_PROFILES[user && user.isVip ? 'VIP' : 'FREE'];
+  const tier = membership.normalizeTier(user && user.vipTier);
+  return TIER_EMAIL_PROFILES[tier]
+    || (user && user.isVip ? TIER_EMAIL_PROFILES.YEARLY_PRO : TIER_EMAIL_PROFILES.FREE);
 }
 
 function renderTierEmail(user, opts) {
@@ -2749,13 +2842,14 @@ async function sendTierEmail(user, subject, opts) {
 async function sendSponsorMail(user, order, kind) {
   const tier = getTierProfile(user);
   const orderPkg = await SponsorPackage.findOne({ packageId: order.packageId }).catch(() => null);
-  const packageName = orderPkg ? orderPkg.name : tier.label;
+  const planName = order.packageName || (orderPkg ? orderPkg.name : membership.tierLabel(order.tier));
+  const durationText = order.durationLabel || (order.days ? `${order.days} 天` : '');
   if (kind === 'revoked') {
     return sendTierEmail(user, '⚠️ 赞助权益已取消', {
       title: '赞助权益已取消',
       bodyHtml: `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px;color:#991b1b;font-size:14px;line-height:1.9;">
         <p style="margin:0 0 8px;">订单：<strong>${order.orderNo}</strong></p>
-        <p style="margin:0 0 8px;">原赞助档位：<strong>${order.tier} · ${order.days} 天</strong></p>
+        <p style="margin:0 0 8px;">原套餐：<strong>${planName}${durationText ? ' · ' + durationText : ''}</strong></p>
         <p style="margin:0;">经核对未匹配到对应付款，权益已取消。如有疑问，请通过客服邮箱联系。</p>
       </div>`,
       ctaText: '联系客服',
@@ -2764,14 +2858,14 @@ async function sendSponsorMail(user, order, kind) {
     });
   }
   const isCounts = order.packageType === 'counts' || order.tier === 'COUNTS';
-  const packageText = isCounts ? `次数卡 · ${order.counts} 次（永久有效）` : `${tier.label} · ${order.days} 天`;
+  const packageText = isCounts ? `次数卡 · ${order.counts} 次（永久有效）` : `${planName}${durationText ? ' · ' + durationText : ''}`;
   return sendTierEmail(user, kind === 'confirmed' ? '✅ 赞助已核对到账' : '🎉 赞助已到账', {
     title: kind === 'confirmed' ? '赞助已核对到账' : '赞助已到账',
     bodyHtml: `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;color:#166534;font-size:14px;line-height:1.9;">
       <p style="margin:0 0 8px;">订单：<strong>${order.orderNo}</strong></p>
-      <p style="margin:0 0 8px;">档位：<strong>${packageText}</strong></p>
+      <p style="margin:0 0 8px;">套餐：<strong>${packageText}</strong></p>
       <p style="margin:0 0 8px;">金额：<strong>¥${Number(order.amount).toFixed(2)}</strong></p>
-      <p style="margin:0;">权益已发放${isCounts ? '，剩余次数可在仪表盘查看。' : `，当前等级：<strong>${packageName}</strong>。`}</p>
+      <p style="margin:0;">权益已发放${isCounts ? '，剩余次数可在仪表盘查看。' : `，当前套餐：<strong>${planName}</strong>。`}</p>
     </div>`,
     ctaText: '登录查看权益',
     ctaUrl: 'https://login.agai.online',
@@ -2800,23 +2894,83 @@ async function ensureSponsorPackages() {
   }
 }
 
+// 把七套餐写入数据库（只在迁移时执行一次，避免覆盖后台手工修改）
+async function syncMembershipPlans() {
+  for (const pkg of SPONSOR_PACKAGES) {
+    await SponsorPackage.updateOne(
+      { packageId: pkg.packageId },
+      { $set: { ...pkg, updatedAt: new Date() }, $setOnInsert: { createdAt: new Date() } },
+      { upsert: true }
+    );
+  }
+  // 旧套餐下架，但保留记录供历史订单查看
+  await SponsorPackage.updateMany(
+    { packageId: { $in: ['vip', 'svip', 'trial', 'standard', 'value', 'counts', 'times'] } },
+    { $set: { active: false, updatedAt: new Date() } }
+  );
+}
+
+let membershipMigrationPromise = null;
+function migrateMembershipV2() {
+  if (!membershipMigrationPromise) {
+    membershipMigrationPromise = (async () => {
+      try {
+        const flag = await SystemConfig.findOne({ key: 'membership_v2_migrated' });
+        if (flag) return;
+
+        await ensureSponsorPackages();
+        await syncMembershipPlans();
+
+        // 旧 VIP 用户 → 学年卡 Pro（到期时间与自定义时间权益保持不变）
+        const legacyVip = await User.countDocuments({ vipTier: 'VIP' });
+        if (legacyVip > 0) {
+          await User.updateMany({ vipTier: 'VIP' }, { $set: { vipTier: 'YEARLY_PRO' } });
+        }
+        const legacySvip = await User.countDocuments({ vipTier: 'SVIP' });
+
+        await SystemConfig.create({
+          key: 'membership_v2_migrated',
+          value: { at: new Date(), legacyVipMigrated: legacyVip, legacySvipKept: legacySvip }
+        });
+        console.log(`✅ 会员套餐 v2 迁移完成：VIP→学年卡Pro ${legacyVip} 人，保留 SVIP ${legacySvip} 人`);
+      } catch (error) {
+        console.error('❌ 会员套餐 v2 迁移失败:', error.message);
+      }
+    })();
+  }
+  return membershipMigrationPromise;
+}
+
 app.get('/api/payment/packages', authMiddleware, async (req, res) => {
   try {
+    await migrateMembershipV2();
     await ensureSponsorPackages();
-    const packages = await SponsorPackage.find({ active: true }).sort({ sort: 1, price: 1 });
+    // 次数卡不再在前台展示，只保留时间套餐
+    const packages = await SponsorPackage.find({ active: true, type: 'days' }).sort({ sort: 1, price: 1 });
+    const user = req.user;
+    const planMeta = membership.membershipView(user);
     res.json({
       success: true,
+      membership: planMeta,
       packages: packages.map(p => ({
         id: p.packageId,
         packageId: p.packageId,
+        planCode: p.planCode || p.packageId,
         name: p.name,
         price: p.price,
+        pricePerYear: p.pricePerYear,
         description: p.description,
         badge: p.badge,
         type: p.type,
+        kind: p.kind || 'days',
+        group: p.group || 'basic',
         tier: p.tier,
         days: p.days,
-        counts: p.counts
+        years: p.years || 0,
+        counts: p.counts,
+        audience: p.audience || '不限',
+        customTime: !!p.customTime,
+        durationLabel: p.durationLabel || ''
       }))
     });
   } catch (error) {
@@ -2824,14 +2978,36 @@ app.get('/api/payment/packages', authMiddleware, async (req, res) => {
   }
 });
 
+app.get('/api/payment/coupon', authMiddleware, async (req, res) => {
+  const coupon = findCoupon(req.query.code);
+  if (!coupon) {
+    return res.json({ success: true, valid: false, message: '优惠码无效' });
+  }
+  res.json({
+    success: true,
+    valid: true,
+    code: coupon.code,
+    discount: coupon.discount,
+    label: coupon.label
+  });
+});
+
 app.post('/api/payment/create-order', authMiddleware, async (req, res) => {
   try {
-    const { packageId, payMethod } = req.body;
+    const { packageId, payMethod, couponCode } = req.body;
+    await migrateMembershipV2();
     await ensureSponsorPackages();
     const pkg = await SponsorPackage.findOne({ packageId, active: true });
     if (!pkg) return res.status(400).json({ success: false, message: '无效的赞助档位' });
 
-    const amount = await generateUniqueAmount(pkg.price);
+    const coupon = findCoupon(couponCode);
+    if (couponCode && !coupon) {
+      return res.status(400).json({ success: false, message: '优惠码无效' });
+    }
+    const originalPrice = Number(pkg.price);
+    const discount = coupon ? Math.min(Number(coupon.discount), originalPrice) : 0;
+    const discountedBase = Math.max(0.01, Number((originalPrice - discount).toFixed(2)));
+    const amount = await generateUniqueAmount(discountedBase);
     let payCode = '';
     for (let attempt = 0; attempt < 20; attempt++) {
       const candidate = String(Math.floor(1000 + Math.random() * 9000));
@@ -2844,9 +3020,15 @@ app.post('/api/payment/create-order', authMiddleware, async (req, res) => {
       orderNo,
       userId: req.user._id,
       packageId: pkg.packageId,
+      planCode: pkg.planCode || pkg.packageId,
+      packageName: pkg.name,
+      durationLabel: pkg.durationLabel || '',
       tier: pkg.tier,
       packageType: pkg.type,
       amount,
+      couponCode: coupon ? coupon.code : '',
+      couponDiscount: discount,
+      originalAmount: originalPrice,
       days: pkg.days,
       counts: pkg.counts,
       payMethod: payMethod === 'alipay' ? 'alipay' : 'wechat',
@@ -2863,7 +3045,13 @@ app.post('/api/payment/create-order', authMiddleware, async (req, res) => {
       order: {
         orderNo: order.orderNo,
         amount: order.amount,
+        originalAmount: order.originalAmount,
+        couponCode: order.couponCode,
+        couponDiscount: order.couponDiscount,
         tier: order.tier,
+        planCode: order.planCode,
+        packageName: order.packageName,
+        durationLabel: order.durationLabel,
         packageType: order.packageType,
         days: order.days,
         counts: order.counts,
@@ -2897,9 +3085,18 @@ app.post('/api/payment/claim', authMiddleware, async (req, res) => {
         success: true,
         already: true,
         message: '该订单已发放权益，等待后台核对',
-        order: { orderNo: order.orderNo, tier: order.tier, days: order.days, status: order.status, reviewStatus: order.reviewStatus },
+        order: {
+          orderNo: order.orderNo,
+          tier: order.tier,
+          planCode: order.planCode || '',
+          packageName: order.packageName || membership.tierLabel(order.tier),
+          days: order.days,
+          status: order.status,
+          reviewStatus: order.reviewStatus
+        },
         vipTier: req.user.vipTier,
-        vipExpireAt: req.user.vipExpireAt
+        vipExpireAt: req.user.vipExpireAt,
+        membership: membership.membershipView(req.user)
       });
     }
     if (order.status !== 'pending') return res.status(400).json({ success: false, message: '该订单当前不能提交' });
@@ -2915,7 +3112,8 @@ app.post('/api/payment/claim', authMiddleware, async (req, res) => {
       user.signCreditsExpireAt = getGraduationDate(user.studentId) || new Date(Date.now() + 4 * 365 * 24 * 3600 * 1000);
       await user.save();
     } else {
-      expireAt = await grantSponsorTier(user, order.tier, order.days);
+      const plan = planForOrder(order);
+      expireAt = await grantMembership(user, plan || order.tier, { days: order.days });
     }
 
     order.status = 'granted';
@@ -2938,6 +3136,9 @@ app.post('/api/payment/claim', authMiddleware, async (req, res) => {
       order: {
         orderNo: order.orderNo,
         tier: order.tier,
+        planCode: order.planCode || '',
+        packageName: order.packageName || membership.tierLabel(order.tier),
+        durationLabel: order.durationLabel || '',
         packageType: order.packageType,
         days: order.days,
         counts: order.counts,
@@ -2947,7 +3148,8 @@ app.post('/api/payment/claim', authMiddleware, async (req, res) => {
       },
       signCredits: user.signCredits,
       vipTier: user.vipTier,
-      vipExpireAt: expireAt
+      vipExpireAt: expireAt,
+      membership: membership.membershipView(user)
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2964,9 +3166,13 @@ app.get('/api/payment/order/:orderNo', authMiddleware, async (req, res) => {
         orderNo: order.orderNo,
         amount: order.amount,
         tier: order.tier,
+        planCode: order.planCode || '',
+        packageName: order.packageName || membership.tierLabel(order.tier),
+        durationLabel: order.durationLabel || '',
         packageType: order.packageType,
         days: order.days,
         counts: order.counts,
+        amount: order.amount,
         status: order.status,
         reviewStatus: order.reviewStatus,
         expireAt: order.expireAt,
@@ -2975,7 +3181,8 @@ app.get('/api/payment/order/:orderNo', authMiddleware, async (req, res) => {
       },
       signCredits: req.user.signCredits || 0,
       vipTier: req.user.vipTier,
-      vipExpireAt: req.user.vipExpireAt
+      vipExpireAt: req.user.vipExpireAt,
+      membership: membership.membershipView(req.user)
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -3018,7 +3225,8 @@ app.post('/api/admin/sponsor-orders/:id/confirm', adminMiddleware, async (req, r
     if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
 
     if (order.status !== 'granted') {
-      await grantSponsorTier(user, order.tier, order.days);
+      const plan = planForOrder(order);
+      await grantMembership(user, plan || order.tier, { days: order.days });
       order.status = 'granted';
       order.grantedAt = new Date();
     }
@@ -3062,6 +3270,7 @@ app.post('/api/admin/sponsor-orders/:id/revoke', adminMiddleware, async (req, re
 // ============ 管理员：赞助套餐增删改 ============
 app.get('/api/admin/sponsor-packages', adminMiddleware, async (req, res) => {
   try {
+    await migrateMembershipV2();
     await ensureSponsorPackages();
     const packages = await SponsorPackage.find({}).sort({ sort: 1, price: 1 });
     res.json({ success: true, packages });
@@ -3080,16 +3289,25 @@ app.post('/api/admin/sponsor-packages', adminMiddleware, async (req, res) => {
     const exists = await SponsorPackage.findOne({ packageId });
     if (exists) return res.status(400).json({ success: false, message: '套餐 ID 已存在' });
     const type = b.type === 'counts' ? 'counts' : 'days';
+    const kind = b.kind === 'grade' ? 'grade' : 'days';
     const pkg = await SponsorPackage.create({
       packageId,
+      planCode: String(b.planCode || packageId).trim(),
       name: String(b.name).trim(),
       price: Number(Number(b.price).toFixed(2)),
+      pricePerYear: b.pricePerYear !== undefined && b.pricePerYear !== '' ? Number(Number(b.pricePerYear).toFixed(2)) : null,
       description: String(b.description || '').trim(),
       badge: String(b.badge || '').trim(),
       type,
+      kind,
+      group: ['basic', 'pro', 'grade'].includes(b.group) ? b.group : (kind === 'grade' ? 'grade' : 'basic'),
       tier: type === 'counts' ? 'COUNTS' : String(b.tier || 'MONTHLY'),
-      days: type === 'days' ? Math.max(0, parseInt(b.days, 10) || 0) : 0,
+      days: type === 'days' && kind === 'days' ? Math.max(0, parseInt(b.days, 10) || 0) : 0,
+      years: kind === 'grade' ? Math.max(0, parseInt(b.years, 10) || 0) : 0,
       counts: type === 'counts' ? Math.max(0, parseInt(b.counts, 10) || 0) : 0,
+      audience: String(b.audience || (kind === 'grade' ? '' : '不限')).trim() || '不限',
+      customTime: !!b.customTime,
+      durationLabel: String(b.durationLabel || '').trim(),
       active: b.active !== false,
       sort: Number.isFinite(Number(b.sort)) ? Number(b.sort) : 99,
       updatedAt: new Date()
@@ -3106,13 +3324,21 @@ app.put('/api/admin/sponsor-packages/:id', adminMiddleware, async (req, res) => 
     if (!pkg) return res.status(404).json({ success: false, message: '套餐不存在' });
     const b = req.body || {};
     if (b.name !== undefined) pkg.name = String(b.name).trim();
+    if (b.planCode !== undefined) pkg.planCode = String(b.planCode).trim();
     if (b.price !== undefined) pkg.price = Number(Number(b.price).toFixed(2));
+    if (b.pricePerYear !== undefined) pkg.pricePerYear = b.pricePerYear === '' || b.pricePerYear === null ? null : Number(Number(b.pricePerYear).toFixed(2));
     if (b.description !== undefined) pkg.description = String(b.description).trim();
     if (b.badge !== undefined) pkg.badge = String(b.badge).trim();
     if (b.type !== undefined) pkg.type = b.type === 'counts' ? 'counts' : 'days';
+    if (b.kind !== undefined) pkg.kind = b.kind === 'grade' ? 'grade' : 'days';
+    if (b.group !== undefined && ['basic', 'pro', 'grade'].includes(b.group)) pkg.group = b.group;
     if (b.tier !== undefined) pkg.tier = String(b.tier);
     if (b.days !== undefined) pkg.days = Math.max(0, parseInt(b.days, 10) || 0);
+    if (b.years !== undefined) pkg.years = Math.max(0, parseInt(b.years, 10) || 0);
     if (b.counts !== undefined) pkg.counts = Math.max(0, parseInt(b.counts, 10) || 0);
+    if (b.audience !== undefined) pkg.audience = String(b.audience || '不限').trim() || '不限';
+    if (b.customTime !== undefined) pkg.customTime = !!b.customTime;
+    if (b.durationLabel !== undefined) pkg.durationLabel = String(b.durationLabel).trim();
     if (b.active !== undefined) pkg.active = !!b.active;
     if (b.sort !== undefined) pkg.sort = Number(b.sort) || 0;
     pkg.updatedAt = new Date();
@@ -3967,17 +4193,21 @@ app.put('/api/admin/reports/:id', adminMiddleware, async (req, res) => {
 
 app.post('/api/admin/cards/generate', adminMiddleware, async (req, res) => {
   try {
-    const { count = 10, days = 30, tier } = req.body;
-    const vipTier = tier || (days >= 365 ? 'YEARLY' : days >= 120 ? 'TERM' : 'MONTHLY');
-    
+    const { count = 10, days = 30, tier, packageId } = req.body;
+    const plan = membership.planForCode(packageId || '')
+      || membership.planForTier(tier || '')
+      || membership.planForCode(days >= 365 ? 'yearly' : days >= 120 ? 'term' : 'monthly');
+    const vipTier = plan ? plan.tier : 'MONTHLY';
+    const cardDays = plan && plan.kind === 'days' ? plan.days : days;
+
     const cards = [];
     for (let i = 0; i < count; i++) {
       const code = 'VIP' + crypto.randomBytes(6).toString('hex').toUpperCase();
-      cards.push({ code, days, type: `vip_${days}d`, vipTier });
+      cards.push({ code, days: cardDays, type: `vip_${vipTier.toLowerCase()}`, vipTier });
     }
-    
+
     await Card.insertMany(cards);
-    
+
     res.json({ success: true, cards, message: `成功生成 ${count} 张卡密` });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -4096,6 +4326,13 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`🔌 WebSocket 已启用`);
 });
 
-initSystemConfig().catch(err => {
-  console.error('❌ 系统配置初始化失败:', err.message);
+initSystemConfig()
+  .then(() => migrateMembershipV2())
+  .catch(err => {
+    console.error('❌ 系统配置初始化失败:', err.message);
+  });
+
+// 数据库稍后就绪时也补跑一次（迁移内部有幂等标记）
+mongoose.connection.on('connected', () => {
+  migrateMembershipV2().catch(err => console.error('会员套餐迁移失败:', err.message));
 });
