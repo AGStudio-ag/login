@@ -4300,6 +4300,20 @@ app.get('/api/admin/email-recipients-count', adminMiddleware, async (req, res) =
 });
 
 
+// ============ 前端静态托管（login.agai.online 由 Railway 迁移至本服务） ============
+const FRONTEND_DIR = path.join(__dirname, 'public');
+if (fs.existsSync(FRONTEND_DIR)) {
+  app.use(express.static(FRONTEND_DIR, { index: 'index.html', maxAge: '1h' }));
+  // 无扩展名单段路径 → 同名 .html（兼容 /dashboard /admin /terms /privacy /faq /market /plant /shudian）
+  app.get(/^\/([^/]+)$/, (req, res, next) => {
+    const seg = req.params[0];
+    if (seg === 'api' || seg === 'health' || seg.includes('.')) return next();
+    const file = path.join(FRONTEND_DIR, seg + '.html');
+    if (fs.existsSync(file)) return res.sendFile(file);
+    next();
+  });
+}
+
 // ============ 定时任务 ============
 cron.schedule(AUTO_SIGN_CRON, () => executeAutoSign({ targetTime: AUTO_SIGN_TIME }), { timezone: "Asia/Shanghai" });
 

@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AG 校园二手市场</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <style>
+    :root {
+      --primary: #ff6b35;
+      --primary-dark: #e85a25;
+      --primary-soft: #fff1eb;
+      --accent: #20a67a;
+      --danger: #d92d20;
+      --warning: #f59e0b;
+      --bg: #f6f6f7;
+      --card: #fff;
+      --text: #1f2328;
+      --muted: #667085;
+      --line: #e7e7ea;
+      --shadow: 0 8px 24px rgba(20, 24, 31, .08);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { border: 0; cursor: pointer; }
+    img { max-width: 100%; display: block; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), #ff8a50);
+      box-shadow: 0 6px 22px rgba(255, 107, 53, .25);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      font-weight: 800;
+      font-size: 17px;
+    }
+
+    .brand-mark, .icon-btn {
+      display: inline-grid;
+      place-items: center;
+      flex: none;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .18);
+      color: #fff;
+    }
+
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .18);
+      color: #fff;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .nav-btn.primary { background: #fff; color: var(--primary); }
+
+    .shell {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 14px;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .search-box input {
+      width: 100%;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+    }
+
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: var(--radius);
+      background: var(--primary);
+      color: #fff;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .action-btn.secondary { background: #fff; color: var(--text); border: 1px solid var(--line); }
+    .action-btn.ghost { background: var(--primary-soft); color: var(--primary-dark); }
+    .action-btn.danger { background: var(--danger); color: #fff; }
+    .action-btn.muted { background: #f1f2f4; color: var(--text); }
+    .action-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+    .category-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 2px 0 12px;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .category-strip::-webkit-scrollbar { display: none; }
+
+    .category {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      flex: 0 0 auto;
+      height: 38px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .category.active {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 5px;
+      margin-bottom: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .tab {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 38px;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .tab.active { background: var(--primary); color: #fff; }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 8px 0 12px;
+    }
+    .section-head h2 { font-size: 18px; }
+    .section-head p { color: var(--muted); font-size: 13px; }
+
+    .items-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .item-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: 0 2px 10px rgba(20, 24, 31, .04);
+    }
+
+    .item-cover {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      background: #f0f2f5;
+      overflow: hidden;
+    }
+    .item-cover img { width: 100%; height: 100%; object-fit: cover; }
+    .item-cover .placeholder {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      color: #a0a7b2;
+      font-size: 30px;
+    }
+
+    .item-chip {
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, .55);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .item-body { padding: 10px; }
+    .item-title {
+      min-height: 40px;
+      font-size: 14px;
+      font-weight: 800;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .item-price {
+      margin-top: 7px;
+      color: #e23919;
+      font-size: 20px;
+      font-weight: 900;
+    }
+    .item-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .item-actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 9px;
+    }
+    .mini-btn {
+      display: inline-grid;
+      place-items: center;
+      min-height: 32px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font-weight: 800;
+    }
+    .mini-btn.primary { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-soft); }
+    .mini-btn.danger { border-color: #ffd1ca; color: var(--danger); background: #fff4f2; }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 14px;
+      box-shadow: 0 2px 12px rgba(20, 24, 31, .04);
+    }
+
+    .profile-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .avatar {
+      display: inline-grid;
+      place-items: center;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    .chat-layout {
+      display: grid;
+      grid-template-columns: minmax(220px, 320px) 1fr;
+      gap: 12px;
+      min-height: 520px;
+    }
+    .chat-list, .chat-detail {
+      min-height: 520px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      overflow: hidden;
+    }
+    .chat-list { overflow-y: auto; }
+    .chat-room {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+    }
+    .chat-room.active { background: var(--primary-soft); }
+    .chat-room strong {
+      display: block;
+      font-size: 14px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .chat-room span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .chat-detail {
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    .chat-title {
+      min-width: 0;
+      flex: 1;
+      font-weight: 900;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .messages {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      padding: 12px;
+      background: #fafafa;
+    }
+    .bubble {
+      max-width: 78%;
+      padding: 9px 11px;
+      border-radius: 8px;
+      word-break: break-word;
+      font-size: 14px;
+    }
+    .bubble.me { align-self: flex-end; background: var(--primary); color: #fff; }
+    .bubble.other { align-self: flex-start; background: #fff; border: 1px solid var(--line); }
+    .chat-input {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      padding: 10px;
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+    .chat-input input {
+      min-width: 0;
+      min-height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      outline: 0;
+    }
+
+    .empty {
+      grid-column: 1 / -1;
+      padding: 38px 16px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .empty i { display: block; margin-bottom: 10px; font-size: 34px; color: #b3bac5; }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(15, 18, 25, .55);
+    }
+    .modal.show { display: flex; }
+    .modal-card {
+      width: min(560px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+    .modal-head {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .modal-head h3 { font-size: 17px; }
+    .modal-body { padding: 14px; }
+    .close-btn {
+      display: inline-grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius);
+      background: #f1f2f4;
+      color: var(--text);
+    }
+
+    .form-grid { display: grid; gap: 12px; }
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .field input, .field textarea, .field select {
+      width: 100%;
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      outline: 0;
+      background: #fff;
+    }
+    .field textarea { resize: vertical; min-height: 88px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .upload-box {
+      display: grid;
+      gap: 8px;
+      place-items: center;
+      min-height: 108px;
+      border: 1px dashed #cfd4dc;
+      border-radius: var(--radius);
+      background: #fafafa;
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .preview {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #f4f5f7;
+    }
+    .preview img { width: 100%; height: 100%; object-fit: cover; }
+    .preview button {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      display: inline-grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, .65);
+      color: #fff;
+    }
+    .qr-preview {
+      display: none;
+      width: 120px;
+      height: 120px;
+      margin-top: 8px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .qr-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+    .detail-gallery {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: #f2f3f5;
+      aspect-ratio: 1 / .72;
+    }
+    .detail-gallery img { width: 100%; height: 100%; object-fit: contain; }
+    .gallery-nav {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+      padding: 0 8px;
+    }
+    .gallery-nav button {
+      pointer-events: auto;
+      display: inline-grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, .45);
+      color: #fff;
+    }
+
+    .detail-price { margin: 12px 0 4px; color: #e23919; font-size: 28px; font-weight: 900; }
+    .detail-meta { display: flex; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+    .seller-pay {
+      margin-top: 12px;
+      border: 1px solid #ffd7c7;
+      border-radius: var(--radius);
+      background: #fff8f5;
+      overflow: hidden;
+    }
+    .seller-pay button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      background: transparent;
+      color: var(--primary-dark);
+      font-weight: 900;
+    }
+    .pay-content {
+      display: none;
+      padding: 0 12px 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .pay-content.open { display: block; }
+    .pay-content img {
+      width: 160px;
+      height: 160px;
+      margin: 8px auto 0;
+      object-fit: cover;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      cursor: zoom-in;
+    }
+    .contact-box {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: var(--radius);
+      background: #f7f8fa;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .contact-box.show { display: block; }
+
+    .detail-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .float-service {
+      position: fixed;
+      right: 14px;
+      bottom: 18px;
+      z-index: 70;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 0 13px;
+      border-radius: 999px;
+      background: #1f2328;
+      color: #fff;
+      box-shadow: var(--shadow);
+      font-weight: 800;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 200;
+      max-width: calc(100vw - 28px);
+      transform: translate(-50%, 18px);
+      opacity: 0;
+      pointer-events: none;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      background: #1f2328;
+      color: #fff;
+      font-weight: 800;
+      box-shadow: var(--shadow);
+      transition: opacity .22s ease, transform .22s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast.success { background: var(--accent); }
+    .toast.error { background: var(--danger); }
+
+    .zoom-card {
+      width: min(520px, 100%);
+      padding: 12px;
+      border-radius: var(--radius);
+      background: #fff;
+    }
+    .zoom-card img {
+      width: 100%;
+      max-height: 78vh;
+      object-fit: contain;
+      border-radius: var(--radius);
+    }
+
+    .hidden { display: none !important; }
+
+    @media (min-width: 760px) {
+      .items-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+      .shell { padding: 18px; }
+    }
+
+    @media (min-width: 1080px) {
+      .items-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 680px) {
+      .brand span { display: none; }
+      .nav-btn span { display: none; }
+      .search-row { grid-template-columns: 1fr; }
+      .tabs { gap: 4px; }
+      .tab { font-size: 13px; }
+      .form-row, .detail-actions { grid-template-columns: 1fr; }
+      .preview-grid { grid-template-columns: repeat(4, 1fr); }
+      .chat-layout { grid-template-columns: 1fr; min-height: auto; }
+      .chat-list, .chat-detail { min-height: 430px; }
+      .chat-detail.mobile-open { display: flex; }
+      .chat-list.mobile-hidden { display: none; }
+      .float-service span { display: none; }
+      .float-service { width: 46px; height: 46px; justify-content: center; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <button class="icon-btn" onclick="location.href='/'" aria-label="返回">
+      <i class="fas fa-chevron-left"></i>
+    </button>
+    <div class="brand">
+      <span class="brand-mark"><i class="fas fa-store"></i></span>
+      <span>AG 校园二手</span>
+    </div>
+    <div class="top-actions">
+      <button class="nav-btn primary" onclick="openPublishModal()"><i class="fas fa-plus"></i><span>发布</span></button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <div class="search-row">
+      <label class="search-box">
+        <i class="fas fa-search" aria-hidden="true"></i>
+        <input id="searchInput" type="search" placeholder="搜教材、耳机、台灯..." onkeydown="if(event.key==='Enter') searchItems()">
+      </label>
+      <button class="action-btn secondary" onclick="searchItems()"><i class="fas fa-search"></i> 搜索</button>
+    </div>
+
+    <nav class="category-strip" aria-label="商品分类">
+      <button class="category active" data-category="all"><i class="fas fa-border-all"></i> 全部</button>
+      <button class="category" data-category="book"><i class="fas fa-book"></i> 教材书籍</button>
+      <button class="category" data-category="electronic"><i class="fas fa-mobile-alt"></i> 数码电子</button>
+      <button class="category" data-category="life"><i class="fas fa-mug-hot"></i> 生活用品</button>
+      <button class="category" data-category="other"><i class="fas fa-box"></i> 其他</button>
+    </nav>
+
+    <nav class="tabs" aria-label="页面标签">
+      <button class="tab active" data-tab="market" onclick="switchTab('market')"><i class="fas fa-fire"></i> 市场</button>
+      <button class="tab" data-tab="favorites" onclick="switchTab('favorites')"><i class="fas fa-heart"></i> 收藏</button>
+      <button class="tab" data-tab="mine" onclick="switchTab('mine')"><i class="fas fa-user"></i> 我的</button>
+      <button class="tab" data-tab="messages" onclick="switchTab('messages')"><i class="fas fa-comments"></i> 消息</button>
+    </nav>
+
+    <section id="view-market" class="view">
+      <div class="section-head">
+        <div>
+          <h2>正在出售</h2>
+          <p id="marketCount">加载中</p>
+        </div>
+        <button class="action-btn ghost" onclick="loadItems(1)"><i class="fas fa-sync-alt"></i> 刷新</button>
+      </div>
+      <div class="items-grid" id="itemsGrid"></div>
+      <div style="display:flex; justify-content:center; margin:16px 0 80px;">
+        <button class="action-btn secondary hidden" id="loadMoreBtn" onclick="loadMoreItems()">加载更多</button>
+      </div>
+    </section>
+
+    <section id="view-favorites" class="view hidden">
+      <div class="section-head">
+        <div>
+          <h2>我的收藏</h2>
+          <p>心动的先放这里</p>
+        </div>
+        <button class="action-btn ghost" onclick="loadFavorites()"><i class="fas fa-sync-alt"></i> 刷新</button>
+      </div>
+      <div class="items-grid" id="favoritesGrid"></div>
+    </section>
+
+    <section id="view-mine" class="view hidden">
+      <div class="profile-card panel" id="profileCard"></div>
+      <div class="section-head">
+        <div>
+          <h2>我发布的</h2>
+          <p id="mineCount">加载中</p>
+        </div>
+        <button class="action-btn ghost" onclick="loadMine()"><i class="fas fa-sync-alt"></i> 刷新</button>
+      </div>
+      <div class="items-grid" id="mineGrid"></div>
+    </section>
+
+    <section id="view-messages" class="view hidden">
+      <div class="section-head">
+        <div>
+          <h2>消息</h2>
+          <p>和买家、卖家直接沟通</p>
+        </div>
+        <button class="action-btn ghost" onclick="loadChatRooms()"><i class="fas fa-sync-alt"></i> 刷新</button>
+      </div>
+      <div class="chat-layout">
+        <div class="chat-list" id="chatRooms"></div>
+        <div class="chat-detail" id="chatDetail">
+          <div class="chat-toolbar">
+            <button class="mini-btn hidden" id="backChatBtn" onclick="backToChatList()" aria-label="返回聊天列表"><i class="fas fa-chevron-left"></i></button>
+            <div class="chat-title" id="chatTitle">选择一个会话</div>
+            <button class="mini-btn" onclick="toggleBlockCurrent()" title="拉黑或取消拉黑"><i class="fas fa-ban"></i></button>
+            <button class="mini-btn danger" onclick="openReportForChat()" title="举报"><i class="fas fa-flag"></i></button>
+          </div>
+          <div class="messages" id="messages">
+            <div class="empty"><i class="fas fa-comment-dots"></i><p>暂无会话</p></div>
+          </div>
+          <div class="chat-input">
+            <input id="messageInput" placeholder="输入消息" onkeydown="if(event.key==='Enter') sendMessage()">
+            <button class="action-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i> 发送</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <button class="float-service" onclick="openSupportModal()"><i class="fas fa-headset"></i><span>联系客服</span></button>
+
+  <div class="modal" id="loginModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>进入二手市场</h3>
+        <button class="close-btn" onclick="closeModal('loginModal')"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body form-grid">
+        <div class="field">
+          <label for="nicknameInput">昵称</label>
+          <input id="nicknameInput" maxlength="18" placeholder="例如：小张">
+        </div>
+        <button class="action-btn" id="loginBtn" onclick="marketLogin()"><i class="fas fa-arrow-right-to-bracket"></i> 进入</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="publishModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>发布商品</h3>
+        <button class="close-btn" onclick="closeModal('publishModal')"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body form-grid">
+        <div class="field">
+          <label for="pubTitle">标题</label>
+          <input id="pubTitle" maxlength="80" placeholder="高数教材、蓝牙耳机、宿舍台灯">
+        </div>
+        <div class="field">
+          <label for="pubDesc">描述</label>
+          <textarea id="pubDesc" maxlength="1000" placeholder="成色、配件、交易地点"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="pubPrice">价格</label>
+            <input id="pubPrice" type="number" min="0" max="99999" step="0.01" placeholder="0.00">
+          </div>
+          <div class="field">
+            <label for="pubCategory">分类</label>
+            <select id="pubCategory">
+              <option value="book">教材书籍</option>
+              <option value="electronic">数码电子</option>
+              <option value="life">生活用品</option>
+              <option value="other">其他</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>商品图片</label>
+          <button class="upload-box" onclick="document.getElementById('imageInput').click()">
+            <i class="fas fa-images"></i>
+            <span>选择图片，最多 5 张</span>
+          </button>
+          <input id="imageInput" type="file" accept="image/*" multiple hidden onchange="handleImages(event)">
+          <div class="preview-grid" id="imagePreviews"></div>
+        </div>
+        <div class="field">
+          <label>收款码</label>
+          <button class="upload-box" onclick="document.getElementById('paymentInput').click()">
+            <i class="fas fa-qrcode"></i>
+            <span>上传微信或支付宝收款码</span>
+          </button>
+          <input id="paymentInput" type="file" accept="image/*" hidden onchange="handlePaymentQR(event)">
+          <div class="qr-preview" id="paymentPreview"></div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="pubQQ">QQ</label>
+            <input id="pubQQ" maxlength="40" placeholder="选填">
+          </div>
+          <div class="field">
+            <label for="pubWechat">微信</label>
+            <input id="pubWechat" maxlength="80" placeholder="选填">
+          </div>
+        </div>
+        <button class="action-btn" id="publishBtn" onclick="publishItem()"><i class="fas fa-paper-plane"></i> 发布</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="detailModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>商品详情</h3>
+        <button class="close-btn" onclick="closeModal('detailModal')"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" id="detailBody"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="reportModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>提交举报</h3>
+        <button class="close-btn" onclick="closeModal('reportModal')"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body form-grid">
+        <div class="field">
+          <label for="reportReason">原因</label>
+          <textarea id="reportReason" maxlength="300" placeholder="请说明遇到的问题"></textarea>
+        </div>
+        <button class="action-btn danger" onclick="submitReport()"><i class="fas fa-flag"></i> 提交</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="supportModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>联系客服</h3>
+        <button class="close-btn" onclick="closeModal('supportModal')"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="panel">
+          <p><strong>邮箱：</strong><a href="mailto:support@agai.online">support@agai.online</a></p>
+          <p style="margin-top:8px;color:var(--muted);font-size:13px;">交易纠纷、违规商品、账号问题都可以通过邮件联系。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="confirmModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="confirmTitle">确认操作</h3>
+        <button class="close-btn" onclick="resolveConfirm(false)"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage" style="color:var(--muted);margin-bottom:14px;"></p>
+        <div class="form-row">
+          <button class="action-btn danger" onclick="resolveConfirm(true)">确认</button>
+          <button class="action-btn secondary" onclick="resolveConfirm(false)">取消</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="zoomModal" onclick="closeModal('zoomModal')">
+    <div class="zoom-card">
+      <img id="zoomImage" alt="收款码">
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = 'https://api.agai.online/api';
+    const SOCKET_BASE = 'https://api.agai.online';
+    const CATEGORIES = {
+      book: '教材书籍',
+      electronic: '数码电子',
+      life: '生活用品',
+      other: '其他'
+    };
+
+    let token = localStorage.getItem('token') || '';
+    let currentUser = readStoredUser();
+    let currentTab = 'market';
+    let currentCategory = 'all';
+    let currentPage = 1;
+    let currentSearch = '';
+    let hasMoreItems = false;
+    let selectedImages = [];
+    let selectedPaymentQR = '';
+    let currentDetailItem = null;
+    let detailImageIndex = 0;
+    let socket = null;
+    let currentRoomId = '';
+    let currentChatPartnerId = '';
+    let currentChatProductId = '';
+    let pendingReport = { userId: '', productId: '' };
+    let confirmResolver = null;
+
+    function readStoredUser() {
+      try { return JSON.parse(localStorage.getItem('user') || '{}') || {}; }
+      catch (e) { return {}; }
+    }
+
+    function authHeaders(json = false) {
+      const headers = { Authorization: `Bearer ${token}` };
+      if (json) headers['Content-Type'] = 'application/json';
+      return headers;
+    }
+
+    function showToast(message, type = '') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => toast.classList.remove('show'), 2400);
+    }
+
+    function escapeHTML(value) {
+      const div = document.createElement('div');
+      div.textContent = value == null ? '' : String(value);
+      return div.innerHTML;
+    }
+
+    function formatPrice(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n.toFixed(2) : '0.00';
+    }
+
+    function formatTime(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '';
+      return date.toLocaleDateString();
+    }
+
+    function maskName(user) {
+      const raw = typeof user === 'string' ? user : (user?.name || user?.studentId || '');
+      const name = String(raw || '').trim();
+      if (!name) return '同学';
+      if (name.startsWith('guest_')) return '同学';
+      return name.slice(0, 1) + '同学';
+    }
+
+    function getSellerId(item) {
+      return item?.userId?._id || item?.userId || '';
+    }
+
+    function getCategoryName(category) {
+      return CATEGORIES[category] || '其他';
+    }
+
+    function closeModal(id) {
+      document.getElementById(id)?.classList.remove('show');
+    }
+
+    function openSupportModal() {
+      document.getElementById('supportModal').classList.add('show');
+    }
+
+    function requireLogin() {
+      if (token && currentUser?.id) return true;
+      document.getElementById('loginModal').classList.add('show');
+      return false;
+    }
+
+    async function initAuth() {
+      const savedNickname = localStorage.getItem('marketNickname');
+      if (savedNickname) document.getElementById('nicknameInput').value = savedNickname;
+      if (!token) {
+        document.getElementById('loginModal').classList.add('show');
+        loadItems(1);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/user/profile`, { headers: authHeaders() });
+        const data = await res.json();
+        if (data.success) {
+          currentUser = data.user;
+          localStorage.setItem('user', JSON.stringify(data.user));
+          initSocket();
+          loadItems(1);
+          return;
+        }
+      } catch (e) {}
+
+      token = '';
+      currentUser = {};
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      document.getElementById('loginModal').classList.add('show');
+      loadItems(1);
+    }
+
+    async function marketLogin() {
+      const nickname = document.getElementById('nicknameInput').value.trim();
+      if (nickname.length < 2) {
+        showToast('昵称至少 2 个字符', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/quick-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nickname })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.message || '登录失败', 'error');
+          return;
+        }
+        token = data.token;
+        currentUser = data.user;
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(currentUser));
+        localStorage.setItem('marketNickname', nickname);
+        closeModal('loginModal');
+        initSocket();
+        showToast('已进入市场', 'success');
+        refreshCurrentTab();
+      } catch (e) {
+        showToast('网络连接失败', 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function initSocket() {
+      if (socket || !currentUser?.id) return;
+      socket = io(SOCKET_BASE, { transports: ['websocket', 'polling'] });
+      socket.on('connect', () => socket.emit('bindUser', currentUser.id));
+      socket.on('newMessage', (message) => {
+        if (String(message.roomId) === String(currentRoomId)) {
+          appendMessage(message);
+        }
+        if (currentTab === 'messages') loadChatRooms(false);
+      });
+    }
+
+    document.querySelectorAll('.category').forEach(button => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.category').forEach(item => item.classList.remove('active'));
+        button.classList.add('active');
+        currentCategory = button.dataset.category;
+        if (currentTab === 'market') loadItems(1);
+      });
+    });
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab').forEach(item => {
+        item.classList.toggle('active', item.dataset.tab === tab);
+      });
+      document.querySelectorAll('.view').forEach(item => item.classList.add('hidden'));
+      document.getElementById(`view-${tab}`).classList.remove('hidden');
+      refreshCurrentTab();
+    }
+
+    function refreshCurrentTab() {
+      if (currentTab === 'market') loadItems(1);
+      if (currentTab === 'favorites') loadFavorites();
+      if (currentTab === 'mine') loadMine();
+      if (currentTab === 'messages') loadChatRooms();
+    }
+
+    function searchItems() {
+      currentSearch = document.getElementById('searchInput').value.trim();
+      loadItems(1);
+    }
+
+    async function loadItems(page = 1) {
+      currentPage = page;
+      const grid = document.getElementById('itemsGrid');
+      if (page === 1) grid.innerHTML = loadingHTML();
+      try {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: '20',
+          category: currentCategory
+        });
+        if (currentSearch) params.set('search', currentSearch);
+        const res = await fetch(`${API_BASE}/market/items?${params.toString()}`);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || '加载失败');
+
+        const items = data.items || [];
+        const html = items.length ? renderItems(items, { mine: false }) : emptyHTML('fa-box-open', '暂无商品');
+        grid.innerHTML = page === 1 ? html : grid.innerHTML + html;
+        hasMoreItems = page * (data.limit || 20) < (data.total || 0);
+        document.getElementById('loadMoreBtn').classList.toggle('hidden', !hasMoreItems);
+        document.getElementById('marketCount').textContent = `共 ${data.total || 0} 件`;
+      } catch (e) {
+        if (page === 1) grid.innerHTML = emptyHTML('fa-wifi', '加载失败');
+        showToast('商品加载失败', 'error');
+      }
+    }
+
+    function loadMoreItems() {
+      if (hasMoreItems) loadItems(currentPage + 1);
+    }
+
+    function renderItems(items, options = {}) {
+      return items.map(item => renderItemCard(item, options)).join('');
+    }
+
+    function renderItemCard(item, options = {}) {
+      const sellerId = getSellerId(item);
+      const cover = item.images?.[0]
+        ? `<img src="${item.images[0]}" alt="${escapeHTML(item.title)}">`
+        : `<div class="placeholder"><i class="fas fa-image"></i></div>`;
+      const removeButton = options.mine && item.status === 'active'
+        ? `<button class="mini-btn danger" onclick="event.stopPropagation(); removeItem('${item._id}')"><i class="fas fa-arrow-down"></i></button>`
+        : `<button class="mini-btn primary" onclick="event.stopPropagation(); startChat('${sellerId}', '${item._id}')"><i class="fas fa-comment-dots"></i></button>`;
+      return `
+        <article class="item-card" onclick="openDetail('${item._id}')">
+          <div class="item-cover">
+            ${cover}
+            <span class="item-chip">${getCategoryName(item.category)}</span>
+          </div>
+          <div class="item-body">
+            <div class="item-title">${escapeHTML(item.title)}</div>
+            <div class="item-price">￥${formatPrice(item.price)}</div>
+            <div class="item-meta">
+              <span>${maskName(item.userId)}</span>
+              <span>${formatTime(item.createdAt)}</span>
+            </div>
+            <div class="item-actions">
+              <button class="mini-btn" onclick="event.stopPropagation(); openDetail('${item._id}')"><i class="fas fa-eye"></i></button>
+              <button class="mini-btn" onclick="event.stopPropagation(); toggleFavorite('${item._id}')"><i class="fas fa-heart"></i></button>
+              ${removeButton}
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function loadingHTML() {
+      return `<div class="empty"><i class="fas fa-spinner fa-spin"></i><p>加载中</p></div>`;
+    }
+
+    function emptyHTML(icon, text) {
+      return `<div class="empty"><i class="fas ${icon}"></i><p>${escapeHTML(text)}</p></div>`;
+    }
+
+    async function loadFavorites() {
+      if (!requireLogin()) return;
+      const grid = document.getElementById('favoritesGrid');
+      grid.innerHTML = loadingHTML();
+      try {
+        const res = await fetch(`${API_BASE}/market/favorite`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || '加载失败');
+        grid.innerHTML = data.items?.length ? renderItems(data.items) : emptyHTML('fa-heart', '暂无收藏');
+      } catch (e) {
+        grid.innerHTML = emptyHTML('fa-wifi', '加载失败');
+      }
+    }
+
+    async function loadMine() {
+      if (!requireLogin()) return;
+      document.getElementById('profileCard').innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="avatar">${escapeHTML((currentUser.name || currentUser.studentId || '同').slice(0, 1))}</div>
+          <div>
+            <strong>${maskName(currentUser)}</strong>
+            <p style="color:var(--muted);font-size:13px;">${escapeHTML(currentUser.studentId || '')}</p>
+          </div>
+        </div>
+        <button class="action-btn secondary" onclick="openPublishModal()"><i class="fas fa-plus"></i> 发布</button>
+      `;
+
+      const grid = document.getElementById('mineGrid');
+      grid.innerHTML = loadingHTML();
+      try {
+        const res = await fetch(`${API_BASE}/market/my`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || '加载失败');
+        document.getElementById('mineCount').textContent = `共 ${data.items?.length || 0} 件`;
+        grid.innerHTML = data.items?.length ? renderItems(data.items, { mine: true }) : emptyHTML('fa-box', '还没有发布商品');
+      } catch (e) {
+        grid.innerHTML = emptyHTML('fa-wifi', '加载失败');
+      }
+    }
+
+    async function openDetail(id) {
+      const body = document.getElementById('detailBody');
+      body.innerHTML = loadingHTML();
+      document.getElementById('detailModal').classList.add('show');
+      try {
+        const res = await fetch(`${API_BASE}/market/items?id=${encodeURIComponent(id)}`);
+        const data = await res.json();
+        const item = data.item || data.items?.[0];
+        if (!data.success || !item) throw new Error(data.message || '商品不存在');
+        currentDetailItem = item;
+        detailImageIndex = 0;
+        renderDetail();
+      } catch (e) {
+        body.innerHTML = emptyHTML('fa-circle-exclamation', '商品加载失败');
+      }
+    }
+
+    function renderDetail() {
+      const item = currentDetailItem;
+      const sellerId = getSellerId(item);
+      const images = item.images?.length ? item.images : [''];
+      const currentImage = images[detailImageIndex] || '';
+      const imageHTML = currentImage
+        ? `<img src="${currentImage}" alt="${escapeHTML(item.title)}">`
+        : `<div class="placeholder" style="height:100%;display:grid;place-items:center;color:#a0a7b2;"><i class="fas fa-image" style="font-size:42px;"></i></div>`;
+
+      document.getElementById('detailBody').innerHTML = `
+        <div class="detail-gallery">
+          ${imageHTML}
+          ${images.length > 1 ? `
+            <div class="gallery-nav">
+              <button onclick="moveDetailImage(-1)"><i class="fas fa-chevron-left"></i></button>
+              <button onclick="moveDetailImage(1)"><i class="fas fa-chevron-right"></i></button>
+            </div>` : ''}
+        </div>
+        <div class="detail-price">￥${formatPrice(item.price)}</div>
+        <h2 style="font-size:20px;margin-bottom:8px;">${escapeHTML(item.title)}</h2>
+        <div class="detail-meta">
+          <span>${getCategoryName(item.category)}</span>
+          <span>${maskName(item.userId)}</span>
+          <span>${item.views || 0} 次浏览</span>
+          <span>${formatTime(item.createdAt)}</span>
+        </div>
+        <p style="margin-top:12px;white-space:pre-wrap;color:#3b4048;">${escapeHTML(item.description)}</p>
+
+        <div class="seller-pay">
+          <button onclick="toggleDetailPay()">
+            <span><i class="fas fa-qrcode"></i> 卖家收款码</span>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="pay-content" id="detailPayContent">${renderPaymentQR(item)}</div>
+        </div>
+
+        <div class="contact-box" id="detailContact"></div>
+
+        <div class="detail-actions">
+          <button class="action-btn" onclick="startChat('${sellerId}', '${item._id}')"><i class="fas fa-comments"></i> 私聊卖家</button>
+          <button class="action-btn secondary" onclick="viewContact('${item._id}')"><i class="fas fa-address-card"></i> 联系方式</button>
+          <button class="action-btn ghost" onclick="toggleFavorite('${item._id}')"><i class="fas fa-heart"></i> 收藏</button>
+          <button class="action-btn secondary" onclick="openSupportModal()"><i class="fas fa-headset"></i> 客服</button>
+        </div>
+      `;
+
+      if (!item.paymentQR && sellerId) loadLegacySellerQR(sellerId);
+    }
+
+    function renderPaymentQR(item) {
+      if (item.paymentQR) {
+        return `
+          <p>扫码前请和卖家确认商品状态与交易地点。</p>
+          <img src="${item.paymentQR}" alt="卖家收款码" onclick="zoomImage('${item.paymentQR.replace(/'/g, '%27')}')">
+        `;
+      }
+      return '<p id="legacyPayText">卖家暂未上传商品收款码。</p>';
+    }
+
+    async function loadLegacySellerQR(sellerId) {
+      const container = document.getElementById('detailPayContent');
+      if (!container) return;
+      try {
+        const res = await fetch(`${API_BASE}/user/payqr/${sellerId}`);
+        const data = await res.json();
+        const qr = data.payQR?.wechat || data.payQR?.alipay || '';
+        if (data.success && qr) {
+          container.innerHTML = `
+            <p>这是卖家账号收款码，扫码前请和卖家确认。</p>
+            <img src="${qr}" alt="卖家收款码" onclick="zoomImage('${qr.replace(/'/g, '%27')}')">
+          `;
+        }
+      } catch (e) {}
+    }
+
+    function toggleDetailPay() {
+      document.getElementById('detailPayContent')?.classList.toggle('open');
+    }
+
+    function moveDetailImage(delta) {
+      if (!currentDetailItem?.images?.length) return;
+      const total = currentDetailItem.images.length;
+      detailImageIndex = (detailImageIndex + delta + total) % total;
+      renderDetail();
+      document.getElementById('detailPayContent')?.classList.remove('open');
+    }
+
+    function zoomImage(src) {
+      document.getElementById('zoomImage').src = src;
+      document.getElementById('zoomModal').classList.add('show');
+    }
+
+    async function viewContact(productId) {
+      if (!requireLogin()) return;
+      try {
+        const res = await fetch(`${API_BASE}/market/contact/${productId}`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.message || '获取失败', 'error');
+          return;
+        }
+        const box = document.getElementById('detailContact');
+        box.innerHTML = `
+          <strong>联系方式</strong>
+          <p style="margin-top:6px;">QQ：${escapeHTML(data.contact?.qq || '未填写')}</p>
+          <p>微信：${escapeHTML(data.contact?.wechat || '未填写')}</p>
+        `;
+        box.classList.add('show');
+      } catch (e) {
+        showToast('网络连接失败', 'error');
+      }
+    }
+
+    async function toggleFavorite(productId) {
+      if (!requireLogin()) return;
+      try {
+        const res = await fetch(`${API_BASE}/market/favorite`, {
+          method: 'POST',
+          headers: authHeaders(true),
+          body: JSON.stringify({ productId })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.message || '操作失败', 'error');
+          return;
+        }
+        showToast(data.favorited ? '已收藏' : '已取消收藏', 'success');
+        if (currentTab === 'favorites') loadFavorites();
+      } catch (e) {
+        showToast('网络连接失败', 'error');
+      }
+    }
+
+    function openPublishModal() {
+      if (!requireLogin()) return;
+      document.getElementById('publishModal').classList.add('show');
+    }
+
+    async function imageFileToDataUrl(file, maxSize = 1280, quality = .82) {
+      if (!file || !file.type.startsWith('image/')) throw new Error('请选择图片');
+      const source = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = source;
+      });
+
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', quality);
+    }
+
+    async function handleImages(event) {
+      const files = Array.from(event.target.files || []);
+      if (selectedImages.length + files.length > 5) {
+        showToast('最多上传 5 张图片', 'error');
+        event.target.value = '';
+        return;
+      }
+      try {
+        for (const file of files) {
+          selectedImages.push(await imageFileToDataUrl(file));
+        }
+        renderImagePreviews();
+      } catch (e) {
+        showToast('图片处理失败', 'error');
+      } finally {
+        event.target.value = '';
+      }
+    }
+
+    function renderImagePreviews() {
+      document.getElementById('imagePreviews').innerHTML = selectedImages.map((src, index) => `
+        <div class="preview">
+          <img src="${src}" alt="商品图片">
+          <button onclick="removeImage(${index})"><i class="fas fa-times"></i></button>
+        </div>
+      `).join('');
+    }
+
+    function removeImage(index) {
+      selectedImages.splice(index, 1);
+      renderImagePreviews();
+    }
+
+    async function handlePaymentQR(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        selectedPaymentQR = await imageFileToDataUrl(file, 900, .9);
+        const preview = document.getElementById('paymentPreview');
+        preview.style.display = 'block';
+        preview.innerHTML = `<img src="${selectedPaymentQR}" alt="收款码">`;
+      } catch (e) {
+        showToast('收款码处理失败', 'error');
+      } finally {
+        event.target.value = '';
+      }
+    }
+
+    async function publishItem() {
+      if (!requireLogin()) return;
+      const title = document.getElementById('pubTitle').value.trim();
+      const description = document.getElementById('pubDesc').value.trim();
+      const price = Number(document.getElementById('pubPrice').value);
+      const category = document.getElementById('pubCategory').value;
+      const qq = document.getElementById('pubQQ').value.trim();
+      const wechat = document.getElementById('pubWechat').value.trim();
+
+      if (!title || !description || !Number.isFinite(price) || price < 0) {
+        showToast('请补全标题、描述和价格', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('publishBtn');
+      btn.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/market/items`, {
+          method: 'POST',
+          headers: authHeaders(true),
+          body: JSON.stringify({
+            title,
+            description,
+            price,
+            category,
+            images: selectedImages,
+            paymentQR: selectedPaymentQR,
+            contact: { qq, wechat }
+          })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.message || '发布失败', 'error');
+          return;
+        }
+        resetPublishForm();
+        closeModal('publishModal');
+        showToast('发布成功', 'success');
+        switchTab('market');
+      } catch (e) {
+        showToast('网络连接失败', 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function resetPublishForm() {
+      ['pubTitle', 'pubDesc', 'pubPrice', 'pubQQ', 'pubWechat'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('pubCategory').value = 'book';
+      selectedImages = [];
+      selectedPaymentQR = '';
+      renderImagePreviews();
+      const preview = document.getElementById('paymentPreview');
+      preview.style.display = 'none';
+      preview.innerHTML = '';
+    }
+
+    async function removeItem(id) {
+      const ok = await askConfirm('下架商品', '下架后买家将无法在市场继续看到该商品。');
+      if (!ok) return;
+      try {
+        const res = await fetch(`${API_BASE}/market/items/${id}`, {
+          method: 'DELETE',
+          headers: authHeaders()
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.message || '下架失败', 'error');
+          return;
+        }
+        showToast('已下架', 'success');
+        loadMine();
+      } catch (e) {
+        showToast('网络连接失败', 'error');
+      }
+    }
+
+    async function startChat(sellerId, productId) {
+      if (!requireLogin()) return;
+      if (!sellerId || !productId) return;
+      try {
+        const res = await fetch(`${API_BASE}/market/chat/create`, {
+          method: 'POST',
+          headers: authHeaders(true),
+          body: JSON.stringify({ sellerId, productId })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.message || '创建会话失败', 'error');
+          return;
+        }
+        closeModal('detailModal');
+        switchTab('messages');
+        await loadChatRooms(false);
+        openChatRoom(data.roomId, sellerId, productId, currentDetailItem?.title || '商品');
+      } catch (e) {
+        showToast('网络连接失败', 'error');
+      }
+    }
+
+    async function loadChatRooms(showLoading = true) {
+      if (!requireLogin()) return;
+      const list = document.getElementById('chatRooms');
+      if (showLoading) list.innerHTML = loadingHTML();
+      try {
+        const res = await fetch(`${API_BASE}/market/chat/list`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || '加载失败');
+        const rooms = data.rooms || [];
+        list.innerHTML = rooms.length ? rooms.map(renderChatRoom).join('') : emptyHTML('fa-comments', '暂无消息');
+      } catch (e) {
+        list.innerHTML = emptyHTML('fa-wifi', '加载失败');
+      }
+    }
+
+    function renderChatRoom(room) {
+      const otherId = room.otherUser?._id || '';
+      const productId = room.productId || '';
+      const encodedTitle = encodeURIComponent(room.productTitle || '商品');
+      return `
+        <div class="chat-room ${String(room._id) === String(currentRoomId) ? 'active' : ''}" onclick="openChatRoom('${room._id}', '${otherId}', '${productId}', decodeURIComponent('${encodedTitle}'))">
+          <strong>${escapeHTML(room.productTitle || '商品')}</strong>
+          <span>${maskName(room.otherUser)}：${escapeHTML(room.lastMessage || '还没有消息')}</span>
+        </div>
+      `;
+    }
+
+    async function openChatRoom(roomId, partnerId, productId, title) {
+      currentRoomId = roomId;
+      currentChatPartnerId = partnerId;
+      currentChatProductId = productId;
+      document.getElementById('chatTitle').textContent = title || '会话';
+      document.getElementById('backChatBtn').classList.remove('hidden');
+      document.getElementById('chatRooms').classList.add('mobile-hidden');
+      document.getElementById('chatDetail').classList.add('mobile-open');
+      document.querySelectorAll('.chat-room').forEach(item => item.classList.remove('active'));
+      await loadMessages();
+    }
+
+    function backToChatList() {
+      currentRoomId = '';
+      currentChatPartnerId = '';
+      currentChatProductId = '';
+      document.getElementById('chatTitle').textContent = '选择一个会话';
+      document.getElementById('messages').innerHTML = emptyHTML('fa-comment-dots', '暂无会话');
+      document.getElementById('backChatBtn').classList.add('hidden');
+      document.getElementById('chatRooms').classList.remove('mobile-hidden');
+      document.getElementById('chatDetail').classList.remove('mobile-open');
+    }
+
+    async function loadMessages() {
+      if (!currentRoomId) return;
+      const box = document.getElementById('messages');
+      box.innerHTML = loadingHTML();
+      try {
+        const res = await fetch(`${API_BASE}/market/chat/messages?roomId=${encodeURIComponent(currentRoomId)}`, {
+          headers: authHeaders()
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || '加载失败');
+        box.innerHTML = '';
+        (data.messages || []).forEach(appendMessage);
+        if (!data.messages?.length) box.innerHTML = emptyHTML('fa-comment', '暂无消息');
+        box.scrollTop = box.scrollHeight;
+      } catch (e) {
+        box.innerHTML = emptyHTML('fa-wifi', '加载失败');
+      }
+    }
+
+    function appendMessage(message) {
+      const box = document.getElementById('messages');
+      const empty = box.querySelector('.empty');
+      if (empty) box.innerHTML = '';
+      const senderId = message.senderId?._id || message.senderId;
+      const div = document.createElement('div');
+      div.className = String(senderId) === String(currentUser.id) ? 'bubble me' : 'bubble other';
+      div.textContent = message.content || '';
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function sendMessage() {
+      if (!currentRoomId) {
+        showToast('请选择会话', 'error');
+        return;
+      }
+      const input = document.getElementById('messageInput');
+      const content = input.value.trim();
+      if (!content) return;
+      input.value = '';
+      try {
+        const res = await fetch(`${API_BASE}/market/chat/send`, {
+          method: 'POST',
+          headers: authHeaders(true),
+          body: JSON.stringify({ roomId: currentRoomId, content })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.message || '发送失败', 'error');
+          return;
+        }
+        appendMessage(data.message);
+        loadChatRooms(false);
+      } catch (e) {
+        showToast('网络连接失败', 'error');
+      }
+    }
+
+    async function toggleBlockCurrent() {
+      if (!currentChatPartnerId) {
+        showToast('请选择会话', 'error');
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/market/block`, {
+          method: 'POST',
+          headers: authHeaders(true),
+          body: JSON.stringify({ userId: currentChatPartnerId })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.message || '操作失败', 'error');
+          return;
+        }
+        showToast(data.blocked ? '已拉黑' : '已取消拉黑', 'success');
+      } catch (e) {
+        showToast('网络连接失败', 'error');
+      }
+    }
+
+    function openReportForChat() {
+      if (!currentChatPartnerId) {
+        showToast('请选择会话', 'error');
+        return;
+      }
+      openReportModal(currentChatPartnerId, currentChatProductId);
+    }
+
+    function openReportModal(userId, productId = '') {
+      if (!requireLogin()) return;
+      pendingReport = { userId, productId };
+      document.getElementById('reportReason').value = '';
+      document.getElementById('reportModal').classList.add('show');
+    }
+
+    async function submitReport() {
+      const reason = document.getElementById('reportReason').value.trim();
+      if (!reason) {
+        showToast('请填写举报原因', 'error');
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/market/report`, {
+          method: 'POST',
+          headers: authHeaders(true),
+          body: JSON.stringify({
+            userId: pendingReport.userId,
+            productId: pendingReport.productId,
+            reason
+          })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.message || '提交失败', 'error');
+          return;
+        }
+        closeModal('reportModal');
+        showToast('已提交举报', 'success');
+      } catch (e) {
+        showToast('网络连接失败', 'error');
+      }
+    }
+
+    function askConfirm(title, message) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmMessage').textContent = message;
+      document.getElementById('confirmModal').classList.add('show');
+      return new Promise(resolve => { confirmResolver = resolve; });
+    }
+
+    function resolveConfirm(value) {
+      closeModal('confirmModal');
+      if (confirmResolver) confirmResolver(Boolean(value));
+      confirmResolver = null;
+    }
+
+    initAuth();
+  </script>
+</body>
+</html>

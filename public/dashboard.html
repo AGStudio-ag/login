@@ -1,0 +1,2425 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AG 智能考勤 · 控制面板</title>
+<style>
+/* ============================================================
+   Design Tokens (丰富强调色，Vercel / DeepSeek 质感)
+   ============================================================ */
+:root{
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-hover: #f4f4f5;
+  
+  --border: #e4e4e7;
+  --border-dark: #d4d4d8;
+
+  --text-primary: #09090b;
+  --text-secondary: #52525b;
+  --text-tertiary: #a1a1aa;
+
+  /* 主操作色 */
+  --primary: #09090b;
+  --primary-hover: #27272a;
+  --primary-text: #ffffff;
+  
+  /* 强调色库 */
+  --blue: #2563eb;
+  --blue-subtle: #eff6ff;
+  --green: #10b981;
+  --green-subtle: #ecfdf5;
+  --red: #ef4444;
+  --red-subtle: #fef2f2;
+  --amber: #f59e0b;
+  --amber-subtle: #fffbeb;
+  --purple: #8b5cf6;
+  --purple-subtle: #f5f3ff;
+  --pink: #ec4899;
+  --pink-subtle: #fdf2f8;
+  
+  /* 赞助/爱心 */
+  --heart: #f43f5e;
+
+  /* 品牌色 */
+  --wx: #07C160;
+  --ali: #1677FF;
+
+  /* 几何与间距 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --tabbar-h: 64px;
+  
+  /* 全局 SVG 图标 */
+  .ico{width:1em;height:1em;display:inline-block;vertical-align:-0.125em;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
+}
+
+body.dark{
+  --bg: #000000;
+  --surface: #0a0a0a;
+  --surface-hover: #171717;
+
+  --border: #27272a;
+  --border-dark: #3f3f46;
+
+  --text-primary: #ededed;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #52525b;
+
+  --primary: #ffffff;
+  --primary-hover: #e4e4e7;
+  --primary-text: #000000;
+
+  --blue-subtle: #172554;
+  --green-subtle: #022c22;
+  --red-subtle: #450a0a;
+  --amber-subtle: #451a03;
+  --purple-subtle: #2e1065;
+  --pink-subtle: #500724;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 16px -4px rgba(0, 0, 0, 0.6);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  transition: background .3s, color .3s;
+}
+html.has-vt body{transition:none}
+
+button,input,select,textarea{font-family:inherit;font-size:inherit}
+button{cursor:pointer}
+a{color:inherit;text-decoration:none}
+.hidden{display:none!important}
+::selection{background:var(--text-primary);color:var(--bg)}
+
+/* ============================================================
+   View Transitions (Ripple Theme)
+   ============================================================ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 9999; }
+
+/* ============================================================
+   Layout
+   ============================================================ */
+.app{display:flex;min-height:100vh}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:100vh}
+
+/* ---------- Topbar ---------- */
+.topbar{
+  height: 60px; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s-4); padding: 0 var(--s-6); background: var(--bg);
+  border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 600;
+}
+.topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.brand-mark{
+  width: 32px; height: 32px; border-radius: var(--radius-sm);
+  background: var(--text-primary); color: var(--bg);
+  display: flex; align-items: center; justify-content: center; font-size: 18px; flex: 0 0 auto;
+}
+.topbar-title h1{ font-size: 14px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
+.topbar-title p{ font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+.topbar-right{display:flex;align-items:center;gap:var(--s-3)}
+.user-chip{
+  display: flex; align-items: center; gap: 8px; max-width: 260px;
+  padding: 4px 8px 4px 12px; border-radius: var(--radius-sm);
+  background: var(--surface); border: 1px solid var(--border); min-width: 0; box-shadow: var(--shadow-sm);
+}
+.user-name{ font-size: 13px; font-weight: 500; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-id{ color: var(--text-tertiary); font-size: 12px; margin-left: 2px; }
+.tier-badge{
+  font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px;
+  border: 1px solid transparent; white-space: nowrap; transition: all .3s;
+}
+.icon-btn{
+  width: 32px; height: 32px; border-radius: var(--radius-sm); border: 1px solid transparent;
+  background: transparent; color: var(--text-secondary); display: inline-flex; align-items: center; justify-content: center;
+  font-size: 18px; transition: all .15s; flex: 0 0 auto;
+}
+.icon-btn:hover{background: var(--surface-hover); color: var(--text-primary);}
+
+/* ---------- Sidebar ---------- */
+.sidebar{
+  width: 240px; flex: 0 0 auto; background: var(--bg); border-right: 1px solid var(--border);
+  padding: var(--s-5) var(--s-3); position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+.sidebar-brand{ display: flex; align-items: center; gap: 12px; padding: 0 var(--s-2) var(--s-6); margin-bottom: var(--s-2); }
+.sidebar-brand strong{ display: block; font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
+.sidebar-brand small{ display: block; font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+.side-nav{flex:1}
+.side-group-label{ font-size: 12px; font-weight: 500; color: var(--text-tertiary); padding: var(--s-3) var(--s-3) var(--s-2); }
+.side-item{
+  position: relative; display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 12px; margin: 2px 0; border: none; border-radius: var(--radius-sm);
+  background: none; color: var(--text-secondary); font-size: 13px; font-weight: 500; text-align: left; transition: all .15s;
+}
+.side-item .ico{ width: 16px; height: 16px; color: var(--text-tertiary); transition: color .15s; }
+.side-item:hover{ background: var(--surface-hover); color: var(--text-primary); }
+.side-item.active{ background: var(--surface); color: var(--text-primary); font-weight: 600; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+.side-item.active .ico{ color: var(--text-primary); }
+
+/* ---------- Content ---------- */
+.content{ flex: 1; width: 100%; max-width: 960px; margin: 0 auto; padding: var(--s-8) var(--s-6) 64px; }
+.page{display:none}
+.page.active{display:block;animation:pageIn .3s cubic-bezier(.16,1,.3,1)}
+@keyframes pageIn{ from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+/* ============================================================
+   Typography
+   ============================================================ */
+.page-title{ font-size: 24px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.2; margin-bottom: 8px; }
+.page-sub{ font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-bottom: var(--s-6); }
+.card-heading{ font-size: 15px; font-weight: 600; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; margin-bottom: var(--s-4); }
+.card-heading .ico{ font-size: 16px; color: var(--text-secondary); }
+
+/* ============================================================
+   Card
+   ============================================================ */
+.card{ background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--s-5); margin-bottom: var(--s-4); box-shadow: var(--shadow-sm); }
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn{
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 0 16px; border-radius: var(--radius-sm); border: 1px solid transparent;
+  font-size: 13px; font-weight: 500; line-height: 1; transition: all .15s;
+  white-space: nowrap; height: 36px; box-shadow: var(--shadow-sm);
+}
+.btn:active{transform: translateY(1px); box-shadow: none;}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-primary{background:var(--primary); color:var(--primary-text);}
+.btn-primary:hover{background:var(--primary-hover);}
+.btn-secondary{background:var(--surface); color:var(--text-primary); border-color:var(--border);}
+.btn-secondary:hover{background:var(--surface-hover);}
+.btn-ghost{background:transparent; color:var(--text-secondary); box-shadow:none;}
+.btn-ghost:hover{background:var(--surface-hover); color:var(--text-primary);}
+.btn-danger{background:var(--surface); color:var(--red); border-color:var(--border);}
+.btn-danger:hover{background:var(--red-subtle); border-color:var(--red);}
+.btn-sm{height: 28px; padding: 0 10px; font-size: 12px; border-radius: 4px;}
+.btn-block{width:100%}
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+.hero-actions .btn.is-loading{pointer-events:none;opacity:.8}
+.hero-actions .btn.is-success{ background: var(--green) !important; border-color: var(--green) !important; color: #fff !important; box-shadow: none; }
+.hero-actions .btn.is-error{ background: var(--red) !important; border-color: var(--red) !important; color: #fff !important; box-shadow: none; }
+
+/* ============================================================
+   Form
+   ============================================================ */
+.field{margin-bottom: var(--s-4)}
+.field label{ display: block; font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 6px; }
+.field input, .field select, .field textarea{
+  width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--text-primary); font-size: 14px; line-height: 1.4;
+  transition: border-color .15s, box-shadow .15s; box-shadow: var(--shadow-sm);
+}
+.field select{
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2352525b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; appearance: none;
+}
+.field input:focus, .field select:focus, .field textarea:focus{
+  outline: 0; border-color: var(--text-primary); box-shadow: 0 0 0 1px var(--text-primary);
+}
+.field input:disabled{ background: var(--bg); color: var(--text-tertiary); cursor: not-allowed; }
+.field .hint{ font-size: 12px; color: var(--text-tertiary); line-height: 1.5; margin-top: 6px; }
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)}
+
+/* ============================================================
+   Badge
+   ============================================================ */
+.badge{
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+  border-radius: 4px; font-size: 12px; font-weight: 500; line-height: 1.4; border: 1px solid transparent;
+}
+.badge-success{background:var(--green-subtle); color:var(--green);}
+.badge-warning{background:var(--amber-subtle); color:var(--amber);}
+.badge-danger{background:var(--red-subtle); color:var(--red);}
+.badge-neutral{background:var(--surface-hover); color:var(--text-secondary);}
+
+/* ============================================================
+   Empty / Loading
+   ============================================================ */
+.empty{ text-align: center; padding: var(--s-6); color: var(--text-tertiary); font-size: 13px; }
+.loading{ text-align: center; padding: var(--s-6); color: var(--text-tertiary); font-size: 13px; }
+
+/* ============================================================
+   Hero
+   ============================================================ */
+.hero{
+  background: #09090b; color: #fff; border-radius: var(--radius-lg);
+  padding: var(--s-6); margin-bottom: var(--s-5); display: flex; justify-content: space-between;
+  align-items: flex-end; gap: var(--s-5); flex-wrap: wrap; border: 1px solid #27272a; position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ""; position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 24px 24px; pointer-events: none; opacity: 0.5;
+}
+body.dark .hero{ background: #111; border-color: #333; }
+.hero > * { position: relative; z-index: 1; }
+.hero-kicker{ font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .05em; color: #a1a1aa; margin-bottom: var(--s-3); display: inline-flex; align-items: center; gap: 8px; }
+.hero h2{ font-size: clamp(24px, 4vw, 32px); font-weight: 700; letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 8px; }
+.hero-status{ font-size: 13px; color: #a1a1aa; font-weight: 400; }
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.hero-actions .btn{ background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #fff; box-shadow: none; }
+.hero-actions .btn:hover{ background: rgba(255,255,255,0.2); }
+.hero-actions .btn-primary{ background: #fff; border-color: #fff; color: #000; }
+.hero-actions .btn-primary:hover{ background: #e5e5e5; }
+
+/* ============================================================
+   Stats
+   ============================================================ */
+.stats{ display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-4); margin-bottom: var(--s-5); }
+.stat{ background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--s-4); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 8px; }
+.stat-num{ font-family: var(--mono); font-size: 28px; font-weight: 600; letter-spacing: -0.04em; line-height: 1; color: var(--text-primary); }
+.stat-label{ font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+
+/* ============================================================
+   Onboarding
+   ============================================================ */
+.onboard-progress{ height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin: var(--s-3) 0 var(--s-2); }
+.onboard-bar{ height: 100%; width: 0; background: var(--blue); transition: width .4s ease; }
+.onboard-meta{ font-size: 12px; color: var(--text-tertiary); margin-bottom: var(--s-4); font-family: var(--mono);}
+.onboard-step{ display: flex; align-items: center; gap: 16px; padding: var(--s-3) 0; border-bottom: 1px solid var(--border); }
+.onboard-step:last-child{border-bottom:0;padding-bottom:0}
+.step-dot{ width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
+.onboard-step.done .step-dot{ background: var(--green); border-color: var(--green); color: #fff; }
+.step-body{flex:1;min-width:0}
+.step-body strong{ display: block; font-size: 14px; font-weight: 600; }
+.step-body p{ font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+.step-done-text{ font-size: 12px; font-weight: 500; color: var(--green); font-family: var(--mono); }
+
+/* ============================================================
+   Alert
+   ============================================================ */
+.alert{ display: flex; align-items: flex-start; gap: 12px; padding: 16px; border-radius: var(--radius-sm); margin-bottom: var(--s-4); font-size: 13px; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--text-tertiary); }
+.alert .ico{ font-size: 16px; flex: 0 0 auto; margin-top: 1px; }
+.alert strong{ display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.alert p{ color: var(--text-secondary); line-height: 1.5; }
+.alert-warning{ border-left-color: var(--amber); }
+
+/* ============================================================
+   Toggle
+   ============================================================ */
+.setting-row{ display: flex; justify-content: space-between; align-items: center; gap: var(--s-4); padding: var(--s-4) 0; border-bottom: 1px solid var(--border); }
+.setting-row:last-of-type{border-bottom:0}
+.setting-copy strong{ display: block; font-size: 14px; font-weight: 500; }
+.setting-copy p{ font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.toggle{position:relative;width:40px;height:22px;flex:0 0 auto}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{ position:absolute;inset:0; background: var(--border-dark); border-radius: 11px; transition: background .2s; cursor:pointer; }
+.toggle-track::after{ content:""; position:absolute; width:18px;height:18px; left:2px;top:2px; background:#fff; border-radius:50%; transition: transform .2s cubic-bezier(.22,1,.36,1); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.toggle input:checked + .toggle-track{ background: var(--green); }
+.toggle input:checked + .toggle-track::after{transform: translateX(18px)}
+.toggle input:disabled + .toggle-track{opacity:.3;cursor:not-allowed}
+
+/* ============================================================
+   Auto Sign Hero
+   ============================================================ */
+.auto-hero{ display: grid; grid-template-columns: 1.2fr .8fr; gap: var(--s-5); padding: var(--s-5); border-radius: var(--radius-md); background: var(--surface); border: 1px solid var(--border); margin-bottom: var(--s-4); }
+.auto-note{ font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+.auto-clock{ display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--border); min-height: 100px; }
+.auto-clock strong{ font-family: var(--mono); font-size: 32px; font-weight: 600; letter-spacing: -0.04em; color: var(--blue); }
+.auto-clock span{ font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+.weekdays{display:flex;gap:8px;flex-wrap:wrap}
+.weekday{ width: 36px; height: 36px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); font-size: 13px; font-weight: 500; transition: all .15s; }
+.weekday.selected{ background: var(--blue); border-color: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.3); }
+
+/* ============================================================
+   Row
+   ============================================================ */
+.row{ display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); padding: var(--s-4) 0; border-bottom: 1px solid var(--border); }
+.row:last-child{border-bottom:0}
+.row-title{ font-size: 14px; font-weight: 500; }
+.row-sub{ font-size: 13px; color: var(--text-secondary); margin-top: 4px; display:flex; align-items:center; gap:6px;}
+.row-sub .ico { font-size: 14px; }
+
+/* ============================================================
+   Invite
+   ============================================================ */
+.invite-code{ display: inline-block; padding: 12px 24px; border-radius: var(--radius-sm); background: var(--bg); border: 1px dashed var(--border-dark); font-family: var(--mono); font-size: 20px; font-weight: 600; letter-spacing: 4px; cursor: pointer; margin: var(--s-3) 0; color: var(--blue); }
+
+/* ============================================================
+   赞助购买页 & 套餐卡片
+   ============================================================ */
+.coupon-wrap { display: flex; gap: 8px; margin-bottom: 24px; max-width: 400px; }
+.coupon-wrap input { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); font-family: var(--mono); font-size: 13px; text-transform: uppercase; }
+.coupon-wrap input:focus { outline: none; border-color: var(--text-primary); }
+
+.pkg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--s-4); }
+.pkg {
+  position: relative; border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: var(--s-5); background: var(--surface); display: flex; flex-direction: column;
+  box-shadow: var(--shadow-sm); transition: all .25s cubic-bezier(.2,.8,.2,1);
+}
+.pkg:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -10px rgba(0,0,0,0.1); border-color: var(--text-tertiary); }
+body.dark .pkg:hover { box-shadow: 0 12px 24px -10px rgba(0,0,0,0.5); border-color: #555; }
+
+.pkg.best { border-color: var(--blue); }
+.pkg.best::before {
+  content: "推荐"; position: absolute; top: -10px; right: 16px;
+  background: var(--blue); color: #fff; font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 10px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+}
+
+.pkg-tag{ font-size: 11px; font-weight: 600; color: var(--blue); font-family: var(--mono); margin-bottom: 8px; min-height: 16px;}
+.pkg h3{ font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.pkg-price{
+  font-family: var(--mono); font-size: 32px; font-weight: 700; letter-spacing: -0.04em;
+  margin-bottom: 16px; display: flex; align-items: baseline; gap: 4px;
+}
+.pkg-price span { font-size: 14px; font-weight: 500; font-family: var(--sans); color: var(--text-tertiary); }
+.pkg-price .cur { font-size: 16px; font-weight: 600; color: var(--text-primary); font-family: var(--mono); }
+.pkg-price .amount { font-size: 32px; font-weight: 700; color: var(--text-primary); font-family: var(--mono); letter-spacing: -0.04em; }
+.pkg-price .old { font-size: 13px; color: var(--text-tertiary); text-decoration: line-through; font-weight: 500; margin-left: 6px; }
+.pkg-desc{ font-size: 13px; color: var(--text-secondary); flex: 1; margin-bottom: var(--s-5); line-height: 1.6; }
+
+.pkg-actions{ display: flex; gap: 8px; }
+.pay-btn {
+  flex: 1; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-primary); font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: all .2s ease; position: relative; overflow: hidden;
+}
+.pay-btn::after {
+  content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transform: skewX(-20deg); transition: all .4s ease;
+}
+.pay-btn:hover::after { left: 150%; }
+
+.pay-btn.wx { color: var(--wx); border-color: rgba(7,193,96,0.3); background: var(--green-subtle); }
+.pay-btn.wx:hover { background: var(--wx); color: #fff; border-color: var(--wx); box-shadow: 0 4px 12px rgba(7,193,96,0.3); }
+
+.pay-btn.ali { color: var(--ali); border-color: rgba(22,119,255,0.3); background: var(--blue-subtle); }
+.pay-btn.ali:hover { background: var(--ali); color: #fff; border-color: var(--ali); box-shadow: 0 4px 12px rgba(22,119,255,0.3); }
+
+.pay-btn .ico { font-size: 18px; fill: currentColor; stroke: none; }
+.pkg.is-disabled { opacity: 0.5; filter: grayscale(1); pointer-events: none; }
+
+/* ============================================================
+   套餐分组 / 优惠码
+   ============================================================ */
+.pkg-group { margin-bottom: var(--s-5); }
+.pkg-group:last-child { margin-bottom: 0; }
+.pkg-group-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0 0 var(--s-3); }
+.pkg-group-head h3 { font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+.pkg-group-head p { font-size: 12px; color: var(--text-tertiary); }
+.pkg-group.pro .pkg-group-head h3 { color: var(--blue); }
+.pkg-group.grade .pkg-group-head h3 { color: var(--purple); }
+
+.pkg-meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+.pkg-chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-secondary); background: var(--bg); white-space: nowrap; }
+.pkg-chip.on { color: var(--green); border-color: rgba(16,185,129,.35); background: var(--green-subtle); }
+.pkg-peryear { font-size: 12px; color: var(--text-tertiary); margin: -8px 0 10px; }
+.pkg-price .old { font-size: 13px; color: var(--text-tertiary); text-decoration: line-through; font-weight: 500; margin-left: 6px; }
+.pkg-price.flash { animation: pkgFlash .55s ease; }
+@keyframes pkgFlash {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.09); color: var(--blue); }
+  100% { transform: scale(1); }
+}
+.pkg.coupon-on { border-color: var(--blue); box-shadow: 0 10px 26px -14px rgba(37,99,235,.45); }
+.pkg.coupon-on::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(120deg, transparent 30%, rgba(59,130,246,.14) 50%, transparent 70%);
+  animation: couponSweep 1.1s ease;
+}
+@keyframes couponSweep { from { transform: translateX(-70%); opacity: 1; } to { transform: translateX(70%); opacity: 0; } }
+
+.coupon-banner { display: none; margin: 0 0 var(--s-4); padding: 12px 16px; border-radius: var(--radius-sm); background: var(--blue-subtle); border: 1px dashed rgba(37,99,235,.4); color: var(--blue); font-size: 13px; font-weight: 600; align-items: center; gap: 8px; }
+.coupon-banner.show { display: flex; animation: bannerIn .35s cubic-bezier(.2,.8,.2,1); }
+@keyframes bannerIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.coupon-banner .clear { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--text-tertiary); cursor: pointer; text-decoration: underline; }
+.coupon-wrap input.err { border-color: #ef4444; animation: shake .3s; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+
+/* ============================================================
+   Log / More Grid
+   ============================================================ */
+.log-row{ display:flex; align-items:center; gap:16px; padding:12px 0; border-bottom:1px solid var(--border); }
+.log-row:last-child{border-bottom:0}
+.log-status{ font-size:16px; width:20px; text-align: center; }
+.log-body{flex:1;min-width:0}
+.log-title{font-size:13px; font-weight: 500;}
+.log-time{font-family: var(--mono); font-size:11px; color:var(--text-tertiary); margin-top:4px;}
+.log-msg{ font-size:12px; color:var(--text-secondary); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.more-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap: var(--s-3); }
+.more-item{ display:flex; flex-direction:column; align-items:flex-start; gap: 8px; padding:16px; border:1px solid var(--border); border-radius: var(--radius-md); background:var(--surface); text-align:left; transition: all .15s; }
+.more-item:hover{ background: var(--surface-hover); border-color: var(--border-dark); }
+.more-item .ico{ font-size: 20px; }
+.more-item span{ font-size: 14px; font-weight: 500; }
+.more-item small{ font-size: 12px; color: var(--text-tertiary); }
+
+/* ============================================================
+   Sponsor CTA (更多页)
+   ============================================================ */
+.sponsor-cta{ display:flex; align-items:center; gap:16px; width:100%; padding:20px; border-radius: var(--radius-md); border:1px solid rgba(244,63,94,0.2); background:linear-gradient(135deg, #fff1f2, #fff); text-align:left; margin-bottom:var(--s-5); transition: all .2s; box-shadow: var(--shadow-sm); }
+body.dark .sponsor-cta{ background:linear-gradient(135deg, rgba(244,63,94,.1), var(--surface)); border-color: rgba(244,63,94,0.3); }
+.sponsor-cta:hover{ border-color: var(--heart); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(244,63,94,0.15); }
+.sponsor-cta-icon{ width:40px; height:40px; border-radius: var(--radius-sm); background: linear-gradient(135deg, #f43f5e, #fb923c); color: #fff; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow: 0 4px 12px rgba(244,63,94,0.3); }
+.sponsor-cta-icon .ico { fill: currentColor; stroke: none; }
+.sponsor-cta-body strong{ display:block; font-size:15px; font-weight: 600; margin-bottom: 2px; color: var(--text-primary); }
+.sponsor-cta-body span{ font-size:13px; color:var(--text-secondary); }
+.sponsor-cta-arrow{ font-size:16px; color:var(--heart); margin-left: auto; }
+
+/* ============================================================
+   Toast & Modal
+   ============================================================ */
+.toast{ position:fixed; left:50%; bottom:32px; transform:translateX(-50%) translateY(10px); background: var(--text-primary); color: var(--bg); padding:10px 20px; border-radius: var(--radius-sm); font-size:13px; font-weight:500; z-index:2000; opacity:0; pointer-events:none; transition: all .24s cubic-bezier(.22,1,.36,1); box-shadow: var(--shadow-md); }
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+.toast.success{ background: var(--green); color: #fff; }
+.toast.error{ background: var(--red); color: #fff; }
+
+.modal-mask{ position:fixed; inset:0; background:rgba(0,0,0,.4); backdrop-filter: blur(4px); z-index:9999; display:none; align-items:center; justify-content:center; padding:20px; }
+body.dark .modal-mask { background:rgba(0,0,0,.8); }
+.modal-mask.show{display:flex}
+.modal{ background:var(--surface); border:1px solid var(--border); border-radius: var(--radius-lg); padding:24px; max-width:400px; width:100%; box-shadow: var(--shadow-md); animation: modalIn .2s ease; position: relative; }
+@keyframes modalIn{ from{opacity:0;transform:scale(.98)} to{opacity:1;transform:scale(1)} }
+.modal-close{ position:absolute; top:16px; right:16px; background:var(--bg); border:1px solid transparent; width:28px; height:28px; border-radius:50%; font-size:18px; color:var(--text-secondary); display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.modal-close:hover { background: var(--surface-hover); border-color: var(--border); }
+.modal h2{ font-size:18px; font-weight: 600; margin-bottom:16px; padding-right:24px; letter-spacing:-0.01em; }
+.modal-note{ background:var(--bg); border:1px solid var(--border); border-radius: var(--radius-sm); padding:16px; font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:20px; }
+.modal-note .hl{ display:block; background:var(--blue-subtle); color:var(--blue); border-left: 2px solid var(--blue); padding:8px 12px; border-radius:0 4px 4px 0; margin-top:12px; font-weight:500; }
+.modal-actions{display:flex; flex-direction:column; gap:10px;}
+
+/* QR */
+.qr-wrap{ position:relative; display:inline-block; cursor:zoom-in; width:180px; height:180px; margin-top:16px; border-radius:var(--radius-md); border:1px solid var(--border); overflow: hidden; }
+.qr-img{ width:100%; height:100%; object-fit:contain; filter:blur(4px); pointer-events:none; }
+.qr-overlay{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.3); color:#fff; font-size:13px; font-weight:500; backdrop-filter:blur(2px); }
+.qr-modal{ position:fixed; inset:0; z-index:10001; background:rgba(0,0,0,.8); display:none; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px); }
+.qr-modal.show{display:flex}
+.qr-modal-card{ width:min(340px,100%); background:var(--surface); border-radius:var(--radius-lg); padding:24px; text-align:center; box-shadow: var(--shadow-md); }
+.qr-modal-card h3{ font-size:16px; font-weight: 600; margin-bottom:8px; }
+.qr-modal-card img{ width:min(260px,70vw); aspect-ratio: 1; object-fit:contain; border-radius:var(--radius-sm); border:1px solid var(--border); margin:16px auto; display:block; }
+
+/* ============================================================
+   Mobile
+   ============================================================ */
+@media (max-width:820px){
+  body{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 16px)}
+  .sidebar{display:none}
+  .topbar{height:56px; padding:0 16px;}
+  .user-chip{max-width:40vw; padding:4px 8px;}
+  .user-name{font-size:12px}
+  .user-id{display:none}
+  .content{padding:16px 16px 24px}
+  .page-title{font-size:20px}
+  .hero{padding:20px; border-radius: var(--radius-md);}
+  .hero h2{font-size:24px}
+  .hero-actions{width:100%; margin-top:16px;}
+  .hero-actions .btn{flex:1;}
+  .stats{grid-template-columns:repeat(2,1fr); gap:12px;}
+  .stat{padding:16px}
+  .stat-num{font-size:24px}
+  .auto-hero{grid-template-columns:1fr; gap:16px;}
+  .field-row{grid-template-columns:1fr; gap:0;}
+  .pkg-grid{grid-template-columns:1fr;}
+  
+  .tabbar{
+    display:flex; position:fixed; left:0; right:0; bottom:0; z-index:900;
+    background:var(--bg); border-top:1px solid var(--border);
+    padding-bottom:env(safe-area-inset-bottom); height:calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  }
+  .tab-item{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    border:none; background:none; color:var(--text-tertiary); font-size:11px; font-weight:500;
+  }
+  .tab-item .ico{ font-size:20px; }
+  .tab-item.active{ color:var(--text-primary); }
+  
+  .tab-item.tab-sponsor{ z-index:2; }
+  .tab-sponsor-icon{
+    width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background: linear-gradient(135deg, #f43f5e, #fb923c); color: #fff; font-size:20px; margin-top:-18px;
+    border:4px solid var(--bg); box-shadow:0 4px 12px rgba(244,63,94,0.4); transition: transform .15s;
+  }
+  .tab-sponsor-icon .ico { fill: currentColor; stroke: none; }
+  .tab-item.tab-sponsor.active .tab-sponsor-icon{ transform: translateY(-2px); }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     SVG Sprite：包含标准的 1.5px 线条与实心图标
+     ============================================================ -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></symbol>
+  <symbol id="i-message" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12v0a2 2 0 0 1-2-2V7"/></symbol>
+  
+  <symbol id="i-heart-fill" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></symbol>
+  
+  <symbol id="i-robot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-qq" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-bullhorn" viewBox="0 0 24 24"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-times" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-loader" viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="6"/><line x1="12" x2="12" y1="18" y2="22"/><line x1="4.93" x2="7.76" y1="4.93" y2="7.76"/><line x1="16.24" x2="19.07" y1="16.24" y2="19.07"/><line x1="2" x2="6" y1="12" y2="12"/><line x1="18" x2="22" y1="12" y2="12"/><line x1="4.93" x2="7.76" y1="19.07" y2="16.24"/><line x1="16.24" x2="19.07" y1="7.76" y2="4.93"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></symbol>
+  <symbol id="i-user-edit" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
+  <symbol id="i-qrcode" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  
+  <symbol id="i-wechat" viewBox="0 0 24 24">
+    <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.89c-.135-.01-.27-.027-.407-.03zm-2.53 3.274c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982z" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-alipay" viewBox="0 0 24 24">
+    <path d="M22.5 17.3c-1.8-.8-5.8-2.5-8.1-3.5.8-1.6 1.4-3.4 1.8-5.3h-4.1V7.2h5.1V6h-5.1V2.1h-2.7c-.4 0-.5.2-.5.5V6H3.8v1.2h5.1v1.3H4.3v1.2h8.3c-.3 1.4-.7 2.7-1.2 3.9-1.4-.8-3.3-1.7-5.2-1.7-3.2 0-5 1.9-5 4.2 0 2.8 2.6 4.6 6 4.6 3.7 0 6.4-2 7.8-4.8 2.5 1.2 5.4 2.8 5.9 3.1.4.2.8.1 1-.3.1-.4 0-.8-.4-1zm-12 2.4c-2.6 0-4.2-1-4.2-2.7 0-1.2 1.3-2.2 3.5-2.2 1.4 0 2.8.6 4 1.5-.9 1.9-2.4 3.4-3.3 3.4z" fill="currentColor"/>
+  </symbol>
+</svg>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark"><svg class="ico"><use href="#i-robot"/></svg></div>
+      <div>
+        <strong>AG 智能考勤</strong>
+        <small>控制面板</small>
+      </div>
+    </div>
+
+    <nav class="side-nav">
+      <div class="side-group-label">常用</div>
+      <button class="side-item active" data-nav="dashboard"><svg class="ico"><use href="#i-home"/></svg> 首页</button>
+      <button class="side-item" data-nav="subscriptions"><svg class="ico"><use href="#i-calendar"/></svg> 自动签到</button>
+      <button class="side-item" data-nav="profile"><svg class="ico"><use href="#i-user"/></svg> 我的</button>
+
+      <div class="side-group-label">更多</div>
+      <button class="side-item" data-nav="email"><svg class="ico"><use href="#i-mail"/></svg> 邮箱</button>
+      <button class="side-item" data-nav="invite"><svg class="ico"><use href="#i-gift"/></svg> 邀请</button>
+      <button class="side-item" data-nav="feedback"><svg class="ico"><use href="#i-message"/></svg> 留言</button>
+      <button class="side-item" data-nav="logs"><svg class="ico"><use href="#i-history"/></svg> 记录</button>
+      <a class="side-item" href="/market"><svg class="ico"><use href="#i-store"/></svg> 二手市场</a>
+
+      <div class="side-group-label">支持</div>
+      <button class="side-item" data-nav="buy" style="color: var(--heart);">
+        <svg class="ico" style="color: var(--heart); fill: currentColor; stroke: none;"><use href="#i-heart-fill"/></svg> 赞助支持
+      </button>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="brand-mark"><svg class="ico"><use href="#i-robot"/></svg></div>
+        <div class="topbar-title">
+          <h1>控制面板</h1>
+          <p id="topbarSub">AG 智能考勤</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="user-chip">
+          <span class="user-name" id="userName">
+            <span id="userNameShort">加载中</span>
+            <span class="user-id">(<span id="userStudentId"></span>)</span>
+          </span>
+          <span class="tier-badge" id="headerTier">免费</span>
+        </div>
+        <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="切换主题">
+          <svg class="ico"><use href="#i-moon"/></svg>
+        </button>
+        <button class="icon-btn" onclick="logout()" title="退出登录" aria-label="退出登录">
+          <svg class="ico"><use href="#i-logout"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- ================= 首页 ================= -->
+      <div id="page-dashboard" class="page active">
+        <div class="card" id="onboardingCard">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <h2 class="card-heading" style="margin-bottom:0"><svg class="ico" style="color:var(--amber);"><use href="#i-star"/></svg> 新手上手</h2>
+            <button class="btn btn-ghost btn-sm" onclick="dismissOnboarding()">跳过</button>
+          </div>
+          <div class="onboard-progress"><div class="onboard-bar" id="onboardingBar"></div></div>
+          <p class="onboard-meta" id="onboardingCount">0 / 4 已完成</p>
+          <div id="onboardingSteps"></div>
+        </div>
+
+        <div id="vipNoticeBanner"></div>
+
+        <div class="hero">
+          <div>
+            <p class="hero-kicker">AG Attendance · Today</p>
+            <h2>你好，<span id="welcomeName">同学</span></h2>
+            <p class="hero-status" id="welcomeStatus">正在读取今日签到状态…</p>
+          </div>
+          <div class="hero-actions">
+            <button class="btn btn-primary" onclick="quickSign()" id="quickSignBtn">
+              <svg class="ico"><use href="#i-pen"/></svg> <span>立即签到</span>
+            </button>
+            <button class="btn" onclick="goPage('logs')">
+              <svg class="ico"><use href="#i-list"/></svg> 查看记录
+            </button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <svg class="ico" style="color:var(--blue); font-size:18px;"><use href="#i-info"/></svg>
+            <p style="font-size:13px; color:var(--text-secondary); margin:0;">本学期考勤服务完全自愿，不影响账号使用。</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="goPage('buy')">查看档位</button>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+            <div>
+              <h2 class="card-heading" style="margin-bottom:4px"><svg class="ico" style="color:var(--amber);"><use href="#i-share"/></svg> 邀请同学</h2>
+              <p style="font-size:13px;color:var(--text-secondary);margin:0">分享专属链接，邀请成功后双方都有奖励。</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="shareInvite()"><svg class="ico"><use href="#i-share"/></svg> 分享</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="shareLink" readonly style="flex:1;min-width:170px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-secondary);font-size:13px;box-shadow:none;">
+            <button class="btn btn-ghost" onclick="copyShareLink()"><svg class="ico"><use href="#i-copy"/></svg> 复制</button>
+          </div>
+          <p style="margin-top:12px;font-size:12px;color:var(--text-tertiary);font-family:var(--mono);">
+            邀请码 <b id="shareCode" style="color:var(--text-primary);">----</b>
+          </p>
+        </div>
+
+        <a class="card" href="https://pd.qq.com/s/9fkh0w8xw" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:16px;padding:16px;text-decoration:none;transition:all .15s;">
+          <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:#e0f2fe;color:#0ea5e9;display:flex;align-items:center;justify-content:center;font-size:18px;">
+            <svg class="ico" style="stroke-width:2;"><use href="#i-qq"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:500;color:var(--text-primary);">加入 QQ 频道</div>
+            <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px">反馈 · 交流 · 签到提醒</div>
+          </div>
+          <svg class="ico" style="color:var(--text-tertiary);font-size:16px;"><use href="#i-chevron-right"/></svg>
+        </a>
+
+        <div id="noticeCard" class="card hidden" style="border-left: 2px solid var(--blue);">
+          <h2 class="card-heading" id="noticeTitle"></h2>
+          <div id="noticeContent"></div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="stat-num" id="statTotalSigns">0</div><div class="stat-label">累计签到</div></div>
+          <div class="stat"><div class="stat-num" id="statSuccessSigns">0</div><div class="stat-label">成功次数</div></div>
+          <div class="stat"><div class="stat-num" id="statTodaySigns">0</div><div class="stat-label">今日签到</div></div>
+          <div class="stat"><div class="stat-num" id="statActiveSubs">0</div><div class="stat-label">自动签到</div></div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--amber);"><use href="#i-bolt"/></svg> 签到状态</h2>
+          <p id="signResult" style="font-size:14px;color:var(--text-secondary);">点击上方「立即签到」开始</p>
+          <p style="font-size:12px;color:var(--text-tertiary);margin-top:12px;">免费，不需要会员。结果会记录在「记录」页面。</p>
+        </div>
+
+        <div class="card">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--blue);"><use href="#i-calendar"/></svg> 自动签到状态</h2>
+          <div id="activeSignBox"><p class="loading">加载中…</p></div>
+        </div>
+      </div>
+
+      <!-- ================= 自动签到 ================= -->
+      <div id="page-subscriptions" class="page">
+        <h1 class="page-title">自动签到</h1>
+        <p class="page-sub">选好日期和时间，每天自动完成晚寝签到。</p>
+
+        <div id="emailWarningBox"></div>
+
+        <div class="auto-hero">
+          <div>
+            <h2 class="card-heading" style="margin-bottom:12px"><svg class="ico" style="color:var(--purple);"><use href="#i-moon"/></svg> 签到计划</h2>
+            <p class="auto-note">开启后，系统会在你选择的日期按设定时间自动签到。默认 21:35；学年卡 Pro 与大一/大二/大三学年卡可自定义签到时间。</p>
+            <div id="autoSignStatus" style="margin-top:16px"></div>
+          </div>
+          <div class="auto-clock">
+            <strong id="autoSignTimeDisplay">21:35</strong>
+            <span id="autoSignTimeLabel">统一签到时间</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--blue);"><use href="#i-sliders"/></svg> 签到偏好</h2>
+
+          <div class="setting-row">
+            <div class="setting-copy">
+              <strong>启用自动签到</strong>
+              <p>适合每天晚上不想手动操作的同学。</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="autoSignEnabled">
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+
+          <div class="field" style="margin-top:16px">
+            <label>签到时间</label>
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+              <input type="time" id="autoSignTime" value="21:35" style="max-width:140px; box-shadow:none;">
+              <span id="signTimeHint" style="font-size:12px;color:var(--text-tertiary);"></span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>签到日期</label>
+            <div class="weekdays" id="weekdaySelector">
+              <button type="button" class="weekday selected" data-day="1">一</button>
+              <button type="button" class="weekday selected" data-day="2">二</button>
+              <button type="button" class="weekday selected" data-day="3">三</button>
+              <button type="button" class="weekday selected" data-day="4">四</button>
+              <button type="button" class="weekday selected" data-day="5">五</button>
+              <button type="button" class="weekday" data-day="6">六</button>
+              <button type="button" class="weekday" data-day="0">日</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-copy">
+              <strong>成功后邮件通知</strong>
+              <p>签到成功时发一封邮件。</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="notifyOnSuccess">
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-copy">
+              <strong>失败后邮件提醒</strong>
+              <p>自动签到失败时第一时间提醒。</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="notifyOnFailure">
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+
+          <button class="btn btn-primary btn-block" onclick="saveAutoSignSetting()" style="margin-top:24px">
+            <svg class="ico"><use href="#i-check"/></svg> 保存设置
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= 邮箱 ================= -->
+      <div id="page-email" class="page">
+        <h1 class="page-title">邮箱</h1>
+        <p class="page-sub">绑定后签到成功或失败都会收到提醒。</p>
+
+        <div class="card">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--blue);"><use href="#i-mail"/></svg> 邮箱绑定</h2>
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px">
+            不绑定也能正常签到，但收不到通知，容易漏签，建议绑定。
+          </p>
+
+          <div id="emailStatus"></div>
+
+          <div id="emailBindForm">
+            <div class="field" style="margin-top:20px">
+              <label>邮箱地址</label>
+              <input type="email" id="bindEmail" placeholder="your@email.com" autocomplete="email">
+            </div>
+            <div style="display:flex;gap:8px">
+              <input type="text" id="emailCode" placeholder="6 位验证码" inputmode="numeric" maxlength="8" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text-primary);font-size:14px;">
+              <button class="btn btn-primary" id="sendCodeBtn" onclick="sendEmailCode()">发送验证码</button>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="verifyEmail()" style="margin-top:12px">验证并绑定</button>
+          </div>
+
+          <div id="rebindArea" class="hidden" style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+            <h3 style="font-size:14px;font-weight:600;margin-bottom:16px">更换邮箱</h3>
+            <div class="field">
+              <label>新邮箱</label>
+              <input type="email" id="rebindEmail" placeholder="new@email.com" autocomplete="email">
+            </div>
+            <div style="display:flex;gap:8px">
+              <input type="text" id="rebindCode" placeholder="验证码" inputmode="numeric" maxlength="8" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text-primary);font-size:14px;">
+              <button class="btn btn-primary" id="rebindSendBtn" onclick="sendRebindCode()">发送验证码</button>
+            </div>
+            <button class="btn btn-secondary btn-block" onclick="rebindEmail()" style="margin-top:12px">确认换绑</button>
+            <button class="btn btn-danger btn-block" onclick="unbindEmail()" style="margin-top:8px">解绑邮箱</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 我的 ================= -->
+      <div id="page-profile" class="page">
+        <h1 class="page-title">我的</h1>
+        <p class="page-sub">账号信息与考勤密码。</p>
+
+        <div class="card" style="background:#09090b; color:#fff; border:none;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+            <div>
+              <div id="memberBadge" style="display:inline-block;padding:2px 8px;border-radius:4px;background:#71717a;color:#fff;font-size:12px;font-weight:600;">免费</div>
+              <h2 id="memberName" style="font-size:24px;font-weight:600;letter-spacing:-0.02em;margin:12px 0 4px;color:#fff">同学</h2>
+              <p id="memberSub" style="font-size:13px;color:#a1a1aa;font-family:var(--mono);">学号</p>
+            </div>
+            <div style="text-align:right">
+              <div id="memberDays" style="font-size:32px;font-weight:600;letter-spacing:-0.04em;line-height:1;color:#fff;font-family:var(--mono);">--</div>
+              <div style="font-size:12px;color:#a1a1aa;margin-top:6px">剩余天数</div>
+            </div>
+          </div>
+          <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);display:flex;gap:24px;flex-wrap:wrap;font-size:13px;color:#a1a1aa;font-family:var(--mono);">
+            <span>到期 <strong id="memberExpire" style="color:#fff">--</strong></span>
+            <span>次数卡 <strong id="memberCredits" style="color:#fff">0 次</strong></span>
+            <span>邀请码 <strong id="memberInvite" style="color:#fff">--</strong></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--blue);"><use href="#i-user-edit"/></svg> 个人信息</h2>
+          <div class="field"><label>学号</label><input type="text" id="profileStudentId" disabled></div>
+          <div class="field"><label>姓名</label><input type="text" id="profileName" placeholder="请输入姓名"></div>
+          <div class="field">
+            <label>考勤密码</label>
+            <input type="password" id="profileAttendancePassword" placeholder="留空则不修改" autocomplete="new-password">
+            <p class="hint">默认密码 <code style="font-family:var(--mono);background:var(--bg);padding:2px 6px;border-radius:4px;color:var(--red);">Ahgydx@920</code>，改过就填新密码。</p>
+          </div>
+          <div class="field"><label>邮箱</label><input type="text" id="profileEmail" disabled></div>
+          <div class="field"><label>本学期服务状态</label><input type="text" id="profileVip" disabled></div>
+          <button class="btn btn-primary btn-block" onclick="updateProfile()">保存</button>
+        </div>
+
+        <div class="card">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--amber);"><use href="#i-ticket"/></svg> 兑换卡密</h2>
+          <div class="field">
+            <input type="text" id="redeemCodeProfile" placeholder="输入卡密" style="text-transform:uppercase" autocomplete="off">
+          </div>
+          <button class="btn btn-primary btn-block" onclick="redeemCode('redeemCodeProfile')">立即兑换</button>
+        </div>
+      </div>
+
+      <!-- ================= 更多 ================= -->
+      <div id="page-more" class="page">
+        <h1 class="page-title">更多</h1>
+        <p class="page-sub">其余功能与支持入口。</p>
+
+        <button class="sponsor-cta" onclick="goPage('buy')">
+          <div class="sponsor-cta-icon"><svg class="ico"><use href="#i-heart-fill"/></svg></div>
+          <div class="sponsor-cta-body">
+            <strong>赞助支持 AG 考勤</strong>
+            <span>帮助维护服务器与日常运行</span>
+          </div>
+          <svg class="ico sponsor-cta-arrow"><use href="#i-chevron-right"/></svg>
+        </button>
+
+        <div class="card">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--text-secondary);"><use href="#i-grid"/></svg> 更多功能</h2>
+          <div class="more-grid">
+            <button class="more-item" data-nav="email">
+              <svg class="ico" style="color:var(--blue);"><use href="#i-mail"/></svg>
+              <span>邮箱</span>
+              <small>绑定与签到提醒</small>
+            </button>
+            <button class="more-item" data-nav="invite">
+              <svg class="ico" style="color:var(--amber);"><use href="#i-gift"/></svg>
+              <span>邀请好友</span>
+              <small>双方各得 10 天会员</small>
+            </button>
+            <button class="more-item" data-nav="feedback">
+              <svg class="ico" style="color:var(--green);"><use href="#i-message"/></svg>
+              <span>留言反馈</span>
+              <small>问题与建议</small>
+            </button>
+            <button class="more-item" data-nav="logs">
+              <svg class="ico" style="color:var(--purple);"><use href="#i-history"/></svg>
+              <span>签到记录</span>
+              <small>历史明细</small>
+            </button>
+            <a class="more-item" href="/market">
+              <svg class="ico" style="color:var(--pink);"><use href="#i-store"/></svg>
+              <span>二手市场</span>
+              <small>校园闲置交易</small>
+            </a>
+            <a class="more-item" href="https://pd.qq.com/s/9fkh0w8xw" target="_blank" rel="noopener">
+              <svg class="ico" style="color:#0ea5e9;"><use href="#i-qq"/></svg>
+              <span>QQ 频道</span>
+              <small>交流与提醒</small>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 邀请 ================= -->
+      <div id="page-invite" class="page">
+        <h1 class="page-title">邀请</h1>
+        <p class="page-sub">双方各得奖励。</p>
+
+        <div class="card" style="text-align:center; padding: 40px 20px;">
+          <h2 class="card-heading" style="justify-content:center;margin-bottom:8px"><svg class="ico" style="color:var(--amber);"><use href="#i-gift"/></svg> 邀请好友</h2>
+          <p style="font-size:14px;margin:12px 0;color:var(--text-secondary);">
+            双方各得 <strong style="color:var(--text-primary);font-weight:600;"><span id="rewardDays">10</span> 天会员</strong>
+          </p>
+          <div style="margin:24px 0">
+            <div class="invite-code" id="inviteCode" onclick="copyInviteCode()" title="点击复制">----</div>
+          </div>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="copyInviteUrl()"><svg class="ico"><use href="#i-share"/></svg> 复制链接</button>
+            <button class="btn btn-secondary" onclick="copyInviteCode()"><svg class="ico"><use href="#i-copy"/></svg> 复制邀请码</button>
+          </div>
+          <input type="text" id="inviteUrl" readonly class="hidden">
+          <div style="margin-top:32px;font-size:13px;color:var(--text-secondary);">
+            已邀请 <strong id="inviteCount" style="color:var(--blue);font-weight:600;">0</strong> 人
+          </div>
+          <div id="invitedList" style="margin-top:16px;max-height:220px;overflow-y:auto;text-align:left;"></div>
+        </div>
+
+        <div class="card" id="bindInviteCard">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--blue);"><use href="#i-user"/></svg> 我有邀请码</h2>
+          <div id="bindInviteArea"></div>
+          <div class="field">
+            <input type="text" id="inputInviteCode" placeholder="输入 8 位邀请码" style="text-transform:uppercase" autocomplete="off">
+          </div>
+          <button class="btn btn-primary btn-block" onclick="applyInviteCode()">绑定邀请人</button>
+        </div>
+      </div>
+
+      <!-- ================= 留言 ================= -->
+      <div id="page-feedback" class="page">
+        <h1 class="page-title">留言</h1>
+        <p class="page-sub">问题和建议都可以写在这里。</p>
+
+        <div class="card">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--green);"><use href="#i-pen"/></svg> 提交反馈</h2>
+          <div class="field">
+            <label>类型</label>
+            <select id="feedbackType">
+              <option value="suggestion">建议</option>
+              <option value="bug">问题</option>
+              <option value="question">疑问</option>
+              <option value="other">其他</option>
+            </select>
+          </div>
+          <div class="field"><label>标题</label><input type="text" id="feedbackTitle" placeholder="一句话概括"></div>
+          <div class="field"><label>详细描述</label><textarea id="feedbackContent" rows="4" placeholder="遇到什么问题？"></textarea></div>
+          <button class="btn btn-primary btn-block" onclick="submitFeedback()">提交</button>
+        </div>
+
+        <div class="card">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--purple);"><use href="#i-inbox"/></svg> 我的留言</h2>
+          <div id="myFeedbackList"><p class="loading">加载中…</p></div>
+        </div>
+      </div>
+
+      <!-- ================= 赞助 ================= -->
+      <div id="page-buy" class="page">
+        <h1 class="page-title">赞助支持</h1>
+        <p class="page-sub">完全自愿，帮助服务器与日常运行。支付后权益自动发放。</p>
+
+        <div class="card" style="margin-bottom:var(--s-5);">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+            <h2 class="card-heading" style="margin:0;"><svg class="ico" style="color:var(--heart);"><use href="#i-gift"/></svg> 选择套餐</h2>
+            <div class="coupon-wrap" style="margin-bottom:0;">
+              <input type="text" id="couponCode" placeholder="输入优惠码" autocomplete="off" spellcheck="false">
+              <button class="btn btn-secondary" type="button" onclick="applyCoupon()">使用</button>
+            </div>
+          </div>
+
+          <div id="couponBanner" class="coupon-banner"></div>
+          <div id="packagesList"><p class="loading">加载中…</p></div>
+        </div>
+
+        <div id="paymentArea" class="card hidden">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--blue);"><use href="#i-qrcode"/></svg> 扫码赞助</h2>
+          <div style="text-align:center;margin:16px 0">
+            <div style="font-family:var(--mono); font-size:32px;font-weight:700;letter-spacing:-0.03em;color:var(--text-primary);" id="paymentAmount">¥0.00</div>
+            <p id="paymentCouponNote" style="display:none;font-size:12px;color:var(--green);margin-top:6px;"></p>
+            <p style="font-size:12px;color:var(--text-tertiary);margin-top:8px;">请准确支付上方金额，否则可能无法匹配订单。</p>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:12px;font-family:var(--mono);">
+              备注短码 <strong id="paymentOrderNo" style="color:var(--text-primary);"></strong>
+            </p>
+          </div>
+          <div style="text-align:center">
+            <div class="qr-wrap" onclick="openQrModal()">
+              <img id="qrCodeImage" class="qr-img" src="" alt="收款码">
+              <div class="qr-overlay">点击放大</div>
+            </div>
+          </div>
+
+          <div id="claimSection" class="hidden" style="margin-top:20px;background:var(--bg);border-radius:var(--radius-sm);padding:16px;border:1px solid var(--border);">
+            <div class="field">
+              <label>支付备注 / 短码</label>
+              <input type="text" id="paymentRef" placeholder="填写支付备注或短码" maxlength="60" autocomplete="off">
+            </div>
+            <button class="btn btn-primary btn-block" onclick="claimPayment()" id="claimBtn">确认我已支付</button>
+          </div>
+
+          <div id="paymentResult" class="hidden" style="margin-top:16px"></div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--amber);"><use href="#i-ticket"/></svg> 兑换卡密</h2>
+          <div class="field">
+            <input type="text" id="redeemCode" placeholder="输入卡密" style="text-transform:uppercase" autocomplete="off">
+          </div>
+          <button class="btn btn-primary btn-block" onclick="redeemCode('redeemCode')">立即兑换</button>
+        </div>
+      </div>
+
+      <!-- ================= 记录 ================= -->
+      <div id="page-logs" class="page">
+        <h1 class="page-title">记录</h1>
+        <p class="page-sub">最近 50 条签到记录。</p>
+
+        <div class="card">
+          <div id="logsList"><p class="loading">加载中…</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ================= Tabbar ================= -->
+<nav class="tabbar">
+  <button class="tab-item active" data-tab="dashboard" onclick="goPage('dashboard')">
+    <svg class="ico"><use href="#i-home"/></svg><span>首页</span>
+  </button>
+  <button class="tab-item" data-tab="subscriptions" onclick="goPage('subscriptions')">
+    <svg class="ico"><use href="#i-calendar"/></svg><span>自动签到</span>
+  </button>
+  <button class="tab-item tab-sponsor" data-tab="buy" onclick="goPage('buy')">
+    <span class="tab-sponsor-icon"><svg class="ico"><use href="#i-heart-fill"/></svg></span>
+    <span style="color: var(--heart);">赞助</span>
+  </button>
+  <button class="tab-item" data-tab="profile" onclick="goPage('profile')">
+    <svg class="ico"><use href="#i-user"/></svg><span>我的</span>
+  </button>
+  <button class="tab-item" data-tab="more" onclick="goPage('more')">
+    <svg class="ico"><use href="#i-grid"/></svg><span>更多</span>
+  </button>
+</nav>
+
+<!-- ================= Sponsor Modal ================= -->
+<div class="modal-mask" id="sponsorModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeSponsorModal()">&times;</button>
+    <h2>关于本学期自愿支持</h2>
+    <div class="modal-note">
+      <p style="margin-bottom:8px">服务支持完全自愿，不影响账号使用。</p>
+      <p>如果愿意帮助维护服务器、数据库和日常运行，可以查看支持档位。</p>
+      <span class="hl">💡 若选择支持，备注请填写：学号 + 考勤密码 + 邮箱，便于核对。</span>
+      <p style="margin-top:12px;font-size:12px;opacity:.7">请不要在群聊或公开区域发送考勤密码。</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-block" onclick="goToSponsor()">查看赞助档位</button>
+      <button class="btn btn-secondary btn-block" onclick="closeSponsorModal()">我知道了</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Feedback Modal ================= -->
+<div class="modal-mask" id="feedbackModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeFeedbackModal()">&times;</button>
+    <h2 id="feedbackModalTitle">留言详情</h2>
+    <div class="modal-note" id="feedbackModalBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary btn-block" onclick="closeFeedbackModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= QR Modal ================= -->
+<div id="qrModal" class="qr-modal" onclick="closeQrModal(event)">
+  <div class="qr-modal-card" onclick="event.stopPropagation()">
+    <h3>扫码赞助</h3>
+    <p id="qrModalAmount" style="font-size:13px;color:var(--text-secondary);font-family:var(--mono);"></p>
+    <img id="qrModalImage" src="" alt="收款码">
+    <button class="btn btn-primary btn-block" onclick="closeQrModal()">关闭</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   Config
+   ============================================================ */
+const API_BASE = 'https://api.agai.online/api';
+const token = localStorage.getItem('token');
+
+if (!token) {
+  location.replace('/');
+  throw new Error('no-token');
+}
+
+let currentUser = {};
+try { currentUser = JSON.parse(localStorage.getItem('user') || '{}') || {}; } catch (e) { currentUser = {}; }
+
+if (currentUser.studentId && String(currentUser.studentId).startsWith('guest_')) {
+  location.replace('/market');
+  throw new Error('guest');
+}
+
+const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
+
+const TIER_NAMES = {
+  FREE: '免费',
+  MONTHLY: '月卡',
+  TERM: '学期卡',
+  YEARLY: '学年卡',
+  YEARLY_PRO: '学年卡 Pro',
+  FRESHMAN: '大一学年卡（启航卡）',
+  SOPHOMORE: '大二学年卡（续航卡）',
+  JUNIOR: '大三学年卡（冲刺卡）',
+  VIP: '学年卡 Pro',
+  SVIP: '长期会员（至毕业）',
+  LEGACY: '元老会员'
+};
+
+const TIER_COLORS = {
+  FREE: '#71717a',        // 灰
+  MONTHLY: '#0ea5e9',     // 天蓝
+  TERM: '#8b5cf6',        // 紫
+  YEARLY: '#d946ef',      // 粉紫
+  YEARLY_PRO: '#f59e0b',  // 琥珀金
+  FRESHMAN: '#10b981',    // 青绿
+  SOPHOMORE: '#3b82f6',   // 蓝
+  JUNIOR: '#8b5cf6',      // 紫
+  VIP: '#f59e0b',         // 历史等级，按 Pro 展示
+  SVIP: '#ef4444',        // 红
+  LEGACY: '#14223b'       // 深蓝黑
+};
+
+// 历史等级也保留自定义时间权限
+const CUSTOM_TIME_TIERS = ['YEARLY_PRO', 'FRESHMAN', 'SOPHOMORE', 'JUNIOR', 'VIP', 'SVIP', 'LEGACY'];
+
+function currentPlanName() {
+  if (!currentUser) return '免费';
+  if (currentUser.membership && currentUser.membership.planName) return currentUser.membership.planName;
+  return TIER_NAMES[currentUser.vipTier] || (currentUser.isVip ? '会员' : '免费');
+}
+
+function currentCanCustomTime() {
+  if (!currentUser) return false;
+  if (typeof currentUser.canCustomTime === 'boolean') return currentUser.canCustomTime && !!currentUser.isVip;
+  return !!(currentUser.isVip && CUSTOM_TIME_TIERS.includes(currentUser.vipTier));
+}
+
+let sponsorOrder = null;
+let pollingTimer = null;
+let pollingCount = 0;
+const POLLING_MAX = 60;
+let qrViewed = false;
+let themeSwitching = false;
+let autoSignState = { enabled: false, customDays: [], signTime: '21:35', notifyOnSuccess: false, notifyOnFailure: false };
+let statsState = { todaySigns: 0, todaySuccess: 0, autoSignEnabled: false };
+let appliedCoupon = null;
+
+/* ============================================================
+   Utils
+   ============================================================ */
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.className = 'toast ' + (type || '') + ' show';
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function escapeHTML(s) {
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function escapeAttr(s) {
+  return escapeHTML(s)
+    .replace(/'/g, '&#39;')
+    .replace(/`/g, '&#96;');
+}
+
+async function api(url, opts) {
+  opts = opts || {};
+  opts.headers = opts.headers || {};
+  opts.headers['Authorization'] = 'Bearer ' + token;
+  if (opts.body && typeof opts.body === 'object') {
+    opts.body = JSON.stringify(opts.body);
+    opts.headers['Content-Type'] = 'application/json';
+  }
+  const res = await fetch(API_BASE + url, opts);
+  if (res.status === 401) {
+    logout();
+    throw new Error('登录已过期');
+  }
+  
+  // 细化错误信息提取
+  if (!res.ok) {
+    let errorMsg = 'HTTP ' + res.status;
+    try {
+      const errData = await res.json();
+      if (errData && errData.message) {
+        errorMsg = errData.message;
+      }
+    } catch (e) {}
+    throw new Error(errorMsg);
+  }
+  
+  return res.json();
+}
+
+function logout() {
+  localStorage.clear();
+  location.replace('/');
+}
+
+/* ============================================================
+   Navigation
+   ============================================================ */
+const PAGE_LOADERS = {
+  dashboard: () => { loadStats(); loadActiveSubs(); loadNotice(); loadVipNotice(); },
+  subscriptions: loadAutoSignSetting,
+  email: loadEmailStatus,
+  profile: loadProfile,
+  invite: loadInviteInfo,
+  feedback: loadMyFeedback,
+  buy: loadPackages,
+  logs: loadLogs
+};
+
+function goPage(page) {
+  if (!page) return;
+  const target = document.getElementById('page-' + page);
+  if (!target) return;
+
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p === target));
+  document.querySelectorAll('.side-item[data-nav]').forEach(el => {
+    el.classList.toggle('active', el.dataset.nav === page);
+  });
+
+  const tabMap = { dashboard: 'dashboard', subscriptions: 'subscriptions', profile: 'profile', buy: 'buy' };
+  const tabTarget = tabMap[page] || 'more';
+  document.querySelectorAll('.tab-item').forEach(t => { t.classList.toggle('active', t.dataset.tab === tabTarget); });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const loader = PAGE_LOADERS[page];
+  if (loader) { try { loader(); } catch (e) { console.warn('[AG] 页面加载失败:', page, e); } }
+}
+
+document.querySelectorAll('[data-nav]').forEach(el => {
+  if (el.tagName === 'A') return;
+  el.addEventListener('click', () => goPage(el.dataset.nav));
+});
+
+/* ============================================================
+   Theme + 涟漪切换
+   ============================================================ */
+function applyTheme(theme) {
+  const dark = theme === 'dark';
+  document.body.classList.toggle('dark', dark);
+  const btn = document.getElementById('themeToggle');
+  if (btn) { btn.innerHTML = dark ? '<svg class="ico"><use href="#i-sun"/></svg>' : '<svg class="ico"><use href="#i-moon"/></svg>'; }
+  localStorage.setItem('dashboardTheme', dark ? 'dark' : 'light');
+}
+
+function toggleTheme() {
+  if (themeSwitching) return;
+  const isDark = document.body.classList.contains('dark');
+  const next = isDark ? 'light' : 'dark';
+  const btn = document.getElementById('themeToggle');
+
+  if (!document.startViewTransition || !btn) { applyTheme(next); return; }
+
+  const rect = btn.getBoundingClientRect();
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
+  const maxR = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+
+  themeSwitching = true;
+  const transition = document.startViewTransition(() => { applyTheme(next); });
+
+  transition.ready.then(() => {
+    document.documentElement.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${maxR}px at ${x}px ${y}px)`] },
+      { duration: 640, easing: 'cubic-bezier(.16,1,.3,1)', pseudoElement: '::view-transition-new(root)' }
+    );
+  }).catch(() => {});
+  transition.finished.finally(() => { themeSwitching = false; });
+}
+
+if (document.startViewTransition) { document.documentElement.classList.add('has-vt'); }
+applyTheme(localStorage.getItem('dashboardTheme') || 'light');
+
+/* ============================================================
+   Onboarding
+   ============================================================ */
+function dismissOnboarding() {
+  localStorage.setItem('onboardingDismissed', '1');
+  const card = document.getElementById('onboardingCard');
+  if (card) card.classList.add('hidden');
+}
+
+function renderOnboarding() {
+  const card = document.getElementById('onboardingCard');
+  if (!card) return;
+  if (localStorage.getItem('onboardingDismissed') === '1') { card.classList.add('hidden'); return; }
+
+  const steps = [
+    { title: '确认考勤密码', desc: '默认 Ahgydx@920，改过就填新密码', done: localStorage.getItem('pwdConfirmed') === '1', label: '去确认', action: () => goPage('profile') },
+    { title: '绑定邮箱', desc: '签到成功或失败都会发邮件提醒', done: !!currentUser.emailVerified, label: '去绑定', action: () => goPage('email') },
+    { title: '手动签到一次', desc: '免费，不需要会员', done: (statsState.todaySigns || 0) > 0, label: '立即签到', action: () => { goPage('dashboard'); setTimeout(quickSign, 260); } },
+    { title: '开启自动签到', desc: '每天自动签到，需要会员或次数卡', done: !!autoSignState.enabled, label: '去开启', action: () => goPage('subscriptions') }
+  ];
+
+  const doneCount = steps.filter(s => s.done).length;
+  const total = steps.length;
+  if (doneCount === total) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+
+  const bar = document.getElementById('onboardingBar');
+  const count = document.getElementById('onboardingCount');
+  if (bar) bar.style.width = (doneCount / total * 100) + '%';
+  if (count) count.textContent = doneCount + ' / ' + total + ' 已完成';
+
+  const box = document.getElementById('onboardingSteps');
+  if (!box) return;
+
+  box.innerHTML = steps.map((s, i) => {
+    const action = s.done ? '<span class="step-done-text">已完成</span>' : `<button class="btn btn-secondary btn-sm" data-step="${i}">${escapeHTML(s.label)}</button>`;
+    return `<div class="onboard-step ${s.done ? 'done' : ''}">
+      <div class="step-dot">${s.done ? '<svg class="ico" style="width:14px;height:14px;stroke-width:2;"><use href="#i-check"/></svg>' : (i + 1)}</div>
+      <div class="step-body"><strong>${escapeHTML(s.title)}</strong><p>${escapeHTML(s.desc)}</p></div>
+      ${action}
+    </div>`;
+  }).join('');
+
+  box.querySelectorAll('[data-step]').forEach(btn => {
+    btn.onclick = () => {
+      const step = steps[Number(btn.dataset.step)];
+      if (step && typeof step.action === 'function') step.action();
+    };
+  });
+}
+
+/* ============================================================
+   User
+   ============================================================ */
+async function loadUserInfo() {
+  try {
+    const data = await api('/user/profile');
+    if (!data.success || !data.user) return;
+
+    currentUser = data.user;
+    localStorage.setItem('user', JSON.stringify(currentUser));
+
+    const nameShort = document.getElementById('userNameShort');
+    const sid = document.getElementById('userStudentId');
+    if (nameShort) nameShort.textContent = currentUser.name || currentUser.studentId || '同学';
+    if (sid) sid.textContent = currentUser.studentId || '';
+
+    const tierKey = currentUser.vipTier || 'FREE';
+    const tierDisplay = currentPlanName();
+    const expireDate = currentUser.vipExpireAt ? new Date(currentUser.vipExpireAt) : null;
+    const isPermanent = !!currentUser.isVip && !expireDate;
+
+    const daysLeft = expireDate ? Math.max(0, Math.ceil((expireDate.getTime() - Date.now()) / 86400000)) : 0;
+    const headerTier = document.getElementById('headerTier');
+    if (headerTier) {
+      headerTier.textContent = currentUser.isVip
+        ? (isPermanent ? `${tierDisplay} · 长期` : `${tierDisplay} · ${daysLeft}天`)
+        : '免费';
+
+      headerTier.style.color = TIER_COLORS[tierKey] || '#71717a';
+      headerTier.style.borderColor = TIER_COLORS[tierKey] || '#e4e4e7';
+      headerTier.style.background = 'transparent';
+    }
+
+    const welcomeName = document.getElementById('welcomeName');
+    if (welcomeName) welcomeName.textContent = currentUser.name || currentUser.studentId || '同学';
+
+    loadShareCard();
+    renderOnboarding();
+  } catch (e) { console.warn('[AG] loadUserInfo 失败:', e); }
+}
+
+/* ============================================================
+   Dashboard
+   ============================================================ */
+async function loadNotice() {
+  try {
+    const data = await api('/notice');
+    const card = document.getElementById('noticeCard');
+    if (!card) return;
+    if (!data.success || !data.notice || !data.notice.enabled) { card.classList.add('hidden'); return; }
+    const n = data.notice;
+    document.getElementById('noticeTitle').innerHTML = '<svg class="ico" style="color:var(--blue);"><use href="#i-bullhorn"/></svg> ' + escapeHTML(n.title);
+    document.getElementById('noticeContent').innerHTML = '<div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">' + escapeHTML(n.content) + '</div>';
+    card.classList.remove('hidden');
+  } catch (e) {}
+}
+
+async function loadVipNotice() {
+  const container = document.getElementById('vipNoticeBanner');
+  if (!container) return;
+  try {
+    const data = await api('/notice/vip');
+    if (!data.success || !data.notice || !data.notice.enabled) { container.innerHTML = ''; return; }
+    const n = data.notice;
+    container.innerHTML = `<div class="alert alert-warning" style="margin-bottom:16px;">
+      <svg class="ico" style="color:var(--amber);"><use href="#i-bullhorn"/></svg>
+      <div><strong>${escapeHTML(n.title)}</strong><p>${escapeHTML(n.content)}</p></div>
+    </div>`;
+  } catch (e) { container.innerHTML = ''; }
+}
+
+async function loadStats() {
+  try {
+    const data = await api('/stats');
+    if (!data.success || !data.stats) return;
+    statsState.todaySigns = data.stats.todaySigns || 0;
+    statsState.todaySuccess = data.stats.todaySuccess || 0;
+    statsState.autoSignEnabled = !!data.stats.autoSignEnabled;
+
+    document.getElementById('statTotalSigns').textContent = data.stats.totalSigns || 0;
+    document.getElementById('statSuccessSigns').textContent = data.stats.successSigns || 0;
+    document.getElementById('statTodaySigns').textContent = data.stats.todaySigns || 0;
+    document.getElementById('statActiveSubs').textContent = data.stats.autoSignEnabled ? '开' : '关';
+
+    const ws = document.getElementById('welcomeStatus');
+    if (ws) { 
+      ws.textContent = (data.stats.todaySuccess > 0) ? '✅ 今日签到已完成。' : '⭕ 今日尚未签到，点击右侧按钮开始。'; 
+      ws.style.color = (data.stats.todaySuccess > 0) ? 'var(--green)' : '#a1a1aa';
+    }
+    renderOnboarding();
+  } catch (e) {}
+}
+
+async function loadActiveSubs() {
+  const box = document.getElementById('activeSignBox');
+  if (!box) return;
+  try {
+    const data = await api('/auto-sign');
+    if (!data.success) { box.innerHTML = '<p class="empty">暂时无法读取自动签到状态</p>'; return; }
+
+    const s = data.setting || {};
+    autoSignState = {
+      enabled: !!s.enabled,
+      customDays: Array.isArray(s.customDays) ? s.customDays.map(Number) : [],
+      signTime: s.signTime || '21:35',
+      notifyOnSuccess: s.notifyOnSuccess !== false,
+      notifyOnFailure: s.notifyOnFailure !== false
+    };
+
+    if (!s.enabled) {
+      box.innerHTML = '<p class="empty" style="text-align:left;padding:0;">自动签到未开启。请前往「自动签到」页面选择日期并保存。</p>';
+    } else {
+      const dayText = autoSignState.customDays.length ? autoSignState.customDays.map(d => DAY_NAMES[d]).join('、') : '未选择';
+      const mailText = (s.notifyOnSuccess || s.notifyOnFailure) ? '邮件提醒已开启' : '未开启邮件提醒';
+      box.innerHTML = `<div class="row">
+        <div><div class="row-title">自动签到已开启</div><p class="row-sub"><svg class="ico" style="color:var(--blue);"><use href="#i-clock"/></svg> ${escapeHTML(autoSignState.signTime)} · 每周 ${escapeHTML(dayText)} · ${mailText}</p></div>
+        <span class="badge badge-success">运行中</span>
+      </div>`;
+    }
+    renderOnboarding();
+  } catch (e) { box.innerHTML = '<p class="empty">网络错误</p>'; }
+}
+
+async function quickSign() {
+  const btn = document.getElementById('quickSignBtn');
+  const status = document.getElementById('welcomeStatus');
+  const result = document.getElementById('signResult');
+  if (!btn || btn.disabled) return;
+
+  const btnLabel = btn.querySelector('span');
+  const btnIcon = btn.querySelector('.ico');
+
+  // ========== 前端签到时间检测 ==========
+  const now = new Date();
+  const currentMins = now.getHours() * 60 + now.getMinutes();
+  // 官方时间：21:20 开始，22:50 结束。我们放宽到 23:00 (1380分钟)
+  const startMins = 21 * 60 + 20; // 21:20 (1280分钟)
+  const endMins = 23 * 60;        // 23:00 (1380分钟)
+
+  const isSignTime = currentMins >= startMins && currentMins <= endMins;
+
+  if (!isSignTime) {
+    btn.classList.add('is-error');
+    if (btnIcon) btnIcon.innerHTML = '<use href="#i-times"/>';
+    if (btnLabel) btnLabel.textContent = '不在时段';
+    if (status) { status.textContent = '❌ 未到签到时间'; status.style.color = 'var(--red)'; }
+    if (result) result.innerHTML = '<span style="color:var(--red);font-weight:600;">❌ 当前不在签到时间范围内（每天 21:20 - 23:00）</span>';
+    showToast('当前不在签到时间（21:20 - 23:00）', 'error');
+
+    setTimeout(() => {
+      btn.classList.remove('is-error');
+      if (btnIcon) btnIcon.innerHTML = '<use href="#i-pen"/>';
+      if (btnLabel) btnLabel.textContent = '立即签到';
+    }, 2200);
+    return; // 直接拦截，不发起网络请求
+  }
+  // ==========================================
+
+  btn.disabled = true;
+  btn.classList.add('is-loading');
+  btn.classList.remove('is-success', 'is-error');
+  if (btnIcon) { btnIcon.innerHTML = '<use href="#i-loader"/>'; btnIcon.classList.add('spin'); }
+  if (btnLabel) btnLabel.textContent = '签到中...';
+  if (status) { status.textContent = '正在请求签到接口...'; status.style.color = '#a1a1aa'; }
+  if (result) result.textContent = '正在处理，请稍候。';
+
+  try {
+    const data = await api('/sign/manual', { method: 'POST' });
+    const ok = data.success && data.result && data.result.success;
+
+    if (ok) {
+      btn.classList.add('is-success');
+      if (btnIcon) { btnIcon.innerHTML = '<use href="#i-check"/>'; btnIcon.classList.remove('spin'); }
+      if (btnLabel) btnLabel.textContent = '签到成功';
+      if (status) { status.textContent = '✅ 今日签到已完成。'; status.style.color = 'var(--green)'; }
+      if (result) result.innerHTML = '<span style="color:var(--green);font-weight:600;">✅ 签到成功 · ' + new Date().toLocaleTimeString('zh-CN') + '</span>';
+      showToast('签到成功', 'success');
+      loadStats();
+    } else {
+      const msg = (data.result && data.result.message) || data.message || '签到失败';
+      btn.classList.add('is-error');
+      if (btnIcon) { btnIcon.innerHTML = '<use href="#i-times"/>'; btnIcon.classList.remove('spin'); }
+      if (btnLabel) btnLabel.textContent = '签到失败';
+      if (status) { status.textContent = '❌ 签到请求失败。'; status.style.color = 'var(--red)'; }
+      if (result) result.innerHTML = '<span style="color:var(--red);font-weight:600;">❌ ' + escapeHTML(msg) + '</span>';
+      showToast(msg, 'error');
+    }
+  } catch (e) {
+    // 捕获 API 抛出的具体错误
+    const msg = e.message || '网络异常，请稍后重试';
+    btn.classList.add('is-error');
+    if (btnIcon) { btnIcon.innerHTML = '<use href="#i-times"/>'; btnIcon.classList.remove('spin'); }
+    if (btnLabel) btnLabel.textContent = '签到失败';
+    if (status) { status.textContent = '❌ ' + msg; status.style.color = 'var(--red)'; }
+    if (result) result.innerHTML = '<span style="color:var(--red);font-weight:600;">❌ ' + escapeHTML(msg) + '</span>';
+    showToast(msg, 'error');
+  } finally {
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.classList.remove('is-loading', 'is-success', 'is-error');
+      if (btnIcon) { btnIcon.innerHTML = '<use href="#i-pen"/>'; btnIcon.classList.remove('spin'); }
+      if (btnLabel) btnLabel.textContent = '立即签到';
+    }, 2200);
+  }
+}
+
+/* ============================================================
+   Auto Sign
+   ============================================================ */
+function bindWeekdayButtons() {
+  document.querySelectorAll('#weekdaySelector .weekday').forEach(btn => {
+    btn.onclick = function () { this.classList.toggle('selected'); };
+  });
+}
+
+function setAutoSignDays(selectedDays) {
+  const normalized = new Set((selectedDays && selectedDays.length ? selectedDays : [1, 2, 3, 4, 5]).map(Number));
+  document.querySelectorAll('#weekdaySelector .weekday').forEach(btn => {
+    btn.classList.toggle('selected', normalized.has(Number(btn.dataset.day)));
+  });
+}
+
+function getSelectedAutoSignDays() {
+  return Array.from(document.querySelectorAll('#weekdaySelector .weekday.selected')).map(btn => Number(btn.dataset.day)).filter(d => Number.isInteger(d));
+}
+
+function canCustomSignTime() {
+  return currentCanCustomTime();
+}
+
+function renderAutoSignStatus(setting) {
+  const status = document.getElementById('autoSignStatus');
+  if (!status) return;
+  const dayText = (setting.customDays || []).length ? setting.customDays.map(d => DAY_NAMES[d]).join('、') : '未选择日期';
+  status.innerHTML = setting.enabled
+    ? '<span class="badge badge-success">已开启</span><span style="margin-left:8px;color:var(--text-secondary);font-size:13px;font-weight:500;">每逢 ' + escapeHTML(dayText) + ' ' + escapeHTML(setting.signTime || '21:35') + ' 自动签到</span>'
+    : '<span class="badge badge-neutral">未开启</span><span style="margin-left:8px;color:var(--text-tertiary);font-size:13px;font-weight:500;">打开开关并保存后生效</span>';
+}
+
+function updateSignTimeUI(setting) {
+  const input = document.getElementById('autoSignTime');
+  const hint = document.getElementById('signTimeHint');
+  const display = document.getElementById('autoSignTimeDisplay');
+  const label = document.getElementById('autoSignTimeLabel');
+
+  const custom = canCustomSignTime();
+  const time = (setting && setting.signTime) || '21:35';
+
+  if (input) { input.value = time; input.disabled = !custom; }
+  if (hint) hint.textContent = custom
+    ? `当前套餐：${currentPlanName()} · 可自定义签到时间`
+    : '当前套餐不支持自定义签到时间，固定 21:35';
+  if (display) display.textContent = time;
+  if (label) label.textContent = custom ? '自定义时间' : '统一时间';
+}
+
+function renderEmailWarning() {
+  const box = document.getElementById('emailWarningBox');
+  if (!box) return;
+  if (currentUser.emailVerified) {
+    box.innerHTML = '';
+  } else {
+    box.innerHTML = `<div class="alert alert-warning">
+      <svg class="ico" style="color:var(--amber);"><use href="#i-alert"/></svg>
+      <div><strong>未绑定邮箱</strong><p>绑定后签到状态会通过邮件通知。 <button class="btn btn-ghost btn-sm" style="text-decoration:underline;height:auto;padding:0;color:var(--amber);font-weight:600;" onclick="goPage('email')">去绑定</button></p></div>
+    </div>`;
+  }
+  ['notifyOnSuccess', 'notifyOnFailure'].forEach(id => {
+    const cb = document.getElementById(id);
+    if (!cb) return;
+    cb.onchange = function () {
+      if (this.checked && !currentUser.emailVerified) {
+        this.checked = false;
+        showToast('请先绑定邮箱', 'warning');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    };
+  });
+}
+
+async function loadAutoSignSetting() {
+  try {
+    await loadUserInfo();
+    const data = await api('/auto-sign');
+    if (!data.success) return;
+
+    const setting = data.setting || {};
+    autoSignState = {
+      enabled: !!setting.enabled,
+      customDays: Array.isArray(setting.customDays) ? setting.customDays.map(Number) : [],
+      signTime: setting.signTime || '21:35',
+      notifyOnSuccess: setting.notifyOnSuccess !== false,
+      notifyOnFailure: setting.notifyOnFailure !== false
+    };
+
+    document.getElementById('autoSignEnabled').checked = !!setting.enabled;
+    document.getElementById('notifyOnSuccess').checked = setting.notifyOnSuccess !== false;
+    document.getElementById('notifyOnFailure').checked = setting.notifyOnFailure !== false;
+
+    setAutoSignDays(setting.customDays);
+    updateSignTimeUI(setting);
+    renderAutoSignStatus(autoSignState);
+    renderEmailWarning();
+    renderOnboarding();
+  } catch (e) {}
+}
+
+async function saveAutoSignSetting() {
+  if (!currentUser.isVip && !(Number(currentUser.signCredits || 0) > 0)) {
+    showToast('自动签到需要会员或次数卡', 'error'); return;
+  }
+  const selectedDays = getSelectedAutoSignDays();
+  if (selectedDays.length === 0) { showToast('请至少选择一天', 'error'); return; }
+
+  const timeInput = document.getElementById('autoSignTime');
+  const emailVerified = !!currentUser.emailVerified;
+  const wantSuccess = document.getElementById('notifyOnSuccess').checked;
+  const wantFailure = document.getElementById('notifyOnFailure').checked;
+
+  if (!emailVerified && (wantSuccess || wantFailure)) { showToast('请先绑定邮箱', 'warning'); return; }
+
+  const body = {
+    enabled: document.getElementById('autoSignEnabled').checked,
+    customDays: selectedDays,
+    signTime: canCustomSignTime() && timeInput ? timeInput.value : '21:35',
+    notifyOnSuccess: emailVerified && wantSuccess,
+    notifyOnFailure: emailVerified && wantFailure
+  };
+
+  try {
+    const data = await api('/auto-sign', { method: 'PUT', body });
+    if (data.success) {
+      showToast('设置已保存', 'success');
+      const next = data.setting || body;
+      autoSignState = {
+        enabled: !!next.enabled,
+        customDays: Array.isArray(next.customDays) ? next.customDays.map(Number) : selectedDays,
+        signTime: next.signTime || body.signTime,
+        notifyOnSuccess: !!next.notifyOnSuccess,
+        notifyOnFailure: !!next.notifyOnFailure
+      };
+      renderAutoSignStatus(autoSignState);
+      renderOnboarding(); loadStats(); loadActiveSubs();
+    } else { showToast(data.message || '保存失败', 'error'); }
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); }
+}
+
+/* ============================================================
+   Email
+   ============================================================ */
+async function loadEmailStatus() {
+  await loadUserInfo();
+  const container = document.getElementById('emailStatus');
+  const form = document.getElementById('emailBindForm');
+  const rebind = document.getElementById('rebindArea');
+  if (!container) return;
+
+  if (currentUser.emailVerified) {
+    container.innerHTML = '<div style="background:var(--green-subtle); border:1px solid var(--green); padding:12px; border-radius:var(--radius-sm); font-size:13px; color:var(--green); font-weight:600;"><svg class="ico" style="margin-right:4px; stroke-width:2.5;"><use href="#i-check-circle"/></svg> 已绑定 <b>' + escapeHTML(currentUser.email) + '</b></div>';
+    if (form) form.classList.add('hidden');
+    if (rebind) rebind.classList.remove('hidden');
+  } else {
+    container.innerHTML = '<div style="background:var(--amber-subtle); border:1px solid var(--amber); padding:12px; border-radius:var(--radius-sm); font-size:13px; color:var(--amber); font-weight:600;"><svg class="ico" style="margin-right:4px; stroke-width:2.5;"><use href="#i-info"/></svg> 未绑定邮箱，请绑定</div>';
+    if (form) form.classList.remove('hidden');
+    if (rebind) rebind.classList.add('hidden');
+  }
+}
+
+function countdownBtn(btn) {
+  let cd = 60; btn.disabled = true; btn.textContent = cd + 's';
+  const t = setInterval(() => {
+    cd--; btn.textContent = cd + 's';
+    if (cd <= 0) { clearInterval(t); btn.disabled = false; btn.textContent = '发送验证码'; }
+  }, 1000);
+}
+
+async function sendEmailCode() {
+  const email = document.getElementById('bindEmail').value.trim();
+  if (!email) { showToast('请输入邮箱', 'error'); return; }
+  const btn = document.getElementById('sendCodeBtn'); btn.disabled = true;
+  try {
+    const data = await api('/email/send-code', { method: 'POST', body: { email } });
+    if (data.success) { showToast('验证码已发送', 'success'); countdownBtn(btn); }
+    else { showToast(data.message || '发送失败', 'error'); btn.disabled = false; }
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); btn.disabled = false; }
+}
+
+async function verifyEmail() {
+  const email = document.getElementById('bindEmail').value.trim();
+  const code = document.getElementById('emailCode').value.trim();
+  if (!email || !code) { showToast('请填写完整', 'error'); return; }
+  try {
+    const data = await api('/email/verify', { method: 'POST', body: { email, code } });
+    if (data.success) {
+      showToast('绑定成功', 'success'); await loadUserInfo(); loadEmailStatus(); renderOnboarding();
+    } else { showToast(data.message || '验证失败', 'error'); }
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); }
+}
+
+async function sendRebindCode() {
+  const email = document.getElementById('rebindEmail').value.trim();
+  if (!email) { showToast('请输入新邮箱', 'error'); return; }
+  const btn = document.getElementById('rebindSendBtn'); btn.disabled = true;
+  try {
+    const data = await api('/email/send-code', { method: 'POST', body: { email } });
+    if (data.success) { showToast('验证码已发送', 'success'); countdownBtn(btn); }
+    else { showToast(data.message || '发送失败', 'error'); btn.disabled = false; }
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); btn.disabled = false; }
+}
+
+async function rebindEmail() {
+  const email = document.getElementById('rebindEmail').value.trim();
+  const code = document.getElementById('rebindCode').value.trim();
+  if (!email || !code) { showToast('请填写完整', 'error'); return; }
+  try {
+    const data = await api('/email/rebind', { method: 'POST', body: { email, code } });
+    if (data.success) { showToast('换绑成功', 'success'); await loadUserInfo(); loadEmailStatus(); }
+    else { showToast(data.message || '换绑失败', 'error'); }
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); }
+}
+
+async function unbindEmail() {
+  if (!confirm('确定解绑？')) return;
+  try {
+    const data = await api('/email/unbind', { method: 'POST' });
+    if (data.success) { showToast('已解绑', 'success'); await loadUserInfo(); loadEmailStatus(); }
+    else { showToast(data.message || '解绑失败', 'error'); }
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); }
+}
+
+/* ============================================================
+   Profile
+   ============================================================ */
+async function loadProfile() {
+  await loadUserInfo();
+  document.getElementById('profileStudentId').value = currentUser.studentId || '';
+  document.getElementById('profileName').value = currentUser.name || '';
+  document.getElementById('profileAttendancePassword').value = '';
+  document.getElementById('profileEmail').value = currentUser.email || '未绑定';
+
+  const tierKey = currentUser.vipTier || 'FREE';
+  const tierName = currentPlanName();
+
+  let vipText = '未开通会员';
+  const expireDate = currentUser.vipExpireAt ? new Date(currentUser.vipExpireAt) : null;
+  const isPermanent = !!currentUser.isVip && !expireDate;
+
+  if (currentUser.isVip) {
+    if (isPermanent) {
+      vipText = '长期有效';
+    } else if (expireDate && expireDate > new Date()) {
+      vipText = '有效至 ' + expireDate.toLocaleDateString('zh-CN');
+    } else {
+      vipText = '已到期';
+    }
+  }
+
+  document.getElementById('profileVip').value = tierName + ' · ' + vipText;
+
+  const badge = document.getElementById('memberBadge');
+  if (badge) {
+    badge.textContent = tierName;
+    badge.style.background = TIER_COLORS[tierKey] || '#71717a';
+    badge.style.color = '#fff';
+    badge.style.border = 'none';
+  }
+
+  const nameEl = document.getElementById('memberName');
+  if (nameEl) nameEl.textContent = currentUser.name || currentUser.studentId || '同学';
+  const subEl = document.getElementById('memberSub');
+  if (subEl) subEl.textContent = currentUser.studentId || '';
+
+  const daysLeft = expireDate ? Math.max(0, Math.ceil((expireDate.getTime() - Date.now()) / 86400000)) : 0;
+
+  const daysEl = document.getElementById('memberDays');
+  if (daysEl) daysEl.textContent = currentUser.isVip && expireDate ? daysLeft : (isPermanent ? '∞' : '--');
+
+  const expireEl = document.getElementById('memberExpire');
+  if (expireEl) expireEl.textContent = expireDate ? expireDate.toLocaleDateString('zh-CN') : (isPermanent ? '长期' : '--');
+
+  const creditsEl = document.getElementById('memberCredits');
+  if (creditsEl) creditsEl.textContent = Number(currentUser.signCredits || 0) + ' 次';
+
+  const inviteEl = document.getElementById('memberInvite');
+  if (inviteEl) inviteEl.textContent = currentUser.inviteCode || '--';
+}
+
+async function updateProfile() {
+  const body = { name: document.getElementById('profileName').value.trim() };
+  const pwd = document.getElementById('profileAttendancePassword').value.trim();
+  if (pwd) body.attendancePassword = pwd;
+  try {
+    const data = await api('/user/profile', { method: 'PUT', body });
+    if (data.success) {
+      showToast('已保存', 'success');
+      document.getElementById('profileAttendancePassword').value = '';
+      localStorage.setItem('pwdConfirmed', '1');
+      await loadUserInfo(); renderOnboarding();
+    } else { showToast(data.message || '保存失败', 'error'); }
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); }
+}
+
+async function redeemCode(inputId) {
+  inputId = inputId || 'redeemCode';
+  const el = document.getElementById(inputId);
+  const code = (el ? el.value : '').trim().toUpperCase();
+  if (!code) { showToast('请输入卡密', 'error'); return; }
+  try {
+    const data = await api('/vip/redeem', { method: 'POST', body: { code } });
+    if (data.success) { showToast(data.message, 'success'); if (el) el.value = ''; await loadUserInfo(); loadStats(); }
+    else { showToast(data.message || '兑换失败', 'error'); }
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); }
+}
+
+/* ============================================================
+   Invite
+   ============================================================ */
+async function loadInviteInfo() {
+  try {
+    const data = await api('/invite/info');
+    if (!data.success) return;
+    document.getElementById('inviteCode').textContent = data.inviteCode || '----';
+    document.getElementById('inviteUrl').value = data.inviteUrl || '';
+    document.getElementById('inviteCount').textContent = data.inviteCount || 0;
+    document.getElementById('rewardDays').textContent = data.rewardDays || 10;
+
+    if (currentUser.invitedBy) {
+      document.getElementById('bindInviteArea').innerHTML = '<div style="background:var(--green-subtle); padding:10px; border-radius:var(--radius-sm); margin-bottom:12px; font-size:13px; color:var(--green); font-weight:500;"><svg class="ico" style="margin-right:4px;"><use href="#i-check-circle"/></svg> 已绑定邀请人</div>';
+    }
+
+    const list = document.getElementById('invitedList');
+    if (data.invitedUsers && data.invitedUsers.length) {
+      list.innerHTML = data.invitedUsers.map(u =>
+        '<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px;font-size:13px;">'
+        + '<span style="font-weight:500;">' + escapeHTML(u.name || u.studentId) + '</span>'
+        + '<span style="color:var(--text-tertiary);font-family:var(--mono);">' + new Date(u.createdAt).toLocaleDateString('zh-CN') + '</span></div>'
+      ).join('');
+    } else { list.innerHTML = '<p class="empty">暂无邀请记录</p>'; }
+  } catch (e) {}
+}
+
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).catch(() => fallbackCopy(text)); }
+  else { fallbackCopy(text); }
+}
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+}
+function copyInviteUrl() {
+  const input = document.getElementById('inviteUrl');
+  if (!input || !input.value) { showToast('链接未准备好', 'error'); return; }
+  copyText(input.value); showToast('链接已复制', 'success');
+}
+function copyInviteCode() {
+  const code = document.getElementById('inviteCode').textContent;
+  if (!code || code === '----') return;
+  copyText(code); showToast('邀请码已复制', 'success');
+}
+async function applyInviteCode() {
+  const code = document.getElementById('inputInviteCode').value.trim().toUpperCase();
+  if (!code) { showToast('请输入邀请码', 'error'); return; }
+  try {
+    const data = await api('/invite/apply', { method: 'POST', body: { inviteCode: code } });
+    if (data.success) { showToast(data.message || '绑定成功', 'success'); await loadUserInfo(); loadInviteInfo(); }
+    else { showToast(data.message || '绑定失败', 'error'); }
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); }
+}
+
+/* ============================================================
+   Feedback
+   ============================================================ */
+async function submitFeedback() {
+  const title = document.getElementById('feedbackTitle').value.trim();
+  const content = document.getElementById('feedbackContent').value.trim();
+  const type = document.getElementById('feedbackType').value;
+  if (!title || !content) { showToast('请填写完整', 'error'); return; }
+  try {
+    const data = await api('/feedback', { method: 'POST', body: { title, content, type } });
+    if (data.success) { showToast('提交成功', 'success'); document.getElementById('feedbackTitle').value = ''; document.getElementById('feedbackContent').value = ''; loadMyFeedback(); }
+    else { showToast(data.message || '提交失败', 'error'); }
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); }
+}
+
+async function loadMyFeedback() {
+  try {
+    const data = await api('/feedback/my');
+    const container = document.getElementById('myFeedbackList');
+    if (!container) return;
+    if (!data.feedbacks || !data.feedbacks.length) { container.innerHTML = '<p class="empty">暂无留言</p>'; return; }
+    const tm = { bug: '问题', suggestion: '建议', question: '疑问', other: '其他' };
+    const sm = { pending: '待处理', read: '已读', replied: '已回复', closed: '已关闭' };
+    container.innerHTML = data.feedbacks.map(f =>
+      '<div class="row" style="cursor:pointer" data-fid="' + escapeAttr(f._id) + '">'
+      + '<div><div class="row-title">' + (tm[f.type] || '其他') + ' · ' + escapeHTML(f.title) + '</div>'
+      + '<p class="row-sub" style="font-family:var(--mono);">' + (sm[f.status] || f.status) + ' · ' + new Date(f.createdAt).toLocaleString('zh-CN') + '</p></div>'
+      + '<svg class="ico" style="color:var(--text-tertiary);"><use href="#i-chevron-right"/></svg></div>'
+    ).join('');
+    container.querySelectorAll('[data-fid]').forEach(el => { el.onclick = () => viewFeedback(el.dataset.fid); });
+  } catch (e) {}
+}
+
+async function viewFeedback(id) {
+  try {
+    const data = await api('/feedback/' + id);
+    if (!data.success || !data.feedback) { showToast('加载失败', 'error'); return; }
+    const f = data.feedback;
+    const tm = { bug: '问题', suggestion: '建议', question: '疑问', other: '其他' };
+    const titleEl = document.getElementById('feedbackModalTitle');
+    const bodyEl = document.getElementById('feedbackModalBody');
+    if (titleEl) titleEl.textContent = (tm[f.type] || '其他') + ' · ' + (f.title || '');
+    if (bodyEl) {
+      const parts = [];
+      parts.push('<p style="white-space:pre-wrap;font-size:13px;">' + escapeHTML(f.content || '') + '</p>');
+      if (f.adminReply) {
+        parts.push('<span class="hl"><strong>管理员回复：</strong><br>' + escapeHTML(f.adminReply) + '</span>');
+      } else {
+        parts.push('<p style="margin-top:12px;color:var(--text-tertiary);font-size:12px;">暂无回复</p>');
+      }
+      parts.push('<p style="margin-top:16px;font-size:11px;color:var(--text-tertiary);font-family:var(--mono);">' + new Date(f.createdAt).toLocaleString('zh-CN') + '</p>');
+      bodyEl.innerHTML = parts.join('');
+    }
+    document.getElementById('feedbackModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); }
+}
+function closeFeedbackModal() {
+  const modal = document.getElementById('feedbackModal');
+  if (modal) modal.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+/* ============================================================
+   Sponsor
+   ============================================================ */
+const PACKAGE_GROUPS = [
+  { key: 'basic', title: '基础套餐', sub: '按月、按学期、按学年选择' },
+  { key: 'pro', title: 'Pro 套餐', sub: '标准学年权益 + 自定义会员时间' },
+  { key: 'grade', title: '年级专属套餐', sub: '一次开通，使用至毕业，长期更省' }
+];
+
+function renderPkgCard(p, discount) {
+  const pkgId = p.id || p.packageId || p._id || '';
+  const price = Number(p.price || 0);
+  const finalPrice = Math.max(0.01, Number((price - discount).toFixed(2)));
+  const hasDiscount = discount > 0;
+  const isGrade = p.group === 'grade' || p.kind === 'grade';
+  const isPro = p.group === 'pro';
+  const badge = p.badge || (isGrade ? '至毕业' : '');
+
+  const chips = [];
+  if (p.durationLabel) chips.push(`<span class="pkg-chip">${escapeHTML(p.durationLabel)}</span>`);
+  chips.push(`<span class="pkg-chip">适用：${escapeHTML(p.audience || '不限')}</span>`);
+  chips.push(p.customTime
+    ? '<span class="pkg-chip on">支持自定义时间</span>'
+    : '<span class="pkg-chip">不支持自定义时间</span>');
+
+  const perYear = p.pricePerYear
+    ? `<div class="pkg-peryear">折合每年 ¥${Number(p.pricePerYear).toFixed(2)}</div>`
+    : '';
+  const oldPrice = hasDiscount ? `<span class="old">¥${price.toFixed(2)}</span>` : '';
+
+  return `<div class="pkg ${(isGrade || isPro) ? 'best' : ''} ${hasDiscount ? 'coupon-on' : ''}" data-price-original="${price.toFixed(2)}" data-price-final="${finalPrice.toFixed(2)}">
+    <div class="pkg-tag">${escapeHTML(badge)}</div>
+    <h3>${escapeHTML(p.name || '会员套餐')}</h3>
+    <div class="pkg-price"><span class="cur">¥</span><span class="amount">${finalPrice.toFixed(2)}</span>${oldPrice}</div>
+    ${perYear}
+    <div class="pkg-meta">${chips.join('')}</div>
+    <p class="pkg-desc">${escapeHTML(p.description || '')}</p>
+    <div class="pkg-actions">
+      <button class="pay-btn wx" data-pkg="${escapeAttr(pkgId)}" data-method="wechat">
+        <svg class="ico"><use href="#i-wechat"/></svg> 微信
+      </button>
+      <button class="pay-btn ali" data-pkg="${escapeAttr(pkgId)}" data-method="alipay">
+        <svg class="ico"><use href="#i-alipay"/></svg> 支付宝
+      </button>
+    </div>
+  </div>`;
+}
+
+function animateCouponPrices(root) {
+  root.querySelectorAll('.pkg').forEach((card, index) => {
+    const from = Number(card.dataset.priceOriginal);
+    const to = Number(card.dataset.priceFinal);
+    const amountEl = card.querySelector('.amount');
+    if (!amountEl || !Number.isFinite(from) || !Number.isFinite(to) || from === to) return;
+    const duration = 620;
+    setTimeout(() => {
+      const start = performance.now();
+      const step = (now) => {
+        const progress = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        amountEl.textContent = (from + (to - from) * eased).toFixed(2);
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          amountEl.textContent = to.toFixed(2);
+          const priceEl = card.querySelector('.pkg-price');
+          if (priceEl) priceEl.classList.add('flash');
+        }
+      };
+      requestAnimationFrame(step);
+    }, index * 60);
+  });
+}
+
+function renderCouponBanner() {
+  const el = document.getElementById('couponBanner');
+  if (!el) return;
+  if (!appliedCoupon) {
+    el.className = 'coupon-banner';
+    el.innerHTML = '';
+    return;
+  }
+  el.className = 'coupon-banner show';
+  el.innerHTML = `🎟️ 优惠码 <b>${escapeHTML(appliedCoupon.code)}</b> 已生效 · 全部套餐立减 ¥${Number(appliedCoupon.discount).toFixed(2)}<span class="clear" onclick="clearCoupon()">取消使用</span>`;
+}
+
+async function loadPackages() {
+  const list = document.getElementById('packagesList');
+  if (!list) return;
+  list.innerHTML = '<p class="loading">加载中…</p>';
+  try {
+    const data = await api('/payment/packages');
+    if (!data || data.success === false) {
+      list.innerHTML = `<p class="empty">${escapeHTML(data.message || '加载失败')}</p>`;
+      return;
+    }
+    const pkgs = Array.isArray(data.packages) ? data.packages : [];
+    if (!pkgs.length) { list.innerHTML = '<p class="empty">暂无套餐</p>'; return; }
+
+    const discount = appliedCoupon ? Number(appliedCoupon.discount || 0) : 0;
+    list.innerHTML = PACKAGE_GROUPS.map(group => {
+      const items = pkgs.filter(p => (p.group || 'basic') === group.key);
+      if (!items.length) return '';
+      return `<div class="pkg-group ${group.key}">
+        <div class="pkg-group-head"><h3>${escapeHTML(group.title)}</h3><p>${escapeHTML(group.sub)}</p></div>
+        <div class="pkg-grid">${items.map(p => renderPkgCard(p, discount)).join('')}</div>
+      </div>`;
+    }).join('');
+
+    list.querySelectorAll('[data-pkg]').forEach(btn => {
+      btn.onclick = () => selectPackage(btn.dataset.pkg, btn.dataset.method);
+    });
+    if (discount > 0) animateCouponPrices(list);
+    renderCouponBanner();
+  } catch (e) { list.innerHTML = '<p class="empty">网络错误</p>'; }
+}
+
+async function applyCoupon() {
+  const input = document.getElementById('couponCode');
+  const code = ((input && input.value) || '').trim();
+  if (!code) { clearCoupon(); return; }
+  try {
+    const data = await api('/payment/coupon?code=' + encodeURIComponent(code));
+    if (!data || !data.valid) {
+      if (input) {
+        input.classList.add('err');
+        setTimeout(() => input.classList.remove('err'), 450);
+      }
+      showToast('优惠码无效', 'error');
+      return;
+    }
+    appliedCoupon = { code: data.code, discount: Number(data.discount) || 0 };
+    showToast('优惠码已生效，立减 ¥' + Number(data.discount).toFixed(2), 'success');
+    await loadPackages();
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); }
+}
+
+function clearCoupon() {
+  appliedCoupon = null;
+  const input = document.getElementById('couponCode');
+  if (input) input.value = '';
+  loadPackages();
+}
+
+async function selectPackage(packageId, method) {
+  if (!packageId) { showToast('档位信息异常', 'error'); return; }
+  try {
+    const body = { packageId, payMethod: method };
+    if (appliedCoupon && appliedCoupon.code) body.couponCode = appliedCoupon.code;
+
+    const data = await api('/payment/create-order', { method: 'POST', body });
+    if (!data.success) { showToast(data.message || '创建订单失败', 'error'); return; }
+    sponsorOrder = data.order;
+
+    document.getElementById('paymentArea').classList.remove('hidden');
+    document.getElementById('paymentAmount').textContent = '¥' + Number(data.order.amount).toFixed(2);
+    const couponNote = document.getElementById('paymentCouponNote');
+    if (couponNote) {
+      const discount = Number(data.order.couponDiscount || 0);
+      couponNote.textContent = discount > 0
+        ? `已使用优惠码 ${data.order.couponCode}，原价 ¥${Number(data.order.originalAmount || 0).toFixed(2)}，立减 ¥${discount.toFixed(2)}`
+        : '';
+      couponNote.style.display = discount > 0 ? 'block' : 'none';
+    }
+    document.getElementById('paymentOrderNo').textContent = data.order.payCode || data.order.mark || data.order.orderNo;
+    document.getElementById('qrCodeImage').src = method === 'alipay' ? data.qrCodes.alipay : data.qrCodes.wechat;
+    document.getElementById('paymentResult').classList.add('hidden');
+    document.getElementById('claimSection').classList.add('hidden');
+    document.getElementById('paymentRef').value = '';
+    qrViewed = false;
+
+    showToast('请精确支付 ' + Number(data.order.amount).toFixed(2) + ' 元', 'info');
+    startPolling(data.order.orderNo);
+    document.getElementById('paymentArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); }
+}
+
+function startPolling(orderNo) {
+  if (pollingTimer) clearInterval(pollingTimer);
+  pollingCount = 0;
+  pollingTimer = setInterval(() => {
+    pollingCount++;
+    if (pollingCount > POLLING_MAX) { clearInterval(pollingTimer); pollingTimer = null; return; }
+    checkPaymentStatus(orderNo);
+  }, 5000);
+}
+
+async function checkPaymentStatus(orderNo) {
+  const id = orderNo || (sponsorOrder && sponsorOrder.orderNo);
+  if (!id) return;
+  try {
+    const data = await api('/payment/order/' + id);
+    if (data.success && data.order && data.order.status === 'granted') {
+      if (pollingTimer) { clearInterval(pollingTimer); pollingTimer = null; }
+      renderSponsorSuccess(data.order, data.vipTier);
+      await loadUserInfo(); loadProfile();
+    }
+  } catch (e) {}
+}
+
+function renderSponsorSuccess(order, tier) {
+  const box = document.getElementById('paymentResult');
+  if (!box) return;
+  const name = (order && (order.packageName || order.planName)) || TIER_NAMES[tier] || tier || '会员';
+  const duration = (order && order.durationLabel) || (order && order.days ? `${order.days} 天` : '');
+  box.classList.remove('hidden');
+  box.innerHTML = '<div style="background:var(--green-subtle);border:1px solid var(--green);padding:16px;border-radius:var(--radius-sm);text-align:center">'
+    + '<p style="font-size:16px;font-weight:600;color:var(--green);margin:0 0 4px">权益已到账</p>'
+    + '<p style="font-size:13px;color:var(--green);margin:0;font-family:var(--mono);">' + escapeHTML(name) + (duration ? ' · ' + escapeHTML(duration) : '') + '</p></div>';
+}
+
+function openQrModal() {
+  const img = document.getElementById('qrCodeImage');
+  const modal = document.getElementById('qrModal');
+  if (!img || !modal || !img.src) return;
+  document.getElementById('qrModalImage').src = img.src;
+  document.getElementById('qrModalAmount').textContent = document.getElementById('paymentAmount').textContent + ' · 短码 ' + document.getElementById('paymentOrderNo').textContent;
+  modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeQrModal(event) {
+  const modal = document.getElementById('qrModal');
+  if (!modal) return;
+  if (event && event.target !== modal) return;
+  modal.classList.remove('show');
+  document.body.style.overflow = '';
+  qrViewed = true;
+  const claim = document.getElementById('claimSection');
+  if (claim) claim.classList.remove('hidden');
+}
+
+async function claimPayment() {
+  if (!qrViewed) { showToast('请先点击放大二维码', 'error'); return; }
+  if (!sponsorOrder) { showToast('请先选择档位', 'error'); return; }
+  const ref = document.getElementById('paymentRef').value.trim();
+  if (ref.length < 4) { showToast('请填写备注或单号后4位', 'error'); return; }
+  const btn = document.getElementById('claimBtn');
+  btn.disabled = true; btn.textContent = '提交中…';
+  try {
+    const data = await api('/payment/claim', { method: 'POST', body: { orderNo: sponsorOrder.orderNo, paymentRef: ref } });
+    btn.disabled = false; btn.textContent = '确认我已支付';
+    if (data.success) {
+      renderSponsorSuccess(data.order || sponsorOrder, data.vipTier);
+      await loadUserInfo(); loadProfile(); showToast('已到账', 'success');
+    } else { showToast(data.message || '提交失败', 'error'); }
+  } catch (e) { btn.disabled = false; btn.textContent = '确认我已支付'; showToast((e && e.message) || '网络错误', 'error'); }
+}
+
+/* ============================================================
+   Logs
+   ============================================================ */
+async function loadLogs() {
+  try {
+    const data = await api('/sign/logs?limit=50');
+    const container = document.getElementById('logsList');
+    if (!container) return;
+    if (!data.logs || !data.logs.length) { container.innerHTML = '<p class="empty">暂无记录</p>'; return; }
+    container.innerHTML = data.logs.map(l =>
+      '<div class="log-row">'
+      + '<span class="log-status">' + (l.status === 'success' ? '<svg class="ico" style="color:var(--green); stroke-width:2;"><use href="#i-check-circle"/></svg>' : '<svg class="ico" style="color:var(--red); stroke-width:2;"><use href="#i-times"/></svg>') + '</span>'
+      + '<div class="log-body"><div class="log-title">' + escapeHTML(l.subscriptionName || '手动签到') + '</div>'
+      + '<div class="log-time">' + new Date(l.executedAt || l.signTime).toLocaleString('zh-CN') + '</div></div>'
+      + '<span class="log-msg" title="' + escapeAttr(l.message || '') + '">' + escapeHTML(l.message || '') + '</span>'
+      + '</div>'
+    ).join('');
+  } catch (e) {}
+}
+
+/* ============================================================
+   Share & Init
+   ============================================================ */
+function loadShareCard() {
+  const code = (currentUser && currentUser.inviteCode) || '';
+  const input = document.getElementById('shareLink');
+  const codeEl = document.getElementById('shareCode');
+  if (input) input.value = code ? 'https://login.agai.online?invite=' + encodeURIComponent(code) : '';
+  if (codeEl) codeEl.textContent = code || '----';
+
+  const pending = localStorage.getItem('pendingInviteCode');
+  if (pending && currentUser && !currentUser.invitedBy) {
+    api('/invite/apply', { method: 'POST', body: { inviteCode: pending } })
+      .then(function (data) { localStorage.removeItem('pendingInviteCode'); if (data && data.success) showToast('邀请码已自动绑定', 'success'); })
+      .catch(function () { localStorage.removeItem('pendingInviteCode'); });
+  }
+}
+
+async function shareInvite() {
+  const code = (currentUser && currentUser.inviteCode) || '';
+  if (!code) { showToast('加载中，请稍后再试', 'error'); return; }
+  const url = 'https://login.agai.online?invite=' + encodeURIComponent(code);
+  const text = '我在用 AG 智能考勤，晚寝签到更方便。用我的邀请码 ' + code + ' 注册，我们都有奖励：';
+  if (navigator.share) {
+    try { await navigator.share({ title: 'AG 智能考勤', text: text, url: url }); return; } catch (e) { return; }
+  }
+  copyText(url); showToast('链接已复制', 'success');
+}
+
+function copyShareLink() {
+  const input = document.getElementById('shareLink');
+  if (!input || !input.value) { showToast('链接未加载', 'error'); return; }
+  copyText(input.value); showToast('已复制', 'success');
+}
+
+function showSponsorModal() {
+  if (currentUser && currentUser.isVip) return;
+  if (localStorage.getItem('semesterServiceNoticeClosed_v1')) return;
+  const modal = document.getElementById('sponsorModal');
+  if (modal) modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSponsorModal() {
+  const modal = document.getElementById('sponsorModal');
+  if (modal) modal.classList.remove('show');
+  document.body.style.overflow = '';
+  localStorage.setItem('semesterServiceNoticeClosed_v1', 'true');
+}
+
+function goToSponsor() {
+  const modal = document.getElementById('sponsorModal');
+  if (modal) modal.classList.remove('show');
+  document.body.style.overflow = '';
+  goPage('buy');
+}
+
+function init() {
+  bindWeekdayButtons();
+  loadUserInfo(); loadStats(); loadActiveSubs(); loadNotice();
+  setTimeout(loadVipNotice, 500);
+  renderOnboarding();
+  setTimeout(showSponsorModal, 8000);
+}
+
+window.addEventListener('pagehide', () => { if (pollingTimer) { clearInterval(pollingTimer); pollingTimer = null; } });
+
+init();
+</script>
+</body>
+</html>
