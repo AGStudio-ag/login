@@ -516,6 +516,22 @@ const paymentOrderSchema = new mongoose.Schema({
 
 const PaymentOrder = mongoose.models.PaymentOrder || mongoose.model('PaymentOrder', paymentOrderSchema);
 
+// 优惠码（管理后台可增删改/停用/限时/限次）
+const couponSchema = new mongoose.Schema({
+  code: { type: String, required: true, unique: true, index: true },
+  discount: { type: Number, required: true, default: 0 },
+  label: { type: String, default: '' },
+  active: { type: Boolean, default: true },
+  validFrom: { type: Date, default: null },
+  validUntil: { type: Date, default: null },
+  maxUses: { type: Number, default: 0 },
+  perUserLimit: { type: Number, default: 0 },
+  note: { type: String, default: '' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+const Coupon = mongoose.models.Coupon || mongoose.model('Coupon', couponSchema);
+
 const sponsorPackageSchema = new mongoose.Schema({
   packageId: { type: String, required: true, unique: true },
   planCode: { type: String, default: '' },
@@ -3489,14 +3505,119 @@ const PAY_QR_URLS = {
 const PAY_QR_URL = PAY_QR_URLS.wechat;
 
 // 优惠码（价格立减）。服务端校验，前端只做展示
-const COUPONS = {
-  aggzsnb: { code: 'aggzsnb', discount: 5.88, label: '立减 5.88 元' }
+// 已改为数据库管理（Coupon），aggzsnb 作为历史优惠码在启动时幂等迁移。
+const COUPON_ERRORS = {
+  empty: '请输入优惠码',
+  not_found: '优惠码无效',
+  inactive: '优惠码已停用',
+  not_started: '优惠码尚未开始',
+  expired: '优惠码已过期',
+  used_up: '优惠码已被领完',
+  user_limit: '你已使用过该优惠码'
 };
 
-function findCoupon(input) {
-  const code = String(input || '').trim().toLowerCase();
-  if (!code) return null;
-  return COUPONS[code] || null;
+function normalizeCouponCode(input) {
+  return String(input || '').trim().toLowerCase();
+}
+function couponLabel(discount) {
+  const n = Number(discount) || 0;
+  return '立减 ' + (Number.isInteger(n) ? String(n) : n.toFixed(2)) + ' 元';
+}
+function couponErrorMessage(reason) {
+  return COUPON_ERRORS[reason] || '优惠码无效';
+}
+async function couponUsedCount(code) {
+  return PaymentOrder.countDocuments({ couponCode: code, status: { $in: ['granted', 'paid'] } });
+}
+async function resolveCoupon(input, userId) {
+  const code = normalizeCouponCode(input);
+  if (!code) return { ok: false, reason: 'empty' };
+  const doc = await Coupon.findOne({ code });
+  if (!doc) return { ok: false, reason: 'not_found' };
+  if (doc.active === false) return { ok: false, reason: 'inactive' };
+  const now = new Date();
+  if (doc.validFrom && now < new Date(doc.validFrom)) return { ok: false, reason: 'not_started' };
+  if (doc.validUntil && now > new Date(doc.validUntil)) return { ok: false, reason: 'expired' };
+  if (Number(doc.maxUses) > 0) {
+    const used = await couponUsedCount(code);
+    if (used >= Number(doc.maxUses)) return { ok: false, reason: 'used_up', used };
+  }
+  if (userId && Number(doc.perUserLimit) > 0) {
+    const mine = await PaymentOrder.countDocuments({ couponCode: code, userId, status: { $in: ['granted', 'paid'] } });
+    if (mine >= Number(doc.perUserLimit)) return { ok: false, reason: 'user_limit' };
+  }
+  return { ok: true, coupon: doc };
+}
+
+let couponSeedPromise = null;
+function ensureCouponsSeeded() {
+  if (!couponSeedPromise) {
+    couponSeedPromise = (async () => {
+      try {
+        const exists = await Coupon.findOne({ code: 'aggzsnb' });
+        if (!exists) {
+          await Coupon.create({
+            code: 'aggzsnb', discount: 5.88, label: couponLabel(5.88),
+            active: true, maxUses: 0, perUserLimit: 0, note: '历史优惠码（启动时迁移）'
+          });
+          console.log('✅ 优惠码迁移：aggzsnb 已写入数据库');
+        }
+      } catch (e) {
+        console.error('优惠码初始化失败:', e.message);
+      }
+    })();
+  }
+  return couponSeedPromise;
+}
+
+function couponStatus(coupon, usedCount) {
+  if (!coupon) return 'unknown';
+  if (coupon.active === false) return 'inactive';
+  const now = Date.now();
+  if (coupon.validFrom && now < new Date(coupon.validFrom).getTime()) return 'not_started';
+  if (coupon.validUntil && now > new Date(coupon.validUntil).getTime()) return 'expired';
+  if (Number(coupon.maxUses) > 0 && Number(usedCount || 0) >= Number(coupon.maxUses)) return 'used_up';
+  return 'active';
+}
+
+function sanitizeCouponPayload(body) {
+  const b = body || {};
+  const code = normalizeCouponCode(b.code);
+  if (!/^[a-z0-9_-]{2,32}$/.test(code)) {
+    return { ok: false, message: '优惠码只能包含字母/数字/_/-，长度 2-32' };
+  }
+  const discount = Number(b.discount);
+  if (!Number.isFinite(discount) || discount <= 0 || discount > 1000) {
+    return { ok: false, message: '立减金额需大于 0 且不超过 1000 元' };
+  }
+  const maxUses = Math.max(0, parseInt(b.maxUses, 10) || 0);
+  const perUserLimit = Math.max(0, parseInt(b.perUserLimit, 10) || 0);
+  let validFrom = null, validUntil = null;
+  if (b.validFrom) {
+    validFrom = new Date(b.validFrom);
+    if (Number.isNaN(validFrom.getTime())) return { ok: false, message: '生效时间格式不对' };
+  }
+  if (b.validUntil) {
+    validUntil = new Date(b.validUntil);
+    if (Number.isNaN(validUntil.getTime())) return { ok: false, message: '失效时间格式不对' };
+  }
+  if (validFrom && validUntil && validUntil < validFrom) {
+    return { ok: false, message: '失效时间不能早于生效时间' };
+  }
+  return {
+    ok: true,
+    data: {
+      code,
+      discount: Number(discount.toFixed(2)),
+      label: couponLabel(discount),
+      active: b.active !== false,
+      validFrom,
+      validUntil,
+      maxUses,
+      perUserLimit,
+      note: String(b.note || '').slice(0, 200)
+    }
+  };
 }
 
 // 七种在售套餐：以 membership.js 为唯一配置源
@@ -4308,6 +4429,59 @@ app.get('/api/admin/wx-user-check', adminMiddleware, async (req, res) => {
   }
 });
 
+// ===== 管理端：列出当前应用订阅者（脱敏），用于确认用户是否真的还在服务号里 =====
+app.get('/api/admin/wx-subscribers', adminMiddleware, async (req, res) => {
+  try {
+    const cfg = await getWxpusherConfig();
+    if (!cfg.appToken) return res.status(503).json({ success: false, message: '未配置 WxPusher AppToken' });
+    const r = await wxpusher.listUsers(cfg.appToken, 1, 100);
+    if (!r.ok) return res.status(502).json({ success: false, message: r.message || '查询订阅者失败' });
+    const records = r.records || [];
+    const uids = records.map(x => String(x.uid || '')).filter(Boolean);
+    const users = await User.find({ wxpusherUid: { $in: uids } }).select('studentId name wxpusherUid').lean();
+    const map = new Map(users.map(u => [u.wxpusherUid, u]));
+    res.json({
+      success: true,
+      total: r.total || records.length,
+      subscribers: records.map(x => {
+        const bound = map.get(String(x.uid || ''));
+        return {
+          uid: String(x.uid || '').slice(0, 10) + '…',
+          createTime: x.createTime || null,
+          nickName: x.nickName || '',
+          studentId: bound ? bound.studentId : '',
+          name: bound ? bound.name : '',
+          boundToUser: !!bound
+        };
+      })
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ===== 管理端：真实发送一条并返回 WxPusher 原始响应（排查“受理但没送达”）=====
+app.post('/api/admin/wx-send-debug', adminMiddleware, async (req, res) => {
+  try {
+    const uid = String((req.body && req.body.uid) || '').trim();
+    if (!uid) return res.status(400).json({ success: false, message: '缺少 uid' });
+    const cfg = await getWxpusherConfig();
+    if (!cfg.appToken) return res.status(503).json({ success: false, message: '未配置 WxPusher AppToken' });
+    const started = Date.now();
+    const content = '🔧 送达诊断测试 ' + new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+    const r = await wxpusher.sendToUid(cfg.appToken, uid, '送达诊断', content);
+    res.json({
+      success: r.ok,
+      uid: uid.slice(0, 10) + '…',
+      latencyMs: Date.now() - started,
+      message: r.message || '',
+      raw: r.raw || null
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // WxPusher 事件回调（公开接口）：
 // - 关注事件：data.extra 是学号 → 绑定 wxpusherUid（原有逻辑）
 // - 上行消息（send_up_cmd）：用户在公众号发 "#145060 内容" → 存 UserFeedback + 通知管理员
@@ -4379,17 +4553,22 @@ app.get('/api/admin/tier-meta', adminMiddleware, async (req, res) => {
 });
 
 app.get('/api/payment/coupon', authMiddleware, async (req, res) => {
-  const coupon = findCoupon(req.query.code);
-  if (!coupon) {
-    return res.json({ success: true, valid: false, message: '优惠码无效' });
+  try {
+    await ensureCouponsSeeded();
+    const rc = await resolveCoupon(req.query.code, req.user._id);
+    if (!rc.ok) {
+      return res.json({ success: true, valid: false, message: couponErrorMessage(rc.reason) });
+    }
+    res.json({
+      success: true,
+      valid: true,
+      code: rc.coupon.code,
+      discount: Number(rc.coupon.discount),
+      label: rc.coupon.label || couponLabel(rc.coupon.discount)
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  res.json({
-    success: true,
-    valid: true,
-    code: coupon.code,
-    discount: coupon.discount,
-    label: coupon.label
-  });
 });
 
 /** 下单 / 复用旧单的统一返回结构（购买页只认这个 order 对象） */
@@ -4421,12 +4600,17 @@ app.post('/api/payment/create-order', authMiddleware, async (req, res) => {
     const { packageId, payMethod, couponCode } = req.body;
     await migrateMembershipV2();
     await ensureSponsorPackages();
+    await ensureCouponsSeeded();
     const pkg = await SponsorPackage.findOne({ packageId, active: true });
     if (!pkg) return res.status(400).json({ success: false, message: '无效的赞助档位' });
 
-    const coupon = findCoupon(couponCode);
-    if (couponCode && !coupon) {
-      return res.status(400).json({ success: false, message: '优惠码无效' });
+    let coupon = null;
+    if (couponCode) {
+      const rc = await resolveCoupon(couponCode, req.user._id);
+      if (!rc.ok) {
+        return res.status(400).json({ success: false, message: couponErrorMessage(rc.reason), reason: rc.reason });
+      }
+      coupon = rc.coupon;
     }
 
     // 幂等（TD-12）：同用户 + 同档位还有未过期的 pending 订单 → 复用旧单，不再新建
@@ -4941,6 +5125,85 @@ app.delete('/api/admin/sponsor-packages/:id', adminMiddleware, async (req, res) 
     res.status(500).json({ success: false, message: error.message });
   }
 });
+// ============ 管理员：优惠码管理 ============
+app.get('/api/admin/coupons', adminMiddleware, async (req, res) => {
+  try {
+    await ensureCouponsSeeded();
+    const coupons = await Coupon.find({}).sort({ createdAt: 1 }).lean();
+    const usage = await PaymentOrder.aggregate([
+      { $match: { couponCode: { $nin: ['', null] }, status: { $in: ['granted', 'paid'] } } },
+      { $group: { _id: '$couponCode', n: { $sum: 1 } } }
+    ]);
+    const usedMap = new Map(usage.map(u => [u._id, u.n]));
+    res.json({
+      success: true,
+      coupons: coupons.map(c => {
+        const usedCount = usedMap.get(c.code) || 0;
+        return {
+          ...c,
+          label: c.label || couponLabel(c.discount),
+          usedCount,
+          status: couponStatus(c, usedCount)
+        };
+      })
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/admin/coupons', adminMiddleware, async (req, res) => {
+  try {
+    const clean = sanitizeCouponPayload(req.body);
+    if (!clean.ok) return res.status(400).json({ success: false, message: clean.message });
+    const exists = await Coupon.findOne({ code: clean.data.code });
+    if (exists) return res.status(409).json({ success: false, message: '该优惠码已存在' });
+    const coupon = await Coupon.create(clean.data);
+    res.json({ success: true, coupon, message: '优惠码已创建' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put('/api/admin/coupons/:id', adminMiddleware, async (req, res) => {
+  try {
+    const coupon = await Coupon.findById(req.params.id);
+    if (!coupon) return res.status(404).json({ success: false, message: '优惠码不存在' });
+    const b = req.body || {};
+    const merged = {
+      code: b.code !== undefined ? b.code : coupon.code,
+      discount: b.discount !== undefined ? b.discount : coupon.discount,
+      active: b.active !== undefined ? b.active : coupon.active,
+      validFrom: b.validFrom !== undefined ? b.validFrom : coupon.validFrom,
+      validUntil: b.validUntil !== undefined ? b.validUntil : coupon.validUntil,
+      maxUses: b.maxUses !== undefined ? b.maxUses : coupon.maxUses,
+      perUserLimit: b.perUserLimit !== undefined ? b.perUserLimit : coupon.perUserLimit,
+      note: b.note !== undefined ? b.note : coupon.note
+    };
+    const clean = sanitizeCouponPayload(merged);
+    if (!clean.ok) return res.status(400).json({ success: false, message: clean.message });
+    if (clean.data.code !== coupon.code) {
+      const dup = await Coupon.findOne({ code: clean.data.code, _id: { $ne: coupon._id } });
+      if (dup) return res.status(409).json({ success: false, message: '该优惠码已存在' });
+    }
+    Object.assign(coupon, clean.data, { updatedAt: new Date() });
+    await coupon.save();
+    res.json({ success: true, coupon, message: '优惠码已保存' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete('/api/admin/coupons/:id', adminMiddleware, async (req, res) => {
+  try {
+    const coupon = await Coupon.findByIdAndDelete(req.params.id);
+    if (!coupon) return res.status(404).json({ success: false, message: '优惠码不存在' });
+    res.json({ success: true, message: '优惠码已删除' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // ============ 管理员：假期暂停自动签到 ============
 app.get('/api/admin/holiday', adminMiddleware, async (req, res) => {
   try {
@@ -5947,6 +6210,7 @@ server.listen(PORT, '0.0.0.0', () => {
 initSystemConfig()
   .then(() => migrateMembershipV2())
   .then(() => migrateAutoSignDaily())
+  .then(() => ensureCouponsSeeded())
   .catch(err => {
     console.error('❌ 系统配置初始化失败:', err.message);
   });
@@ -5955,4 +6219,5 @@ initSystemConfig()
 mongoose.connection.on('connected', () => {
   migrateMembershipV2().catch(err => console.error('会员套餐迁移失败:', err.message));
   migrateAutoSignDaily().catch(err => console.error('自动签到每日迁移失败:', err.message));
+  ensureCouponsSeeded().catch(err => console.error('优惠码初始化失败:', err.message));
 });
