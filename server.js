@@ -548,8 +548,9 @@ function effectivePlanForOrder(order) {
   return planForOrder(order);
 }
 
-/** 该用户其它有效订单能顶到的最晚到期时间（改套餐/撤销后重算时用作基点） */
-async function computeOtherOrdersExpiry(user, excludeOrderId) {
+/** 该用户其它有效订单的贡献：最晚到期时间 + 最高等级（改套餐/撤销后重算时用作基点） */
+async function computeOtherOrdersContribution(user, excludeOrderId) {
+  const out = { expiry: null, bestTier: '' };
   try {
     const others = await PaymentOrder.find({
       userId: user._id,
@@ -558,7 +559,6 @@ async function computeOtherOrdersExpiry(user, excludeOrderId) {
       revokedAt: null,
       reviewStatus: { $ne: 'rejected' }
     }).lean();
-    let best = null;
     for (const o of others) {
       const p = effectivePlanForOrder(o);
       if (!p) continue;
@@ -566,10 +566,17 @@ async function computeOtherOrdersExpiry(user, excludeOrderId) {
       const e = p.kind === 'grade'
         ? membership.computeExpireAt(p, user, g)
         : new Date(g.getTime() + Number(p.days || 0) * membership.DAY_MS);
-      if (!best || e.getTime() > best.getTime()) best = e;
+      if (!out.expiry || e.getTime() > out.expiry.getTime()) out.expiry = e;
+      if (!out.bestTier || membership.tierRank(p.tier) > membership.tierRank(out.bestTier)) out.bestTier = p.tier;
     }
-    return best;
-  } catch (e) { return null; }
+  } catch (e) { /* ignore */ }
+  return out;
+}
+
+/** 兼容旧调用 */
+async function computeOtherOrdersExpiry(user, excludeOrderId) {
+  const c = await computeOtherOrdersContribution(user, excludeOrderId);
+  return c.expiry;
 }
 
 /**
@@ -3992,14 +3999,15 @@ app.post('/api/admin/sponsor-orders/:id/confirm', adminMiddleware, async (req, r
 
     if (planChanged) {
       // 改套餐 = 按新套餐重新计算时长（不再用"差额天数"，避免年级卡 days=0 导致算不动）
-      const otherExpiry = await computeOtherOrdersExpiry(user, order._id);
-      const base = (otherExpiry && otherExpiry.getTime() > now.getTime()) ? otherExpiry : now;
+      const other = await computeOtherOrdersContribution(user, order._id);
+      const base = (other.expiry && other.expiry.getTime() > now.getTime()) ? other.expiry : now;
       const expireAt = effectivePlan.kind === 'grade'
         ? membership.computeExpireAt(effectivePlan, user, base)
         : new Date(base.getTime() + Number(effectivePlan.days || 0) * membership.DAY_MS);
       user.isVip = true;
       user.vipExpireAt = expireAt;
-      user.vipTier = membership.normalizeTier(effectivePlan.tier);
+      const keepHigher = other.bestTier && membership.tierRank(other.bestTier) > membership.tierRank(effectivePlan.tier);
+      user.vipTier = membership.normalizeTier(keepHigher ? other.bestTier : effectivePlan.tier);
       if (!user.vipStartAt) user.vipStartAt = now;
       user.lastRenewalReminderDays = 0;
       user.lastRenewalReminderAt = null;
@@ -4076,20 +4084,10 @@ app.post('/api/admin/sponsor-orders/:id/revoke', adminMiddleware, async (req, re
     let partialRevoke = false;
     if (isGradeGrant) {
       // 年级卡（到毕业）：撤销后回落到其它有效订单，没有就整体关闭
-      const otherExpiry = await computeOtherOrdersExpiry(user, order._id);
-      if (otherExpiry && otherExpiry.getTime() > Date.now()) {
-        const others = await PaymentOrder.find({
-          userId: user._id, _id: { $ne: order._id }, status: 'granted', revokedAt: null, reviewStatus: { $ne: 'rejected' }
-        }).lean();
-        let bestTier = 'FREE', bestRank = -1;
-        for (const o of others) {
-          const p = effectivePlanForOrder(o);
-          if (!p) continue;
-          const r = membership.tierRank(p.tier);
-          if (r > bestRank) { bestRank = r; bestTier = p.tier; }
-        }
-        user.vipExpireAt = otherExpiry;
-        user.vipTier = membership.normalizeTier(bestTier === 'FREE' ? 'FREE' : bestTier);
+      const other = await computeOtherOrdersContribution(user, order._id);
+      if (other.expiry && other.expiry.getTime() > Date.now()) {
+        user.vipExpireAt = other.expiry;
+        user.vipTier = membership.normalizeTier(other.bestTier || 'FREE');
         user.isVip = true;
         await user.save();
         await reconcileUserSignAccess(user).catch(() => {});
