@@ -140,6 +140,13 @@ const userSchema = new mongoose.Schema({
   checkinTotal: { type: Number, default: 0 },
   lastRenewalReminderDays: { type: Number, default: 0 },
   lastRenewalReminderAt: { type: Date, default: null },
+  // 管理员留下的站内通知：用户下次登录/打开仪表盘时弹一次（不消耗邮件额度）
+  notices: [{
+    title: { type: String, default: '' },
+    content: { type: String, default: '' },
+    level: { type: String, default: 'warning' },
+    createdAt: { type: Date, default: Date.now }
+  }],
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   isActive: { type: Boolean, default: true },
   attendancePassword: { type: String, default: 'Ahgydx@920' },
@@ -436,6 +443,10 @@ const paymentOrderSchema = new mongoose.Schema({
   reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   reviewedAt: Date,
   reviewNote: { type: String, default: '' },
+  // 实收金额与订单金额不一致时的记录（按实际支付金额发放）
+  actualAmount: { type: Number, default: 0 },
+  amountMismatch: { type: Boolean, default: false },
+  grantedPlanCode: { type: String, default: '' },
   revokedAt: Date
 });
 
@@ -576,6 +587,29 @@ async function revokeSponsorTier(user) {
   user.lastRenewalReminderDays = 0;
   user.lastRenewalReminderAt = null;
   await user.save();
+}
+
+/** 给用户留一条站内通知（不发邮件），下次登录/打开仪表盘时弹出一次 */
+function queueUserNotice(user, title, content, level = 'warning') {
+  if (!user) return;
+  if (!Array.isArray(user.notices)) user.notices = [];
+  user.notices.push({
+    title: String(title || '系统通知').slice(0, 120),
+    content: String(content || '').slice(0, 800),
+    level: String(level || 'warning'),
+    createdAt: new Date()
+  });
+  if (user.notices.length > 20) user.notices = user.notices.slice(-20);
+}
+
+function userNoticeList(user) {
+  if (!user || !Array.isArray(user.notices)) return [];
+  return user.notices.slice(-20).map(n => ({
+    title: n.title || '系统通知',
+    content: n.content || '',
+    level: n.level || 'warning',
+    createdAt: n.createdAt || new Date()
+  }));
 }
 
 function normalizeAutoSignDays(days) {
@@ -912,8 +946,8 @@ async function sendVipGrantEmail(user, addedDays, newExpireAt) {
   });
 }
 
-// 省 Resend 额度：签到成功属于日常事件，默认不发邮件；失败/异常才发（可用环境变量 SIGN_SUCCESS_MAIL_ENABLED=true 打开）
-const SIGN_SUCCESS_MAIL_ENABLED = String(process.env.SIGN_SUCCESS_MAIL_ENABLED || 'false') === 'true';
+// 省 Resend 额度：只对管理员提醒省邮件；用户侧通知（成功/失败/权益变更）照常发邮件
+const SIGN_SUCCESS_MAIL_ENABLED = String(process.env.SIGN_SUCCESS_MAIL_ENABLED || 'true') === 'true';
 
 async function sendSignNotification(email, studentId, result, subscriptionName, signTime = null) {
   if (result && result.success && !SIGN_SUCCESS_MAIL_ENABLED) {
@@ -2394,6 +2428,26 @@ app.post('/api/subscriptions/:id/toggle', authMiddleware, requireSignAccess, asy
   }
 });
 
+// ============ 站内通知（管理员留的提示，用户下次打开仪表盘时弹窗，不发邮件）============
+app.get('/api/notices', authMiddleware, async (req, res) => {
+  try {
+    const list = userNoticeList(req.user);
+    res.json({ success: true, notices: list });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/notices/clear', authMiddleware, async (req, res) => {
+  try {
+    req.user.notices = [];
+    await req.user.save();
+    res.json({ success: true, message: '已读' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // ============ 手动签到 ============
 // 每日打卡：每天一次，获得 1 次手动签到机会（连续 7 天额外 +2，上限 99）
 app.post('/api/checkin', authMiddleware, async (req, res) => {
@@ -3715,18 +3769,80 @@ app.post('/api/admin/sponsor-orders/:id/confirm', adminMiddleware, async (req, r
     const user = await User.findById(order.userId);
     if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
 
+    const isCounts = order.packageType === 'counts' || order.tier === 'COUNTS';
+    const rawActual = Number(req.body && req.body.actualAmount);
+    const hasActual = Number.isFinite(rawActual) && rawActual > 0;
+    const paidAmount = hasActual ? Number(rawActual.toFixed(2)) : Number(order.amount || 0);
+    const mismatch = hasActual && !isCounts && Math.abs(paidAmount - Number(order.amount || 0)) > 0.01;
+
+    // 金额不符：以实际支付金额为准匹配套餐（管理员也可直接指定套餐 code）
+    let effectivePlan = planForOrder(order);
+    if (mismatch) {
+      const wanted = String((req.body && req.body.grantPlanCode) || '').trim();
+      let picked = wanted ? (membership.planForCode(wanted) || membership.planForTier(wanted)) : null;
+      if (!picked) {
+        const hits = membership.PLANS.filter(p => p.kind === 'days' && Math.abs(Number(p.price) - paidAmount) < 0.01);
+        if (hits.length) picked = hits[0];
+      }
+      if (!picked) {
+        return res.status(400).json({
+          success: false,
+          needPlan: true,
+          message: `实收 ¥${paidAmount.toFixed(2)} 没匹配到在售套餐（可能用了优惠码），请手动选择要开通的套餐`,
+          plans: membership.PLANS.map(p => ({ code: p.code, name: p.name, price: p.price, kind: p.kind, days: p.days }))
+        });
+      }
+      effectivePlan = picked;
+    }
+
     if (order.status !== 'granted') {
-      const plan = planForOrder(order);
-      await grantMembership(user, plan || order.tier, { days: order.days });
+      await grantMembership(user, effectivePlan || order.tier, { days: order.days });
       order.status = 'granted';
       order.grantedAt = new Date();
+    } else if (mismatch && effectivePlan) {
+      // 用户已自助认领（按所选套餐发放）：按实收金额纠正——只补/扣差额天数，保留原有叠加
+      const orderedDays = Number(order.days || (planForOrder(order) || {}).days || 0);
+      if (effectivePlan.kind === 'days') {
+        const delta = Number(effectivePlan.days || 0) - orderedDays;
+        if (delta !== 0) {
+          const cur = user.vipExpireAt ? new Date(user.vipExpireAt) : new Date();
+          const base = cur.getTime() > Date.now() ? cur : new Date();
+          base.setDate(base.getDate() + delta);
+          user.isVip = true;
+          user.vipExpireAt = base;
+          user.vipTier = membership.normalizeTier(effectivePlan.tier);
+          if (!user.vipStartAt) user.vipStartAt = new Date();
+          await user.save();
+        }
+      } else {
+        await grantMembership(user, effectivePlan, { stack: false });
+      }
     }
+
+    if (mismatch) {
+      order.actualAmount = paidAmount;
+      order.amountMismatch = true;
+      order.grantedPlanCode = effectivePlan.code;
+      const orderedName = order.packageName || membership.tierLabel(order.tier);
+      const grantText = `${effectivePlan.name}${effectivePlan.kind === 'days' ? '（' + effectivePlan.days + ' 天）' : ''}`;
+      queueUserNotice(user,
+        '套餐已按实际支付金额开通',
+        `你提交的订单是「${orderedName}」（¥${Number(order.amount || 0).toFixed(2)}），实际到账 ¥${paidAmount.toFixed(2)}。\n` +
+        `已按实际支付金额为你开通：${grantText}。\n` +
+        `如果金额有误，请把支付截图和订单号发到 support@agai.online。`,
+        'info');
+      await user.save();
+    }
+
     order.reviewStatus = 'confirmed';
     order.reviewedBy = req.user._id;
     order.reviewedAt = new Date();
-    order.reviewNote = String(req.body.note || '').slice(0, 300);
+    order.reviewNote = String((req.body && req.body.note) || '').slice(0, 300);
     await order.save();
 
+    if (mismatch) {
+      return res.json({ success: true, message: `已按实际到账 ¥${paidAmount.toFixed(2)} 开通「${effectivePlan.name}」，用户下次登录会看到弹窗提示（未发邮件）` });
+    }
     sendSponsorMail(user, order, 'confirmed').catch(e => console.error('赞助邮件失败:', e.message));
     res.json({ success: true, message: '已确认到账并发送通知' });
   } catch (error) {
@@ -3741,7 +3857,22 @@ app.post('/api/admin/sponsor-orders/:id/revoke', adminMiddleware, async (req, re
     const user = await User.findById(order.userId);
     if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
 
-    await revokeSponsorTier(user);
+    // 撤销权益：优先只扣掉本订单的天数，保留该用户其它已付订单的会员时间
+    const orderDays = Number(order.days || (planForOrder(order) || {}).days || 0);
+    let partialRevoke = false;
+    if (orderDays > 0 && user.isVip && user.vipExpireAt) {
+      const base = new Date(user.vipExpireAt);
+      base.setDate(base.getDate() - orderDays);
+      if (base.getTime() > Date.now()) {
+        user.vipExpireAt = base;
+        await user.save();
+        partialRevoke = true;
+      } else {
+        await revokeSponsorTier(user);
+      }
+    } else {
+      await revokeSponsorTier(user);
+    }
 
     order.status = 'rejected';
     order.reviewStatus = 'rejected';
@@ -3751,8 +3882,18 @@ app.post('/api/admin/sponsor-orders/:id/revoke', adminMiddleware, async (req, re
     order.reviewNote = String(req.body.note || '').slice(0, 300);
     await order.save();
 
-    sendSponsorMail(user, order, 'revoked').catch(e => console.error('赞助邮件失败:', e.message));
-    res.json({ success: true, message: '已取消该订单权益并发送通知' });
+    // 不发邮件：改为用户下次登录/打开站点时弹一条通知
+    const planName = order.packageName || membership.tierLabel(order.tier);
+    queueUserNotice(user,
+      '会员权益已撤销',
+      `订单 ${order.orderNo}（${planName}${order.days ? ' · ' + order.days + ' 天' : ''}）经核对未匹配到对应付款，会员权益已撤销。` +
+      (order.reviewNote ? `\n原因：${order.reviewNote}` : '') +
+      '\n如果你确实已完成支付，请把支付截图和订单号发到 support@agai.online，我们会人工补发。',
+      'warning');
+    await user.save();
+    res.json({ success: true, message: partialRevoke
+      ? `已取消该订单权益（扣回 ${orderDays} 天，其它已付会员时间保留），用户下次登录会看到弹窗说明（未发邮件）`
+      : '已取消该订单权益（会员权益已关闭），用户下次登录会看到弹窗说明（未发邮件）' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -1256,7 +1256,7 @@
             const u = o.userId || {};
             const canConfirm = o.status === 'granted' && o.reviewStatus !== 'confirmed';
             const canRevoke = o.status === 'granted' && o.reviewStatus !== 'rejected';
-            const actions = (canConfirm ? '<button class="btn btn-success" style="padding:6px 10px;font-size:12px;" onclick="confirmSponsorOrder(\'' + o._id + '\')">确认到账</button> ' : '') +
+            const actions = (canConfirm ? '<button class="btn btn-success" style="padding:6px 10px;font-size:12px;" onclick="confirmSponsorOrder(\'' + o._id + '\',' + Number(o.amount || 0) + ')">确认到账</button> ' : '') +
               (canRevoke ? '<button class="btn btn-danger" style="padding:6px 10px;font-size:12px;" onclick="revokeSponsorOrder(\'' + o._id + '\')">取消权益</button>' : '');
             const planName = o.packageName || tierLabel(o.tier);
             const duration = o.durationLabel || (o.days ? o.days + ' 天' : '');
@@ -1274,19 +1274,41 @@
           }).join('') + '</tbody></table></div>';
       } catch (e) { box.innerHTML = '<p class="empty">加载失败</p>'; }
     }
-    async function confirmSponsorOrder(id) {
-      if (!confirm('确认已收到付款并保留该用户权益？')) return;
-      const res = await fetch(`${API_BASE}/admin/sponsor-orders/${id}/confirm`, {
-        method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: '{}'
-      });
-      const data = await res.json();
-      alert(data.message || (data.success ? '已确认' : '操作失败'));
+    async function confirmSponsorOrder(id, amount) {
+      const orderAmount = Number(amount || 0);
+      const input = prompt(`实收金额（元）\n订单金额：¥${orderAmount.toFixed(2)}\n若用户选错套餐/实收金额不同，请填实际到账金额 —— 系统会按实际金额开通，并在他下次登录时弹窗说明（不发邮件）。`, orderAmount.toFixed(2));
+      if (input === null) return;
+      const actualAmount = Number(String(input).replace(/[^\d.]/g, ''));
+      if (!Number.isFinite(actualAmount) || actualAmount <= 0) { alert('金额格式不正确'); return; }
+      const body = { actualAmount };
+      if (Math.abs(actualAmount - orderAmount) > 0.01) {
+        if (!confirm(`订单 ¥${orderAmount.toFixed(2)}，实收 ¥${actualAmount.toFixed(2)}：将按实收金额匹配套餐开通，并弹窗通知用户（不发邮件）。继续？`)) return;
+      }
+      let data = null;
+      try {
+        let res = await fetch(`${API_BASE}/admin/sponsor-orders/${id}/confirm`, {
+          method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        });
+        data = await res.json();
+        if (!data.success && data.needPlan && Array.isArray(data.plans)) {
+          const list = data.plans.map((p, i) => `${i + 1}. ${p.name}  ¥${p.price}`).join('\n');
+          const pick = prompt(`${data.message}\n\n请选择要开通的套餐编号：\n${list}`, '');
+          if (pick === null) return;
+          const chosen = data.plans[Number(pick) - 1];
+          if (!chosen) { alert('编号无效'); return; }
+          res = await fetch(`${API_BASE}/admin/sponsor-orders/${id}/confirm`, {
+            method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ actualAmount, grantPlanCode: chosen.code })
+          });
+          data = await res.json();
+        }
+      } catch (e) { alert('操作失败：' + e.message); return; }
+      alert((data && data.message) || (data && data.success ? '已确认' : '操作失败'));
       loadSponsorOrders();
     }
     async function revokeSponsorOrder(id) {
-      const note = prompt('取消原因（会通过邮件通知用户）：', '未匹配到付款');
+      const note = prompt('取消原因（会在用户下次登录时弹窗提示，不发邮件）：', '未匹配到付款');
       if (note === null) return;
-      if (!confirm('确定取消该订单权益并发送邮件通知？')) return;
+      if (!confirm('确定取消该订单权益？用户下次登录会看到弹窗说明。')) return;
       const res = await fetch(`${API_BASE}/admin/sponsor-orders/${id}/revoke`, {
         method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ note })
       });
