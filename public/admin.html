@@ -466,6 +466,7 @@
           <p style="color:#666;font-size:13px;margin:0 0 12px;">管理员汇总每天 23:59 自动发送（已发则跳过）；续费提醒每天 10:00 自动检查（到期前 7 天 / 1 天，仅发送给已绑定邮箱的会员）。以下按钮可手动触发。</p>
           <button class="btn btn-primary" onclick="sendTodaySummary()" id="btnSendSummary"><i class="fas fa-paper-plane"></i> 立即发送今日汇总邮件</button>
           <button class="btn" style="margin-left:8px;background:#f0f2f6;color:#334155;border:1px solid #e2e8f0;" onclick="runRenewalCheck()" id="btnRenewalCheck"><i class="fas fa-bell"></i> 立即检查续费提醒</button>
+          <button class="btn" style="margin-left:8px;background:#f0f2f6;color:#334155;border:1px solid #e2e8f0;" onclick="runRetryMissing()" id="btnRetryMissing"><i class="fas fa-redo"></i> 立即补签未成功用户</button>
           <span id="mailToolResult" style="margin-left:12px;color:#666;"></span>
         </div>
       </div>
@@ -491,6 +492,34 @@
           <div class="card-header"><h3><i class="fas fa-gift"></i> 邀请奖励设置</h3></div>
           <div class="form-group"><label>每人奖励会员天数</label><input type="number" id="inviteRewardDays" value="10" min="1" max="365"></div>
           <button class="btn btn-primary" onclick="saveInviteReward()"><i class="fas fa-save"></i> 保存奖励设置</button>
+        </div>
+
+        <div class="content-card">
+          <div class="card-header"><h3><i class="fas fa-bell"></i> 管理员实时提醒</h3></div>
+          <p style="color:#666;font-size:13px;margin:0 0 12px;">新留言会即时发邮件到管理员邮箱，也可以推送到微信/钉钉（企业微信群机器人 / 钉钉群机器人 / PushPlus）。填写后立即生效。</p>
+          <div class="form-row">
+            <div class="form-group">
+              <label>推送方式</label>
+              <select id="alertType">
+                <option value="">关闭 Webhook 推送（仅邮件）</option>
+                <option value="wecom">企业微信群机器人</option>
+                <option value="dingtalk">钉钉群机器人</option>
+                <option value="pushplus">PushPlus（微信）</option>
+                <option value="generic">通用 Webhook</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Webhook 地址</label>
+              <input type="text" id="alertUrl" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>PushPlus Token（仅 PushPlus 需要）</label>
+            <input type="text" id="alertToken" placeholder="留空则不使用">
+          </div>
+          <button class="btn btn-primary" onclick="saveAlertWebhook()"><i class="fas fa-save"></i> 保存提醒设置</button>
+          <button class="btn" style="margin-left:8px;background:#f0f2f6;color:#334155;border:1px solid #e2e8f0;" onclick="enableBrowserNotify()"><i class="fas fa-desktop"></i> 开启浏览器通知</button>
+          <span id="alertSaveResult" style="margin-left:10px;color:#666;"></span>
         </div>
 
         <!-- ===== 🆕 赞助者专属通知卡片 ===== -->
@@ -619,6 +648,7 @@
 
   <div class="toast" id="toast"></div>
 
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script>
     const API_BASE = 'https://api.agai.online/api';
     const token = localStorage.getItem('token');
@@ -1606,6 +1636,12 @@
             document.getElementById('noticeStyle').value = notice.style || 'info';
           }
           if (data.configs.invite_reward_days) document.getElementById('inviteRewardDays').value = data.configs.invite_reward_days;
+          if (data.configs.admin_alert_webhook) {
+            const w = data.configs.admin_alert_webhook || {};
+            const t = document.getElementById('alertType'); if (t) t.value = w.type || '';
+            const u = document.getElementById('alertUrl'); if (u) u.value = w.url || '';
+            const k = document.getElementById('alertToken'); if (k) k.value = w.token || '';
+          }
         }
       } catch (e) {}
     }
@@ -1815,6 +1851,70 @@
     document.getElementById('pkgModal').addEventListener('click', function(e) { if (e.target === this) closePkgModal(); });
 
     // ========== 初始化 ==========
+    // ========== 补签 / 实时提醒 ==========
+    async function runRetryMissing() {
+      const btn = document.getElementById('btnRetryMissing');
+      const out = document.getElementById('mailToolResult');
+      if (btn) btn.disabled = true;
+      if (out) out.textContent = '补签中（逐个重试未签到成员，可能需要 1-2 分钟）...';
+      try {
+        const res = await fetch(`${API_BASE}/admin/retry-missing`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (!data.success) { if (out) out.textContent = '❌ ' + (data.message || '失败'); }
+        else if (data.skipped) { if (out) out.textContent = '未执行：' + data.skipped; }
+        else {
+          let msg = `检查 ${data.checked} 人，补回 ${data.recovered} 人，仍失败 ${data.failed} 人`;
+          if (data.passwordIssues && data.passwordIssues.length) msg += `（密码问题：${data.passwordIssues.join(', ')}）`;
+          if (out) out.textContent = msg;
+          showToast('补签完成：' + msg, data.failed ? 'warning' : 'success');
+        }
+      } catch (e) { if (out) out.textContent = '❌ ' + e.message; }
+      if (btn) btn.disabled = false;
+    }
+
+    async function saveAlertWebhook() {
+      const value = {
+        type: (document.getElementById('alertType') || {}).value || '',
+        url: ((document.getElementById('alertUrl') || {}).value || '').trim(),
+        token: ((document.getElementById('alertToken') || {}).value || '').trim()
+      };
+      try {
+        const res = await fetch(`${API_BASE}/admin/config/admin_alert_webhook`, {
+          method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value })
+        });
+        const data = await res.json();
+        const out = document.getElementById('alertSaveResult');
+        if (out) out.textContent = data.success ? '✅ 已保存，实时提醒已生效' : '❌ ' + (data.message || '保存失败');
+        if (data.success) showToast('提醒设置已保存', 'success');
+      } catch (e) { showToast('保存失败：' + e.message, 'error'); }
+    }
+
+    function enableBrowserNotify() {
+      if (!window.Notification) { showToast('当前浏览器不支持通知', 'warning'); return; }
+      Notification.requestPermission().then(p => showToast(p === 'granted' ? '浏览器通知已开启' : '未开启通知', p === 'granted' ? 'success' : 'warning'));
+    }
+
+    async function initRealtimeFeedback() {
+      try {
+        if (typeof io !== 'function') return;
+        const res = await fetch(`${API_BASE}/user/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        const myId = data && data.user && data.user.id;
+        if (!myId) return;
+        const socket = io('https://api.agai.online', { transports: ['websocket', 'polling'] });
+        socket.on('connect', () => socket.emit('bindUser', String(myId)));
+        socket.on('feedback:new', (d) => {
+          showToast('📩 新留言：' + ((d && d.title) || ''), 'warning');
+          if (window.Notification && Notification.permission === 'granted') {
+            try { new Notification('管理后台：收到新留言', { body: ((d && d.studentId) || '') + ' · ' + ((d && d.title) || '') }); } catch (e) {}
+          }
+          if (typeof loadReportBadge === 'function') loadReportBadge();
+        });
+      } catch (e) { console.warn('实时提醒初始化失败', e); }
+    }
+    initRealtimeFeedback();
+
     checkAdmin();
     loadDashboardStats();
     loadReportBadge();

@@ -692,6 +692,11 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
         <button class="btn btn-primary btn-sm" onclick="goPage('email')" style="flex:none;">立即绑定</button>
         <button class="btn btn-ghost btn-sm" onclick="dismissEmailBanner()" title="今天不再提示" style="flex:none;">×</button>
       </div>
+      <!-- 公告区（置顶） -->
+      <div id="noticeCard" class="card hidden" style="margin-bottom:14px;border-left:4px solid var(--blue);">
+        <h2 class="card-heading" id="noticeTitle"></h2>
+        <div id="noticeContent"></div>
+      </div>
       <!-- ================= 首页 ================= -->
       <div id="page-dashboard" class="page active">
         <div class="card" id="onboardingCard">
@@ -749,6 +754,16 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
           </div>
         </div>
 
+        <div class="card" style="padding:18px 20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+            <div style="min-width:0;">
+              <h2 class="card-heading" style="margin-bottom:4px"><svg class="ico" style="color:var(--blue);"><use href="#i-message"/></svg> 意见反馈</h2>
+              <p style="font-size:13px;color:var(--text-secondary);margin:0;">功能建议、BUG 反馈、投诉都可以在这里提，管理员会尽快处理并回复。</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="goPage('feedback')" style="flex:none;">写留言</button>
+          </div>
+        </div>
+
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px">
             <div>
@@ -776,11 +791,6 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
           </div>
           <svg class="ico" style="color:var(--text-tertiary);font-size:16px;"><use href="#i-chevron-right"/></svg>
         </a>
-
-        <div id="noticeCard" class="card hidden" style="border-left: 2px solid var(--blue);">
-          <h2 class="card-heading" id="noticeTitle"></h2>
-          <div id="noticeContent"></div>
-        </div>
 
         <div class="stats">
           <div class="stat"><div class="stat-num" id="statTotalSigns">0</div><div class="stat-label">累计签到</div></div>

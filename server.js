@@ -1474,6 +1474,83 @@ async function executeAutoSign(options = {}) {
   await maybeSendAdminSignSummary();
 }
 
+// ============ 自动签到失败兜底：自动补签 + 原因分类 + 通知 ============
+function beijingMinutesNow() {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
+  const h = Number((parts.find(p => p.type === 'hour') || {}).value || 0);
+  const m = Number((parts.find(p => p.type === 'minute') || {}).value || 0);
+  return h * 60 + m;
+}
+
+async function retryMissingSigns(label = '补签') {
+  const result = { label, checked: 0, recovered: 0, failed: 0, passwordIssues: [], details: [], skipped: null };
+  try {
+    if (!isWithinSignWindow()) { result.skipped = '不在签到窗口内（21:30–24:00）'; return result; }
+    const nowMin = beijingMinutesNow();
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const end = new Date(); end.setHours(23, 59, 59, 999);
+    const subs = await Subscription.find({ enabled: true }).populate('userId');
+    const seen = new Set();
+    for (const sub of subs) {
+      const user = sub.userId;
+      if (!user || user.isActive === false) continue;
+      if (seen.has(String(user._id))) continue;
+      seen.add(String(user._id));
+      if (!hasSignAccess(user)) continue;
+      const subTime = normalizeSignTime(sub.signTime) || AUTO_SIGN_TIME;
+      const [h, m] = subTime.split(':').map(Number);
+      if (h * 60 + m > nowMin) continue; // 还没到他的签到时间，先不补
+      const okLog = await SignLog.findOne({ userId: user._id, signTime: { $gte: start, $lte: end }, status: 'success' });
+      if (okLog) continue;
+      result.checked++;
+      let attempt = null;
+      for (let i = 0; i < 3; i++) {
+        try { attempt = await realSign(user.studentId, user.attendancePassword || 'Ahgydx@920', 2); }
+        catch (e) { attempt = { success: false, message: e.message }; }
+        if (attempt && attempt.success) break;
+        await new Promise(r => setTimeout(r, 1500));
+      }
+      const success = !!(attempt && attempt.success);
+      const msg = (attempt && attempt.message) || '补签未返回结果';
+      try {
+        await SignLog.create({ userId: user._id, subscriptionName: AUTO_SIGN_NAME, status: success ? 'success' : 'failed', message: `补签(${label}): ${msg}`, signTime: new Date() });
+      } catch (e) { console.error('补签日志写入失败:', e.message); }
+      user.totalSignCount = Number(user.totalSignCount || 0) + 1;
+      if (success) user.successSignCount = Number(user.successSignCount || 0) + 1;
+      try { await user.save(); } catch (e) {}
+      if (success) { result.recovered++; continue; }
+      result.failed++;
+      const passwordIssue = /密码|password|错误/i.test(msg);
+      if (passwordIssue) result.passwordIssues.push(user.studentId);
+      result.details.push({ studentId: user.studentId, name: user.name || '', message: msg, passwordIssue });
+      if (user.email) {
+        try {
+          await sendTierEmail(user, `⚠️ 今晚自动签到未成功${passwordIssue ? '（考勤密码可能错误）' : ''}`, {
+            title: '自动签到未成功',
+            bodyHtml: `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px;color:#991b1b;font-size:14px;line-height:1.9;">
+              <p style="margin:0 0 8px;">学号：<strong>${user.studentId}</strong></p>
+              <p style="margin:0 0 8px;">原因：<strong>${msg}</strong></p>
+              <p style="margin:0;">${passwordIssue ? '你的考勤密码可能不正确：请登录学校考勤系统确认密码，在网站更新后手动签到补签。' : '请稍后手动签到补签，或联系管理员处理。'}</p>
+            </div>`,
+            ctaText: '去手动补签',
+            ctaUrl: 'https://login.agai.online/dashboard.html',
+            footerNote: '该邮件由系统自动发送（自动签到失败兜底提醒）。'
+          });
+        } catch (e) {}
+      }
+    }
+    if (result.failed > 0) {
+      const rows = result.details.map(d => `<li>${d.studentId} ${d.name}：${d.message}${d.passwordIssue ? '（密码问题）' : ''}</li>`).join('');
+      const plain = result.details.map(d => `${d.studentId} ${d.name}：${d.message}${d.passwordIssue ? '（密码问题）' : ''}`).join('\n');
+      await notifyAdmin(`【补签提醒】${result.failed} 人自动签到未成功（${label}）`,
+        `<div style="font-family:sans-serif;font-size:14px;color:#334155;line-height:1.9;"><p>补签时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}（${label}）</p><p>检查 ${result.checked} 人，补签成功 ${result.recovered} 人，仍失败 ${result.failed} 人。</p><ul>${rows}</ul></div>`,
+        `检查 ${result.checked} 人，补签成功 ${result.recovered} 人，仍失败 ${result.failed} 人\n` + plain);
+    }
+    console.log(`🔁 自动签到兜底(${label}): 检查 ${result.checked}，补回 ${result.recovered}，失败 ${result.failed}`);
+  } catch (e) { console.error('补签任务失败:', e.message); }
+  return result;
+}
+
 // ============ API 路由 ============
 // ========== 植物工厂数据接口 ==========
 
@@ -2432,7 +2509,26 @@ app.post('/api/feedback', authMiddleware, async (req, res) => {
     });
     
     await feedback.save();
-    
+
+    // 即时提醒管理员：WebSocket 实时推送 + 邮件/Webhook
+    try {
+      const adminIds = await User.find({ studentId: { $in: [...ADMIN_CREDENTIALS.keys()] } }).select('_id studentId').lean();
+      for (const a of adminIds) {
+        const sid = userSockets.get(String(a._id));
+        if (sid) io.to(sid).emit('feedback:new', {
+          studentId: user.studentId,
+          name: user.name || '',
+          title,
+          type: feedback.type,
+          createdAt: feedback.createdAt
+        });
+      }
+      const plain = `用户 ${user.studentId}（${user.name || ''}）提交了留言\n类型：${feedback.type}\n标题：${title}\n内容：${String(content).slice(0, 500)}`;
+      notifyAdmin(`【新留言】${title} · ${user.studentId}`,
+        `<div style="font-family:sans-serif;line-height:1.9;color:#334155"><p>用户：<strong>${user.studentId} ${user.name || ''}</strong></p><p>类型：${feedback.type}</p><p>标题：<strong>${title}</strong></p><pre style="white-space:pre-wrap;background:#f8fafc;padding:12px;border-radius:8px">${String(content).slice(0, 1500)}</pre><p><a href="https://login.agai.online/admin.html">打开管理后台处理</a></p></div>`,
+        plain).catch(() => {});
+    } catch (e) { console.error('新留言提醒失败:', e.message); }
+
     res.json({ success: true, feedback, message: '留言提交成功，我们会尽快回复！' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -2550,6 +2646,16 @@ app.post('/api/admin/check-renewal', adminMiddleware, async (req, res) => {
   try {
     const summary = await checkRenewalReminders();
     res.json({ success: true, ...summary });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 手动执行自动签到补签兜底（管理员）
+app.post('/api/admin/retry-missing', adminMiddleware, async (req, res) => {
+  try {
+    const result = await retryMissingSigns('手动');
+    res.json({ success: true, ...result });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -2976,6 +3082,36 @@ async function sendTierEmail(user, subject, opts) {
   } catch (e) {
     console.error('❌ 等级邮件异常:', e.message);
     return false;
+  }
+}
+
+// ============ 管理员即时提醒（邮件 + 可选 Webhook：企业微信/钉钉/PushPlus） ============
+async function getAdminAlertConfig() {
+  try {
+    const cfg = await SystemConfig.findOne({ key: 'admin_alert_webhook' });
+    return (cfg && cfg.value) || null;
+  } catch { return null; }
+}
+
+async function notifyAdmin(subject, html, plainText) {
+  if (RESEND_API_KEY) {
+    try {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: 'AG工作室 <noreply@agai.online>', to: ADMIN_EMAIL, subject, html })
+      });
+    } catch (e) { console.error('管理员提醒邮件失败:', e.message); }
+  }
+  const cfg = await getAdminAlertConfig();
+  if (cfg && cfg.url) {
+    try {
+      let body;
+      if (cfg.type === 'pushplus') body = { token: cfg.token, title: subject, content: plainText || subject };
+      else if (cfg.type === 'wecom' || cfg.type === 'dingtalk') body = { msgtype: 'text', text: { content: subject + '\n' + (plainText || '') } };
+      else body = { title: subject, content: plainText || subject };
+      await fetch(cfg.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    } catch (e) { console.error('管理员 Webhook 提醒失败:', e.message); }
   }
 }
 
@@ -4482,6 +4618,10 @@ cron.schedule('0 10 * * *', () => { checkRenewalReminders().catch(err => console
 
 // 每天 23:59 汇总当天（保证当天必发；已发过则跳过）
 cron.schedule('59 23 * * *', () => { maybeSendAdminSignSummary(new Date(), { force: true }).catch(err => console.error('管理员汇总（当天 23:59）失败:', err.message)); }, { timezone: "Asia/Shanghai" });
+
+// 自动签到失败兜底：22:00 与 23:30 各补签一次（只补当天该签未签成功的）
+cron.schedule('0 22 * * *', () => { retryMissingSigns('22:00').catch(err => console.error('补签任务失败:', err.message)); }, { timezone: "Asia/Shanghai" });
+cron.schedule('30 23 * * *', () => { retryMissingSigns('23:30').catch(err => console.error('补签任务失败:', err.message)); }, { timezone: "Asia/Shanghai" });
 
 // 每天 00:05 兜底汇总前一天（若 23:59 因故失败）
 cron.schedule('5 0 * * *', () => { const d = new Date(); d.setDate(d.getDate() - 1); maybeSendAdminSignSummary(d, { force: true }).catch(err => console.error('管理员汇总兜底失败:', err.message)); }, { timezone: "Asia/Shanghai" });
