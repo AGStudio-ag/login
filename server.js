@@ -3590,7 +3590,9 @@ async function sendSponsorMail(user, order, kind) {
 
 async function generateUniqueAmount(basePrice) {
   for (let i = 0; i < 10; i++) {
-    const offset = parseFloat((Math.random() * 0.09 + 0.01).toFixed(2));
+    // 随机分尾固定在 0.01~0.09（整数分）：原实现 random*0.09+0.01 再 toFixed(2)，
+    // 在 [0.095,0.10) 区间会被四舍五入成 0.10，与"最多 9 分"的约定不符，导致对账/断言边界错。
+    const offset = (Math.floor(Math.random() * 9) + 1) / 100;
     const amount = parseFloat((basePrice + offset).toFixed(2));
     const exists = await PaymentOrder.findOne({
       amount,

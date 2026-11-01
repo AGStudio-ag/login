@@ -144,3 +144,34 @@ test('年级卡叠加后仍以毕业日期封顶', () => {
   const expire = M.computeExpireAt(M.planForCode('freshman'), user, NOW, new Date(user.vipExpireAt));
   assert.equal(expire.toISOString(), new Date('2030-07-15T15:59:59.000Z').toISOString());
 });
+
+// ===== 等级契约一致性（/api/admin/tier-meta 的数据源护栏）=====
+
+test('等级契约：每个在售套餐都有中文标签（PLANS ⊆ TIER_LABELS）', () => {
+  const labels = M.TIER_LABELS;
+  for (const plan of M.PLANS) {
+    assert.ok(labels[plan.tier], `套餐 ${plan.code} 的等级 ${plan.tier} 缺少 TIER_LABELS 条目`);
+  }
+});
+
+test('等级契约：TIER_LABELS 恒为 11 项，历史等级恰好是 VIP/SVIP/LEGACY', () => {
+  const labels = M.TIER_LABELS;
+  assert.equal(Object.keys(labels).length, 11);
+  const planTiers = new Set(M.PLANS.map(p => p.tier));
+  const legacy = Object.keys(labels).filter(t => t !== 'FREE' && !planTiers.has(t));
+  assert.deepEqual(legacy.sort(), ['LEGACY', 'SVIP', 'VIP']);
+});
+
+test('等级契约：自定义时间清单只允许出现在 TIER_LABELS 内的等级', () => {
+  for (const tier of M.CUSTOM_TIME_TIERS) {
+    assert.ok(M.TIER_LABELS[tier], `CUSTOM_TIME_TIERS 里的 ${tier} 不在 TIER_LABELS 中`);
+    // 允许历史别名（VIP → YEARLY_PRO），规范化后必须仍是一个带中文标签的合法等级
+    const norm = M.normalizeTier(tier);
+    assert.ok(M.TIER_LABELS[norm], `CUSTOM_TIME_TIERS 里的 ${tier} 规范化后 ${norm} 没有中文标签`);
+  }
+});
+
+test('等级契约：旧 VIP 归一化为 YEARLY_PRO（所以 UI 显示同名是预期）', () => {
+  assert.equal(M.normalizeTier('VIP'), 'YEARLY_PRO');
+  assert.equal(M.TIER_LABELS.VIP, M.TIER_LABELS.YEARLY_PRO);
+});
