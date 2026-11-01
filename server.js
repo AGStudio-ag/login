@@ -179,6 +179,8 @@ const subscriptionSchema = new mongoose.Schema({
   maxRetries: { type: Number, default: 3 },
   notifyOnSuccess: { type: Boolean, default: true },
   notifyOnFailure: { type: Boolean, default: true },
+  // 因会员到期/权益撤销被系统自动关闭（重新有权限时会自动恢复）
+  autoDisabledBySystem: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -572,6 +574,7 @@ async function grantMembership(user, planOrTier, opts = {}) {
     applyVipTier(user, plan ? plan.tier : planOrTier);
   }
   await user.save();
+  await reconcileUserSignAccess(user).catch(() => {});
   return expireAt;
 }
 
@@ -587,6 +590,7 @@ async function revokeSponsorTier(user) {
   user.lastRenewalReminderDays = 0;
   user.lastRenewalReminderAt = null;
   await user.save();
+  await reconcileUserSignAccess(user).catch(() => {});
 }
 
 /** 给用户留一条站内通知（不发邮件），下次登录/打开仪表盘时弹出一次 */
@@ -683,6 +687,65 @@ function canCustomSignTime(user) {
   return hasActiveVip(user) && membership.tierAllowsCustomTime(user && user.vipTier);
 }
 
+// ===== 会员权益变化时，同步自动签到订阅（开关 + 签到时间）=====
+// 无签到权限 → 关闭自动签到（并记 autoDisabledBySystem，重新有权限时自动恢复）
+// 无自定义时间权限 → 签到时间回落到默认 21:35
+async function reconcileUserSignAccess(user) {
+  const out = { disabled: 0, restored: 0, timeReset: 0 };
+  if (!user || !user._id) return out;
+  try {
+    const access = hasSignAccess(user);
+    const canCustom = canCustomSignTime(user);
+    const subs = await Subscription.find({ userId: user._id });
+    for (const sub of subs) {
+      let changed = false;
+      if (!access) {
+        if (sub.enabled) {
+          sub.enabled = false;
+          sub.autoDisabledBySystem = true;
+          out.disabled++;
+          changed = true;
+        }
+      } else if (!sub.enabled && sub.autoDisabledBySystem) {
+        sub.enabled = true;
+        sub.autoDisabledBySystem = false;
+        out.restored++;
+        changed = true;
+      }
+      if (!canCustom) {
+        const t = normalizeSignTime(sub.signTime) || AUTO_SIGN_TIME;
+        if (t !== AUTO_SIGN_TIME) {
+          sub.signTime = AUTO_SIGN_TIME;
+          out.timeReset++;
+          changed = true;
+        }
+      }
+      if (changed) { sub.updatedAt = new Date(); await sub.save(); }
+    }
+  } catch (e) { console.error('同步自动签到权限失败:', e.message); }
+  return out;
+}
+
+// 批量校准（自然到期/历史遗留数据）：把没权限却还开着的自动签到关掉、把自定义时间打回默认
+async function reconcileAllSignAccess() {
+  const summary = { checked: 0, disabled: 0, restored: 0, timeReset: 0 };
+  try {
+    const subs = await Subscription.find({}).populate('userId');
+    const seen = new Set();
+    for (const sub of subs) {
+      const user = sub.userId;
+      if (!user || seen.has(String(user._id))) continue;
+      seen.add(String(user._id));
+      summary.checked++;
+      const r = await reconcileUserSignAccess(user);
+      summary.disabled += r.disabled;
+      summary.restored += r.restored;
+      summary.timeReset += r.timeReset;
+    }
+  } catch (e) { console.error('批量校准自动签到失败:', e.message); }
+  return summary;
+}
+
 async function saveAutoSignSetting(userId, options = {}, targetId = null) {
   const query = targetId ? { _id: targetId, userId } : { userId };
   let setting = await Subscription.findOne(query).sort({ createdAt: 1 });
@@ -697,6 +760,7 @@ async function saveAutoSignSetting(userId, options = {}, targetId = null) {
 
   setting.name = AUTO_SIGN_NAME;
   setting.enabled = options.enabled !== false;
+  setting.autoDisabledBySystem = false;
   setting.scheduleType = 'custom';
   setting.customDays = normalizeAutoSignDays(options.customDays);
   setting.signTime = allowedCustom ? requestedTime : AUTO_SIGN_TIME;
@@ -2415,6 +2479,7 @@ app.post('/api/subscriptions/:id/toggle', authMiddleware, requireSignAccess, asy
     
     subscription.name = AUTO_SIGN_NAME;
     subscription.enabled = !subscription.enabled;
+    subscription.autoDisabledBySystem = false;
     subscription.scheduleType = 'custom';
     subscription.customDays = normalizeAutoSignDays(subscription.customDays);
     subscription.signTime = AUTO_SIGN_TIME;
@@ -2788,6 +2853,30 @@ app.post('/api/admin/check-renewal', adminMiddleware, async (req, res) => {
   }
 });
 
+// 手动校准「自动签到开关 / 签到时间」与会员权益是否一致（管理员）
+app.post('/api/admin/reconcile-sign', adminMiddleware, async (req, res) => {
+  try {
+    const target = String((req.body && req.body.studentId) || '').trim();
+    if (target) {
+      const user = await User.findOne({ studentId: target });
+      if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
+      const r = await reconcileUserSignAccess(user);
+      const subs = await Subscription.find({ userId: user._id }).lean();
+      return res.json({
+        success: true,
+        studentId: target,
+        ...r,
+        hasSignAccess: hasSignAccess(user),
+        subscriptions: subs.map(s => ({ _id: s._id, enabled: s.enabled, signTime: s.signTime, scheduleType: s.scheduleType, customDays: s.customDays, autoDisabledBySystem: !!s.autoDisabledBySystem }))
+      });
+    }
+    const summary = await reconcileAllSignAccess();
+    res.json({ success: true, ...summary });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // 手动执行自动签到补签兜底（管理员）
 app.post('/api/admin/retry-missing', adminMiddleware, async (req, res) => {
   try {
@@ -3015,11 +3104,12 @@ app.put('/api/admin/users/:id', adminMiddleware, async (req, res) => {
     if (isActive !== undefined) user.isActive = isActive;
 
     await user.save();
-
-    // 🆕 判断是否需要发送 VIP 到账邮件
+    // 管理员改了会员等级/到期时间：自动签到开关与签到时间跟着变
+    if (isVip !== undefined || vipExpireAt || vipTier !== undefined) {
+      await reconcileUserSignAccess(user).catch(() => {});
+    }
     // 条件：当前是 VIP 且（之前不是 VIP，或者过期时间比旧的时间更晚）
-    const now = new Date();
-    const newExpireAt = user.vipExpireAt ? new Date(user.vipExpireAt) : null;
+    const now = new Date();    const newExpireAt = user.vipExpireAt ? new Date(user.vipExpireAt) : null;
     const isVipNow = user.isVip && newExpireAt && newExpireAt > now;
 
     let shouldSendEmail = false;
@@ -3830,6 +3920,7 @@ app.post('/api/admin/sponsor-orders/:id/confirm', adminMiddleware, async (req, r
           user.vipTier = membership.normalizeTier(effectivePlan.tier);
           if (!user.vipStartAt) user.vipStartAt = new Date();
           await user.save();
+          await reconcileUserSignAccess(user).catch(() => {});
         }
       } else {
         await grantMembership(user, effectivePlan, { stack: false });
@@ -3883,6 +3974,7 @@ app.post('/api/admin/sponsor-orders/:id/revoke', adminMiddleware, async (req, re
       if (base.getTime() > Date.now()) {
         user.vipExpireAt = base;
         await user.save();
+        await reconcileUserSignAccess(user).catch(() => {});
         partialRevoke = true;
       } else {
         await revokeSponsorTier(user);
@@ -4979,6 +5071,9 @@ cron.schedule('30 23 * * *', () => { retryMissingSigns('23:30').catch(err => con
 
 // 每天 00:05 兜底汇总前一天（若 23:59 因故失败）
 cron.schedule('5 0 * * *', () => { const d = new Date(); d.setDate(d.getDate() - 1); maybeSendAdminSignSummary(d, { force: true }).catch(err => console.error('管理员汇总兜底失败:', err.message)); }, { timezone: "Asia/Shanghai" });
+
+// 每天 21:00：签到前校准一次（会员到期的自动关掉自动签到、自定义时间打回 21:35）
+cron.schedule('0 21 * * *', () => { reconcileAllSignAccess().then(s => { if (s.disabled || s.timeReset || s.restored) console.log('🧭 自动签到权限校准:', JSON.stringify(s)); }).catch(err => console.error('自动签到权限校准失败:', err.message)); }, { timezone: "Asia/Shanghai" });
 
 cron.schedule('* * * * *', () => {
   const now = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
