@@ -42,7 +42,8 @@ test('renderAutoReply：替换 {studentId}/{content}，空模板用默认文案'
   assert.equal(out, '学号 229144004：收到「签到一直失败」');
 
   const fallback = R.renderAutoReply('', fb);
-  assert.ok(fallback.includes('您的反馈已收到'));
+  assert.ok(fallback.includes('已收到你的消息'));
+  assert.ok(fallback.includes('1107914277'));
   assert.equal(R.renderAutoReply('固定文案', { studentId: '', content: '' }), '固定文案');
 });
 
