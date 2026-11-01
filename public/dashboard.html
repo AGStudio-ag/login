@@ -722,12 +722,31 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
           </div>
         </div>
 
-        <div class="card" style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-          <div style="display:flex; align-items:center; gap:12px;">
-            <svg class="ico" style="color:var(--blue); font-size:18px;"><use href="#i-info"/></svg>
-            <p style="font-size:13px; color:var(--text-secondary); margin:0;">本学期考勤服务完全自愿，不影响账号使用。</p>
+        <div class="card" style="padding:18px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+            <svg class="ico" style="color:var(--amber); font-size:18px; flex:none;"><use href="#i-star"/></svg>
+            <div style="min-width:0;">
+              <p style="font-size:14px; font-weight:600; margin:0;" id="sponsorCardTitle">开通会员，更省心</p>
+              <p style="font-size:12px; color:var(--text-secondary); margin:2px 0 0;" id="sponsorCardDesc">会员每天 21:35 自动签到，可自定义签到时间，有效期至毕业。</p>
+            </div>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="goPage('buy')">查看档位</button>
+          <div style="display:flex; gap:8px; flex:none;">
+            <button class="btn btn-secondary btn-sm" onclick="goPage('buy')" id="sponsorCardBtn">去开通</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:18px 20px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+            <div style="min-width:0;">
+              <h2 class="card-heading" style="margin-bottom:4px"><svg class="ico" style="color:var(--green);"><use href="#i-calendar"/></svg> 每日打卡</h2>
+              <p style="font-size:13px;color:var(--text-secondary);margin:0;">每天打卡 +1 次手动签到机会，连续 7 天额外 +2 次（最多累积 99 次）。会员无需次数，可直接签到。</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+              <div style="text-align:center;"><div style="font-size:20px;font-weight:700" id="creditsCount">0</div><div style="font-size:11px;color:var(--text-secondary)">可用次数</div></div>
+              <div style="text-align:center;"><div style="font-size:20px;font-weight:700" id="streakCount">0</div><div style="font-size:11px;color:var(--text-secondary)">连续打卡(天)</div></div>
+              <button class="btn btn-primary" id="checkinBtn" onclick="doCheckin()">立即打卡</button>
+            </div>
+          </div>
         </div>
 
         <div class="card">
@@ -1727,6 +1746,8 @@ function renderEmailWarning() {
     </div>`;
   }
   renderEmailBanner();
+  renderSponsorCard();
+  renderCheckinCard();
   ['notifyOnSuccess', 'notifyOnFailure'].forEach(id => {
     const cb = document.getElementById(id);
     if (!cb) return;
@@ -1738,6 +1759,63 @@ function renderEmailWarning() {
       }
     };
   });
+}
+
+function todayKeyBeijing() {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const get = t => (parts.find(p => p.type === t) || {}).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+function renderCheckinCard() {
+  const creditsEl = document.getElementById('creditsCount');
+  const streakEl = document.getElementById('streakCount');
+  const btn = document.getElementById('checkinBtn');
+  if (!creditsEl || !streakEl || !btn) return;
+  creditsEl.textContent = Number(currentUser.signCredits || 0);
+  streakEl.textContent = Number(currentUser.checkinStreak || 0);
+  const done = currentUser.lastCheckinDate === todayKeyBeijing();
+  btn.disabled = done;
+  btn.textContent = done ? '今日已打卡' : '立即打卡';
+}
+
+async function doCheckin() {
+  const btn = document.getElementById('checkinBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const data = await api('/checkin', { method: 'POST' });
+    if (data.success) {
+      currentUser.signCredits = data.credits;
+      currentUser.checkinStreak = data.streak;
+      if (!data.already) currentUser.lastCheckinDate = todayKeyBeijing();
+      if (typeof renderCheckinCard === 'function') renderCheckinCard();
+      showToast(data.message || '打卡成功', data.already ? 'warning' : 'success');
+    }
+  } catch (e) {
+    showToast('打卡失败：' + (e.message || '网络异常'), 'error');
+  }
+  const done = currentUser.lastCheckinDate === todayKeyBeijing();
+  if (btn) btn.disabled = done;
+}
+
+function renderSponsorCard() {
+  const title = document.getElementById('sponsorCardTitle');
+  const desc = document.getElementById('sponsorCardDesc');
+  const btn = document.getElementById('sponsorCardBtn');
+  if (!title || !desc || !btn) return;
+  const isVip = !!currentUser.isVip;
+  const tierName = (typeof currentPlanName === 'function') ? currentPlanName() : '';
+  const exp = currentUser.vipExpireAt ? new Date(currentUser.vipExpireAt) : null;
+  if (isVip) {
+    const expText = exp ? exp.toLocaleDateString('zh-CN') : '长期';
+    title.textContent = (tierName ? tierName + ' · ' : '') + '有效期至 ' + expText;
+    desc.textContent = '到期前 7 天会邮件提醒续费；自动签到已开启，可自定义签到时间。';
+    btn.textContent = '续费 / 升级';
+  } else {
+    title.textContent = '开通会员，更省心';
+    desc.textContent = '会员每天 21:35 自动签到，可自定义签到时间，有效期至毕业。';
+    btn.textContent = '去开通';
+  }
 }
 
 function renderEmailBanner() {
@@ -2438,6 +2516,8 @@ function init() {
   bindWeekdayButtons();
   loadUserInfo(); loadStats(); loadActiveSubs(); loadNotice();
   renderEmailBanner();
+  renderSponsorCard();
+  renderCheckinCard();
   setTimeout(loadVipNotice, 500);
   renderOnboarding();
   setTimeout(showSponsorModal, 8000);
