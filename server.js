@@ -3839,6 +3839,40 @@ app.get('/api/wxpusher/callback', (req, res) => {
   res.json({ success: true, message: 'WxPusher Callback Endpoint Ready' });
 });
 
+// 管理员专用：给指定用户发一条模拟微信通知（用于验证分类文案，不触发真实签到）
+// body: { studentId | userId, category: 'password' | 'school' | 'internal' | 'success' }
+app.post('/api/admin/wx-test', adminMiddleware, async (req, res) => {
+  try {
+    const { studentId, userId, category = 'internal' } = req.body || {};
+    const cfg = await getWxpusherConfig();
+    if (!cfg.appToken) return res.status(503).json({ success: false, message: '服务端未配置 WxPusher AppToken' });
+    const user = studentId ? await User.findOne({ studentId: String(studentId) }) : (userId ? await User.findById(userId) : null);
+    if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
+    if (!user.wxpusherUid) return res.status(400).json({ success: false, message: `用户 ${user.studentId} 还没绑定微信` });
+
+    const samples = {
+      password: '模拟：账号或密码不正确',
+      school: '模拟：学校系统超时',
+      internal: '模拟：内部处理异常'
+    };
+    const msg = category === 'success'
+      ? wxpusher.signResultMessage({ studentId: user.studentId, success: true })
+      : classifySignFailure(samples[category] || samples.internal);
+    const r = await wxpusher.sendToUid(cfg.appToken, user.wxpusherUid, msg.summary, msg.content);
+    res.json({
+      success: r.ok,
+      message: r.ok ? '已发送测试通知' : (r.message || '发送失败'),
+      category,
+      studentId: user.studentId,
+      uidPrefix: String(user.wxpusherUid).slice(0, 10) + '…',
+      summary: msg.summary,
+      content: msg.content
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // WxPusher 扫码回调（公开接口）：用户关注后 WxPusher 会 POST 过来，data.extra 就是学号
 app.post('/api/wxpusher/callback', async (req, res) => {
   try {
