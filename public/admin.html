@@ -673,6 +673,11 @@
     };
     const CUSTOM_TIME_TIERS = ['YEARLY_PRO', 'FRESHMAN', 'SOPHOMORE', 'JUNIOR', 'VIP', 'SVIP', 'LEGACY'];
     function tierLabel(tier) { return TIER_LABELS[tier] || tier || '免费'; }
+    function memberLabel(u) {
+      const span = (u && u.vipExpireAt && u.vipStartAt) ? (new Date(u.vipExpireAt).getTime() - new Date(u.vipStartAt).getTime()) : 0;
+      if (span >= 2 * 86400000 && span <= 4 * 86400000) return '3天体验会员';
+      return tierLabel(u && u.vipTier);
+    }
     function tierSupportsCustom(tier) { return CUSTOM_TIME_TIERS.includes(tier); }
     function fmtDate(value) {
       if (!value) return '—';
@@ -873,8 +878,8 @@
                   <td>${u.email || '-'} ${u.emailVerified ? '✓' : ''}</td>
                   <td>${u.isVip
                     ? (u.vipExpireAt && new Date(u.vipExpireAt).getTime() <= Date.now()
-                        ? `<span class="badge badge-danger">${tierLabel(u.vipTier)} · 已过期${Math.max(0, Math.floor((Date.now() - new Date(u.vipExpireAt).getTime()) / 86400000))}天</span><br><span style="font-size:12px;color:#94a3b8;">到期 ${fmtDate(u.vipExpireAt)}</span>`
-                        : `<span class="badge badge-success">${tierLabel(u.vipTier)}</span><br><span style="font-size:12px;color:#94a3b8;">${fmtDate(u.vipExpireAt)}${tierSupportsCustom(u.vipTier) ? ' · 可自定义' : ''}</span>`)
+                        ? `<span class="badge badge-danger">${memberLabel(u)} · 已过期${Math.max(0, Math.floor((Date.now() - new Date(u.vipExpireAt).getTime()) / 86400000))}天</span><br><span style="font-size:12px;color:#94a3b8;">到期 ${fmtDate(u.vipExpireAt)}</span>`
+                        : `<span class="badge badge-success">${memberLabel(u)}</span><br><span style="font-size:12px;color:#94a3b8;">${fmtDate(u.vipExpireAt)}${tierSupportsCustom(u.vipTier) ? ' · 可自定义' : ''}</span>`)
                     : '<span class="badge badge-danger">普通</span>'}</td>
                   <td>${u.role === 'admin' ? '<span class="badge badge-admin">管理员</span>' : '<span class="badge badge-info">用户</span>'}</td>
                   <td>${u.successSignCount || 0}/${u.totalSignCount || 0}</td>

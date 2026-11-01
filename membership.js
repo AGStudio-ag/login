@@ -336,17 +336,26 @@ function membershipView(user, now = new Date()) {
   const normalized = normalizeTier(user.vipTier);
   const plan = PLAN_BY_TIER[normalized] || null;
   const exp = user.vipExpireAt ? new Date(user.vipExpireAt) : null;
+  const start = user.vipStartAt ? new Date(user.vipStartAt) : null;
   const isExpired = !!(user.isVip && exp && exp.getTime() <= now.getTime());
   const expiredDays = isExpired ? Math.max(0, Math.floor((now.getTime() - exp.getTime()) / DAY_MS)) : 0;
+  // 3 天体验会员识别（注册赠送）：有效期起点到终点的跨度约 2~4 天
+  let trial = false;
+  if (exp && start) {
+    const span = exp.getTime() - start.getTime();
+    if (span >= 2 * DAY_MS && span <= 4 * DAY_MS) trial = true;
+  }
+  const planName = trial ? '3天体验会员' : (plan ? plan.name : (TIER_LABELS[normalized] || '会员'));
   return {
     isVip: !!user.isVip,
     active,
     expired: isExpired,
     expiredDays,
+    trial,
     status: active ? 'active' : (isExpired ? 'expired' : 'free'),
     tier: normalized,
     planCode: plan ? plan.code : '',
-    planName: plan ? plan.name : (TIER_LABELS[normalized] || '会员'),
+    planName,
     canCustomTime: active && tierAllowsCustomTime(normalized),
     expireAt: user.vipExpireAt || null,
     startAt: user.vipStartAt || null
