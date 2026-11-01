@@ -187,6 +187,9 @@
         <div class="menu-item" data-page="email">
           <i class="fas fa-envelope"></i> 群发邮件
         </div>
+        <div class="menu-item" data-page="sign-mgmt">
+          <i class="fas fa-clipboard-check"></i> 签到管理
+        </div>
         <div class="menu-item" data-page="settings">
           <i class="fas fa-cog"></i> 系统设置
         </div>
@@ -449,6 +452,24 @@
         </div>
       </div>
 
+      <!-- ===== 签到管理 ===== -->
+      <div id="page-sign-mgmt" class="hidden">
+        <div class="content-card">
+          <div class="card-header">
+            <h3><i class="fas fa-clipboard-check"></i> 今日自动签到覆盖</h3>
+            <button class="btn btn-primary" onclick="loadSignReport()"><i class="fas fa-sync"></i> 刷新</button>
+          </div>
+          <div id="signReportBox" style="color:#888;">点击"刷新"查看今日签到名单</div>
+        </div>
+        <div class="content-card">
+          <div class="card-header"><h3><i class="fas fa-envelope-open-text"></i> 邮件工具</h3></div>
+          <p style="color:#666;font-size:13px;margin:0 0 12px;">管理员汇总每天 23:59 自动发送（已发则跳过）；续费提醒每天 10:00 自动检查（到期前 7 天 / 1 天，仅发送给已绑定邮箱的会员）。以下按钮可手动触发。</p>
+          <button class="btn btn-primary" onclick="sendTodaySummary()" id="btnSendSummary"><i class="fas fa-paper-plane"></i> 立即发送今日汇总邮件</button>
+          <button class="btn" style="margin-left:8px;background:#f0f2f6;color:#334155;border:1px solid #e2e8f0;" onclick="runRenewalCheck()" id="btnRenewalCheck"><i class="fas fa-bell"></i> 立即检查续费提醒</button>
+          <span id="mailToolResult" style="margin-left:12px;color:#666;"></span>
+        </div>
+      </div>
+
       <!-- ===== 系统设置 ===== -->
       <div id="page-settings" class="hidden">
         <div class="content-card">
@@ -685,7 +706,7 @@
         const titles = {
           dashboard: '仪表盘', users: '考勤用户管理', 'market-users': '交易平台用户管理', cards: '卡密管理',
           reports: '举报管理', orders: '订单管理', 'sponsor-orders': '赞助订单', packages: '套餐管理', 'market-items': '商品管理',
-          feedback: '留言管理', email: '群发邮件', settings: '系统设置'
+          feedback: '留言管理', email: '群发邮件', 'sign-mgmt': '签到管理', settings: '系统设置'
         };
         document.getElementById('pageTitle').textContent = titles[page];
 
@@ -700,9 +721,57 @@
         else if (page === 'market-items') loadMarketItems();
         else if (page === 'feedback') loadFeedbacks();
         else if (page === 'email') loadEmailStats();
+        else if (page === 'sign-mgmt') loadSignReport();
         else if (page === 'settings') { loadSettings(); loadSponsorNotice(); }
       });
     });
+
+    // ========== 签到管理 ==========
+    async function loadSignReport() {
+      const box = document.getElementById('signReportBox');
+      box.innerHTML = '加载中...';
+      try {
+        const res = await fetch(`${API_BASE}/admin/autosign-report`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (!data.success) { box.innerHTML = '<span style="color:#dc3545;">加载失败：' + (data.message || '') + '</span>'; return; }
+        let html = `<p style="margin:0 0 10px;color:#334155;">自动签到用户 <strong>${data.total}</strong> 人，今日已签 <strong style="color:#166534;">${data.signed}</strong> 人，未签 <strong style="color:#b42318;">${data.missing.length}</strong> 人</p>`;
+        if (!data.missing.length) {
+          html += '<p style="color:#166534;margin:0;">✅ 全部已签到</p>';
+        } else {
+          html += '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="color:#64748b;text-align:left;"><th style="padding:6px;border-bottom:1px solid #e2e8f0;">学号</th><th style="padding:6px;border-bottom:1px solid #e2e8f0;">姓名</th><th style="padding:6px;border-bottom:1px solid #e2e8f0;">会员</th><th style="padding:6px;border-bottom:1px solid #e2e8f0;">到期时间</th></tr></thead><tbody>';
+          for (const m of data.missing) {
+            const exp = m.vipExpireAt ? new Date(m.vipExpireAt).toLocaleString('zh-CN') : '长期';
+            html += `<tr><td style="padding:6px;border-bottom:1px solid #f0f2f6;">${m.studentId}</td><td style="padding:6px;border-bottom:1px solid #f0f2f6;">${m.name || '-'}</td><td style="padding:6px;border-bottom:1px solid #f0f2f6;">${m.vipTier || '-'}</td><td style="padding:6px;border-bottom:1px solid #f0f2f6;">${exp}</td></tr>`;
+          }
+          html += '</tbody></table>';
+        }
+        box.innerHTML = html;
+      } catch (e) { box.innerHTML = '<span style="color:#dc3545;">加载异常：' + e.message + '</span>'; }
+    }
+
+    async function sendTodaySummary() {
+      const btn = document.getElementById('btnSendSummary'); const out = document.getElementById('mailToolResult');
+      btn.disabled = true; out.textContent = '发送中...';
+      try {
+        const res = await fetch(`${API_BASE}/admin/send-summary`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        out.textContent = data.success ? '✅ 今日汇总邮件已发送，请查收邮箱' : '❌ ' + (data.message || '发送失败');
+      } catch (e) { out.textContent = '❌ ' + e.message; }
+      btn.disabled = false;
+    }
+
+    async function runRenewalCheck() {
+      const btn = document.getElementById('btnRenewalCheck'); const out = document.getElementById('mailToolResult');
+      btn.disabled = true; out.textContent = '检查中...';
+      try {
+        const res = await fetch(`${API_BASE}/admin/check-renewal`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (!data.success) { out.textContent = '❌ ' + (data.message || '检查失败'); }
+        else if (!data.sent) { out.textContent = `检查完成：本次无到期提醒可发（已发 ${data.sent} 封 / 失败 ${data.failed} 封）`; }
+        else { out.textContent = `✅ 已发送 ${data.sent} 封续费提醒` + (data.details || []).map(d => `（${d.studentId} ${d.days}天）`).join(''); }
+      } catch (e) { out.textContent = '❌ ' + e.message; }
+      btn.disabled = false;
+    }
 
     // ========== 仪表盘 ==========
     async function loadDashboardStats() {

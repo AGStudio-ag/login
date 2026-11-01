@@ -682,6 +682,16 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
     </header>
 
     <div class="content">
+      <!-- 全局邮箱绑定提示（推广绑定邮箱） -->
+      <div id="globalEmailBanner" class="alert alert-warning" style="display:none;margin-bottom:14px;align-items:flex-start;gap:10px;">
+        <svg class="ico" style="color:var(--amber);flex:none;margin-top:2px;"><use href="#i-mail"/></svg>
+        <div style="flex:1;min-width:0;">
+          <strong>还没绑定邮箱</strong>
+          <p style="margin:2px 0 0;">绑定邮箱后可以收到每次签到结果通知和会员到期提醒；不绑定将收不到任何邮件通知（后续可能限制未绑定用户使用部分功能）。</p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="goPage('email')" style="flex:none;">立即绑定</button>
+        <button class="btn btn-ghost btn-sm" onclick="dismissEmailBanner()" title="今天不再提示" style="flex:none;">×</button>
+      </div>
       <!-- ================= 首页 ================= -->
       <div id="page-dashboard" class="page active">
         <div class="card" id="onboardingCard">
@@ -1713,9 +1723,10 @@ function renderEmailWarning() {
   } else {
     box.innerHTML = `<div class="alert alert-warning">
       <svg class="ico" style="color:var(--amber);"><use href="#i-alert"/></svg>
-      <div><strong>未绑定邮箱</strong><p>绑定后签到状态会通过邮件通知。 <button class="btn btn-ghost btn-sm" style="text-decoration:underline;height:auto;padding:0;color:var(--amber);font-weight:600;" onclick="goPage('email')">去绑定</button></p></div>
+      <div><strong>未绑定邮箱</strong><p>绑定后签到状态和会员到期提醒都会通过邮件通知。 <button class="btn btn-ghost btn-sm" style="text-decoration:underline;height:auto;padding:0;color:var(--amber);font-weight:600;" onclick="goPage('email')">去绑定</button></p></div>
     </div>`;
   }
+  renderEmailBanner();
   ['notifyOnSuccess', 'notifyOnFailure'].forEach(id => {
     const cb = document.getElementById(id);
     if (!cb) return;
@@ -1727,6 +1738,20 @@ function renderEmailWarning() {
       }
     };
   });
+}
+
+function renderEmailBanner() {
+  const el = document.getElementById('globalEmailBanner');
+  if (!el) return;
+  const dismissed = localStorage.getItem('emailBannerDismissed') === new Date().toDateString();
+  const needBind = currentUser && !currentUser.emailVerified;
+  el.style.display = needBind && !dismissed ? 'flex' : 'none';
+}
+
+function dismissEmailBanner() {
+  localStorage.setItem('emailBannerDismissed', new Date().toDateString());
+  const el = document.getElementById('globalEmailBanner');
+  if (el) el.style.display = 'none';
 }
 
 async function loadAutoSignSetting() {
@@ -2412,6 +2437,7 @@ function goToSponsor() {
 function init() {
   bindWeekdayButtons();
   loadUserInfo(); loadStats(); loadActiveSubs(); loadNotice();
+  renderEmailBanner();
   setTimeout(loadVipNotice, 500);
   renderOnboarding();
   setTimeout(showSponsorModal, 8000);
