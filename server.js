@@ -3712,6 +3712,25 @@ app.get('/api/payment/packages', authMiddleware, async (req, res) => {
   }
 });
 
+// 管理员：会员等级元数据（前端 admin.html 不再硬编码 TIER_LABELS / CUSTOM_TIME_TIERS）
+// 字段直接取 membership.js 的导出，前端不做映射；legacyTiers = 不在售的历史等级（VIP/SVIP/LEGACY）
+app.get('/api/admin/tier-meta', adminMiddleware, async (req, res) => {
+  try {
+    const tierLabels = membership.TIER_LABELS;
+    const planTiers = new Set(membership.PLANS.map(p => p.tier));
+    const legacyTiers = Object.keys(tierLabels).filter(t => t !== 'FREE' && !planTiers.has(t));
+    res.json({
+      success: true,
+      tierLabels,
+      customTimeTiers: membership.CUSTOM_TIME_TIERS,
+      legacyTiers,
+      tierOrder: Object.keys(tierLabels)
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 app.get('/api/payment/coupon', authMiddleware, async (req, res) => {
   const coupon = findCoupon(req.query.code);
   if (!coupon) {
