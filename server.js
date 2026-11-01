@@ -1493,12 +1493,35 @@ async function maybeSendAdminSignSummary(day = new Date(), opts = {}) {
 }
 // ============ 单个用户签到结果 → 微信通知（仅绑定了 WxPusher 的用户）============
 // 原则：发送失败只记日志，绝不影响签到主流程
+// 失败原因分类：给用户「可执行的下一步」，不要只丢一句"签到失败"
+function classifySignFailure(reason) {
+  const r = String(reason || '');
+  if (/密码|口令|学号或密码|账号不正确|password|auth|unauthor|登录失败|未登录/i.test(r)) {
+    return {
+      summary: '签到失败 · 账号或密码错误',
+      content: '❌ 签到失败：学号或密码不正确。\n请到 AG 考勤后台「设置」检查并修改签到密码，改好后会自动重试。'
+    };
+  }
+  if (/超时|timeout|网络|ECONN|ETIMEDOUT|ENOTFOUND|socket|学校|502|503|504|网关|服务不可用|连接/i.test(r)) {
+    return {
+      summary: '签到失败 · 学校系统异常',
+      content: '❌ 签到失败：学校系统暂时无法访问（不是你的问题）。\n系统会自动重试；如果仍然失败，请手动签到一次。'
+    };
+  }
+  return {
+    summary: '签到失败 · 系统异常',
+    content: '❌ 签到失败：系统处理异常，已记录日志并通知管理员。\n你可以稍后重试或手动签到。'
+  };
+}
+
 async function notifyUserWxpusher(user, success, reason) {
   try {
     if (!user || !user.wxpusherUid) return;
     const cfg = await getWxpusherConfig();
     if (!cfg.appToken) return;
-    const msg = wxpusher.signResultMessage({ studentId: user.studentId, success, reason });
+    const msg = success
+      ? wxpusher.signResultMessage({ studentId: user.studentId, success: true })
+      : classifySignFailure(reason);
     const r = await wxpusher.sendToUid(cfg.appToken, user.wxpusherUid, msg.summary, msg.content);
     if (!r.ok) console.error(`WxPusher 通知失败 ${user.studentId}: ${r.message}`);
   } catch (e) {
@@ -3108,9 +3131,12 @@ app.put('/api/admin/config/:key', adminMiddleware, async (req, res) => {
 // 用户列表
 app.get('/api/admin/users', adminMiddleware, async (req, res) => {
   try {
-    const { page = 1, limit = 20, search = '', showGuests = 'false', showMarket = 'false', scope = '' } = req.query;
+    const { page = 1, limit = 20, search = '', showGuests = 'false', showMarket = 'false', scope = '', wx = '' } = req.query;
 
     const conditions = [];
+    // 微信通知绑定筛选（运营用来捞「交了钱但没绑微信」的人）
+    if (wx === 'unbound') conditions.push({ $or: [{ wxpusherUid: '' }, { wxpusherUid: { $exists: false } }, { wxpusherUid: null }] });
+    else if (wx === 'bound') conditions.push({ wxpusherUid: { $nin: ['', null] } });
     if (scope === 'attendance') {
       conditions.push(
         { isGuest: { $ne: true } },
