@@ -1223,9 +1223,11 @@ async function sendAdminSignSummary(day = new Date()) {
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:20px;background:#f4f6f8;font-family:'Microsoft YaHei',Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;"><div style="background:linear-gradient(135deg,#173b36,#245a52);padding:24px;color:#fff;"><h1 style="margin:0;font-size:20px;">${dateText} 今日签到汇总</h1><p style="margin:6px 0 0;opacity:.85;font-size:13px;">AG 智能考勤 · 管理员汇总</p></div><div style="padding:24px;color:#334155;font-size:14px;line-height:2;"><p style="margin:0;">自动签到用户：<strong>${autoUsers}</strong></p><p style="margin:0;">今日签到次数：<strong>${autoTotal}</strong></p><p style="margin:0;">成功：<strong style="color:#166534;">${success}</strong>　失败：<strong style="color:#b42318;">${failed}</strong></p><p style="margin:12px 0 0;color:#64748b;font-size:13px;">用户总数：<strong>${totalUsers}</strong>　今日新增：<strong>${newUsers}</strong>　付费用户：<strong>${vipUsers}</strong></p></div><div style="padding:16px 24px;border-top:1px solid #e2e8f0;"><h3 style="margin:0 0 8px;font-size:14px;color:#173b36;">今日赞助订单（${orders.length} 笔）</h3>${orderRows}</div><div style="padding:16px 24px;border-top:1px solid #e2e8f0;"><h3 style="margin:0 0 8px;font-size:14px;color:#173b36;">近 7 天趋势</h3>${trendRows}</div><div style="padding:16px 24px;border-top:1px solid #e2e8f0;"><h3 style="margin:0 0 8px;font-size:14px;color:#173b36;">签到失败明细</h3>${failRows || '<p style="margin:0;color:#64748b;font-size:13px;">无失败记录</p>'}</div></div></body></html>`;
     const res = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'AG工作室 <noreply@agai.online>', to: ADMIN_EMAIL, subject: `📊 ${dateText} 今日签到汇总 · 成功 ${success} / 失败 ${failed}`, html }) });
     console.log(`📊 管理员汇总邮件: ${res.ok ? '已发送' : '发送失败'} (成功 ${success} / 失败 ${failed})`);
-  } catch (e) { console.error('管理员汇总邮件失败:', e.message); }
+    return res.ok === true;
+  } catch (e) { console.error('管理员汇总邮件失败:', e.message); return false; }
 }
-async function maybeSendAdminSignSummary(day = new Date()) {
+async function maybeSendAdminSignSummary(day = new Date(), opts = {}) {
+  const force = !!(opts && opts.force);
   try {
     const dayKey = day.toLocaleDateString('zh-CN');
     const sentCfg = await SystemConfig.findOne({ key: 'admin_summary_sent_date' });
@@ -1241,8 +1243,9 @@ async function maybeSendAdminSignSummary(day = new Date()) {
     }).select('userId').lean();
     const done = new Set(logs.map(l => String(l.userId)));
     const allDone = uniqueIds.every(id => done.has(id));
-    if (!allDone) return;
-    await sendAdminSignSummary(day);
+    if (!allDone && !force) return;
+    const ok = await sendAdminSignSummary(day);
+    if (ok === false) { console.error('管理员汇总发送失败，未写去重标记'); return; }
     let cfg = await SystemConfig.findOne({ key: 'admin_summary_sent_date' });
     if (!cfg) cfg = new SystemConfig({ key: 'admin_summary_sent_date', value: dayKey });
     else { cfg.value = dayKey; cfg.updatedAt = new Date(); }
@@ -2434,6 +2437,22 @@ app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
         invites: { total: totalInvites }
       }
     });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 手动触发今日管理员签到汇总（管理员）
+app.post('/api/admin/send-summary', adminMiddleware, async (req, res) => {
+  try {
+    const ok = await sendAdminSignSummary(new Date());
+    if (!ok) return res.status(502).json({ success: false, message: '邮件发送失败（Resend 返回错误），请查看服务日志' });
+    let cfg = await SystemConfig.findOne({ key: 'admin_summary_sent_date' });
+    const dayKey = new Date().toLocaleDateString('zh-CN');
+    if (!cfg) cfg = new SystemConfig({ key: 'admin_summary_sent_date', value: dayKey });
+    else { cfg.value = dayKey; cfg.updatedAt = new Date(); }
+    await cfg.save();
+    res.json({ success: true, message: '今日汇总邮件已发送' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -4329,8 +4348,11 @@ cron.schedule(AUTO_SIGN_CRON, () => executeAutoSign({ targetTime: AUTO_SIGN_TIME
 
 cron.schedule('0 10 * * *', () => { checkRenewalReminders().catch(err => console.error('续费提醒任务失败:', err.message)); }, { timezone: "Asia/Shanghai" });
 
-// 每天 00:05 汇总前一天（等所有自定义时间签完）
-cron.schedule('5 0 * * *', () => { const d = new Date(); d.setDate(d.getDate() - 1); maybeSendAdminSignSummary(d).catch(err => console.error('管理员汇总兜底失败:', err.message)); }, { timezone: "Asia/Shanghai" });
+// 每天 23:59 汇总当天（保证当天必发；已发过则跳过）
+cron.schedule('59 23 * * *', () => { maybeSendAdminSignSummary(new Date(), { force: true }).catch(err => console.error('管理员汇总（当天 23:59）失败:', err.message)); }, { timezone: "Asia/Shanghai" });
+
+// 每天 00:05 兜底汇总前一天（若 23:59 因故失败）
+cron.schedule('5 0 * * *', () => { const d = new Date(); d.setDate(d.getDate() - 1); maybeSendAdminSignSummary(d, { force: true }).catch(err => console.error('管理员汇总兜底失败:', err.message)); }, { timezone: "Asia/Shanghai" });
 
 cron.schedule('* * * * *', () => {
   const now = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
