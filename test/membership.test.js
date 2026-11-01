@@ -209,3 +209,29 @@ test('套餐价格契约：planMetaList 按 sort 排序且价格/名称与 PLANS
   // 价格快照：改价必须同时改测试（防止前端展示与后端收费悄悄漂移）
   assert.deepEqual(list.map(p => p.price), [6.66, 9.99, 15.01, 20, 49.9, 39.9, 28.8]);
 });
+
+// ===== 元老 LEGACY 权益契约（2026-11-02 业务口径：到毕业就够，但不能自定义签到时间）=====
+
+test('元老契约：LEGACY 有中文标签，且不在自定义时间名单里', () => {
+  assert.equal(M.tierLabel('LEGACY'), '元老会员');
+  assert.equal(M.tierAllowsCustomTime('LEGACY'), false);
+  assert.equal(M.CUSTOM_TIME_TIERS.includes('LEGACY'), false);
+  // 业务：元老不能自定义签到时间（即使他是有效会员）
+  const active = { isVip: true, vipTier: 'LEGACY', vipExpireAt: new Date(NOW.getTime() + 200 * M.DAY_MS) };
+  assert.equal(M.canCustomizeTime(active, true), false);
+  assert.equal(M.canCustomizeTime(active), false);
+});
+
+test('元老契约：到期前算有效会员、到期后自动失效（不设永久，到毕业即止）', () => {
+  const alive = { isVip: true, vipTier: 'LEGACY', vipExpireAt: new Date(NOW.getTime() + 200 * M.DAY_MS) };
+  const view = M.membershipView(alive, NOW);
+  assert.equal(view.active, true);
+  assert.equal(view.tier, 'LEGACY');
+  assert.equal(view.planName, '元老会员');
+  assert.equal(view.canCustomTime, false);
+
+  const dead = { isVip: true, vipTier: 'LEGACY', vipExpireAt: new Date(NOW.getTime() - M.DAY_MS) };
+  const expiredView = M.membershipView(dead, NOW);
+  assert.equal(expiredView.active, false);
+  assert.equal(expiredView.tier, 'LEGACY', '过期后仍要能显示原等级，只是 active=false');
+});

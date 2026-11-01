@@ -194,7 +194,8 @@ const TIER_RANK = {
 };
 
 // 允许自定义签到时间 / 自定义会员时间的等级
-const CUSTOM_TIME_TIERS = ['YEARLY_PRO', 'FRESHMAN', 'SOPHOMORE', 'JUNIOR', 'VIP', 'SVIP', 'LEGACY'];
+// 注意：LEGACY（元老）**不能**自定义签到时间（2026-11-02 业务口径确认），不要加回来
+const CUSTOM_TIME_TIERS = ['YEARLY_PRO', 'FRESHMAN', 'SOPHOMORE', 'JUNIOR', 'VIP', 'SVIP'];
 
 // 历史等级显示名（不允许使用“毕业卡”等旧套餐名）
 const LEGACY_TIER_LABELS = {

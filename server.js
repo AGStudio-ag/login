@@ -417,6 +417,10 @@ const feedbackSchema = new mongoose.Schema({
 const paymentOrderSchema = new mongoose.Schema({
   orderNo: { type: String, required: true, unique: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  // 下单时冻结的用户快照：用户被物理删除后，后台仍能看到是谁下的单（TD-13，绝不显示空白）
+  userStudentId: { type: String, default: '' },
+  userName: { type: String, default: '' },
+  userEmail: { type: String, default: '' },
   packageId: { type: String, default: '' },
   planCode: { type: String, default: '' },
   packageName: { type: String, default: '' },
@@ -3749,6 +3753,30 @@ app.get('/api/payment/coupon', authMiddleware, async (req, res) => {
   });
 });
 
+/** 下单 / 复用旧单的统一返回结构（购买页只认这个 order 对象） */
+function sponsorOrderPayload(order) {
+  return {
+    orderNo: order.orderNo,
+    amount: order.amount,
+    originalAmount: order.originalAmount,
+    couponCode: order.couponCode,
+    couponDiscount: order.couponDiscount,
+    tier: order.tier,
+    planCode: order.planCode,
+    packageName: order.packageName,
+    durationLabel: order.durationLabel,
+    packageType: order.packageType,
+    days: order.days,
+    counts: order.counts,
+    packageId: order.packageId,
+    payMethod: order.payMethod,
+    status: order.status,
+    mark: order.payCode || order.orderNo,
+    payCode: order.payCode || '',
+    expireAt: order.expireAt
+  };
+}
+
 app.post('/api/payment/create-order', authMiddleware, async (req, res) => {
   try {
     const { packageId, payMethod, couponCode } = req.body;
@@ -3761,6 +3789,22 @@ app.post('/api/payment/create-order', authMiddleware, async (req, res) => {
     if (couponCode && !coupon) {
       return res.status(400).json({ success: false, message: '优惠码无效' });
     }
+
+    // 幂等（TD-12）：同用户 + 同档位还有未过期的 pending 订单 → 复用旧单，不再新建
+    const nowTs = Date.now();
+    const pendingSame = await PaymentOrder.findOne({
+      userId: req.user._id, packageId: pkg.packageId, status: 'pending'
+    }).sort({ createdAt: -1 });
+    if (pendingSame && (!pendingSame.expireAt || new Date(pendingSame.expireAt).getTime() > nowTs)) {
+      return res.json({
+        success: true,
+        reused: true,
+        message: '你有一笔未完成的同套餐订单，已为你恢复，请按原金额支付',
+        order: sponsorOrderPayload(pendingSame),
+        qrCodes: { wechat: PAY_QR_URLS.wechat, alipay: PAY_QR_URLS.alipay }
+      });
+    }
+    if (pendingSame) { pendingSame.status = 'expired'; await pendingSame.save().catch(() => {}); }
     const originalPrice = Number(pkg.price);
     const discount = coupon ? Math.min(Number(coupon.discount), originalPrice) : 0;
     const discountedBase = Math.max(0.01, Number((originalPrice - discount).toFixed(2)));
@@ -3776,6 +3820,9 @@ app.post('/api/payment/create-order', authMiddleware, async (req, res) => {
     const order = new PaymentOrder({
       orderNo,
       userId: req.user._id,
+      userStudentId: req.user.studentId || '',
+      userName: req.user.name || '',
+      userEmail: req.user.email || '',
       packageId: pkg.packageId,
       planCode: pkg.planCode || pkg.packageId,
       packageName: pkg.name,
@@ -3799,26 +3846,7 @@ app.post('/api/payment/create-order', authMiddleware, async (req, res) => {
 
     res.json({
       success: true,
-      order: {
-        orderNo: order.orderNo,
-        amount: order.amount,
-        originalAmount: order.originalAmount,
-        couponCode: order.couponCode,
-        couponDiscount: order.couponDiscount,
-        tier: order.tier,
-        planCode: order.planCode,
-        packageName: order.packageName,
-        durationLabel: order.durationLabel,
-        packageType: order.packageType,
-        days: order.days,
-        counts: order.counts,
-        packageId: order.packageId,
-        payMethod: order.payMethod,
-        status: order.status,
-        mark: order.payCode || order.orderNo,
-        payCode: order.payCode || '',
-        expireAt: order.expireAt
-      },
+      order: sponsorOrderPayload(order),
       qrCodes: { wechat: PAY_QR_URLS.wechat, alipay: PAY_QR_URLS.alipay }
     });
   } catch (error) {
@@ -3966,8 +3994,32 @@ app.get('/api/admin/sponsor-orders', adminMiddleware, async (req, res) => {
       .populate('reviewedBy', 'studentId name')
       .sort({ createdAt: -1 })
       .skip((parseInt(page) - 1) * parseInt(limit))
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean();
     const total = await PaymentOrder.countDocuments(query);
+
+    // 每个用户当前有多少笔 pending（跨筛选统计，用来提示"该用户还有 N 笔待处理"，TD-12）
+    const pendingAgg = await PaymentOrder.aggregate([
+      { $match: { status: 'pending' } },
+      { $group: { _id: '$userId', count: { $sum: 1 } } }
+    ]);
+    const pendingByUser = new Map(pendingAgg.map(x => [String(x._id), x.count]));
+
+    for (const o of orders) {
+      const uid = o.userId && (o.userId._id || o.userId);
+      o.userPendingCount = uid ? (pendingByUser.get(String(uid)) || 0) : 0;
+      // 用户被物理删除时 populate 为 null：用下单快照兜底，后台绝不显示空白（TD-13）
+      if (!o.userId) {
+        o.userDeleted = true;
+        o.userId = {
+          _id: null,
+          deleted: true,
+          studentId: o.userStudentId || '',
+          name: o.userName || '',
+          email: o.userEmail || ''
+        };
+      }
+    }
     res.json({ success: true, orders, total, page: parseInt(page) });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
