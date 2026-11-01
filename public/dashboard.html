@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
@@ -1181,6 +1181,9 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
     <svg class="ico"><use href="#i-grid"/></svg><span>更多</span>
   </button>
 </nav>
+
+<!-- 悬浮反馈按钮 -->
+<button id="feedbackFab" onclick="goPage('feedback')" title="意见反馈" style="position:fixed;right:18px;bottom:26px;z-index:70;width:54px;height:54px;border-radius:50%;border:none;background:#3b6df0;color:#fff;font-size:11px;line-height:1.15;box-shadow:0 8px 22px rgba(15,23,42,.28);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;opacity:.95;">💬<span>反馈</span></button>
 
 <!-- ================= Sponsor Modal ================= -->
 <div class="modal-mask" id="sponsorModal">
