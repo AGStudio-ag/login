@@ -912,7 +912,14 @@ async function sendVipGrantEmail(user, addedDays, newExpireAt) {
   });
 }
 
+// 省 Resend 额度：签到成功属于日常事件，默认不发邮件；失败/异常才发（可用环境变量 SIGN_SUCCESS_MAIL_ENABLED=true 打开）
+const SIGN_SUCCESS_MAIL_ENABLED = String(process.env.SIGN_SUCCESS_MAIL_ENABLED || 'false') === 'true';
+
 async function sendSignNotification(email, studentId, result, subscriptionName, signTime = null) {
+  if (result && result.success && !SIGN_SUCCESS_MAIL_ENABLED) {
+    console.log(`📧 签到成功通知已按省额度策略跳过: ${studentId}`);
+    return false;
+  }
   console.log(`📧 准备发送通知: email=${email}, studentId=${studentId}, success=${result.success}`);
   if (!RESEND_API_KEY) {
     console.log('📧 Resend 未配置，跳过通知');
