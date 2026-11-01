@@ -1510,7 +1510,12 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  // 前端迁移至本服务后，根路径优先返回登录页；无前端文件时保留原状态 JSON
+  // 根路径：官网域名（agai.online / www）返回 AG 工作室页面；其它域名（login 等）返回登录页
+  const host = String(req.hostname || '').toLowerCase();
+  const studioFile = path.join(__dirname, 'public', 'studio.html');
+  if ((host === 'agai.online' || host === 'www.agai.online') && fs.existsSync(studioFile)) {
+    return res.sendFile(studioFile);
+  }
   const indexFile = path.join(__dirname, 'public', 'index.html');
   if (fs.existsSync(indexFile)) return res.sendFile(indexFile);
   res.json({ status: 'running', version: '3.5.0', emailService: RESEND_API_KEY ? 'Resend' : '未配置' });
