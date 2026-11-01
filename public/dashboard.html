@@ -570,6 +570,23 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
   }
   .tab-sponsor-icon .ico { fill: currentColor; stroke: none; }
   .tab-item.tab-sponsor.active .tab-sponsor-icon{ transform: translateY(-2px); }
+
+  /* 手机上悬浮"反馈"按钮要浮在底部导航之上，否则被 tabbar 盖住看不见 */
+  #feedbackFab{
+    right: 14px !important;
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 14px) !important;
+    width: 60px !important; height: 60px !important;
+    font-size: 12px !important;
+    z-index: 950 !important;
+    background: linear-gradient(135deg,#3b6df0,#5b8cff) !important;
+    box-shadow: 0 10px 26px rgba(59,109,240,.45) !important;
+    animation: fabPulse 2.6s ease-in-out infinite;
+  }
+  #feedbackFab span{ font-weight: 600; }
+  @keyframes fabPulse{
+    0%,100%{ box-shadow: 0 10px 26px rgba(59,109,240,.45); }
+    50%{ box-shadow: 0 10px 26px rgba(59,109,240,.45), 0 0 0 10px rgba(59,109,240,.16); }
+  }
 }
 </style>
 </head>
@@ -1740,9 +1757,22 @@ function canCustomSignTime() {
   return currentCanCustomTime();
 }
 
+// 是否处于有效会员期（自动签到只对会员开放，次数只用于手动签到）
+function isMemberActive() {
+  const m = currentUser && currentUser.membership;
+  if (m && typeof m.active === 'boolean') return m.active;
+  if (!currentUser || !currentUser.isVip) return false;
+  if (!currentUser.vipExpireAt) return true;
+  return new Date(currentUser.vipExpireAt).getTime() > Date.now();
+}
+
 function renderAutoSignStatus(setting) {
   const status = document.getElementById('autoSignStatus');
   if (!status) return;
+  if (!isMemberActive()) {
+    status.innerHTML = '<span class="badge badge-neutral">会员已失效</span><span style="margin-left:8px;color:var(--text-tertiary);font-size:13px;font-weight:500;">自动签到是会员权益，已自动关闭；打卡次数只能用于手动签到</span>';
+    return;
+  }
   const dayText = (setting.customDays || []).length ? setting.customDays.map(d => DAY_NAMES[d]).join('、') : '未选择日期';
   status.innerHTML = setting.enabled
     ? '<span class="badge badge-success">已开启</span><span style="margin-left:8px;color:var(--text-secondary);font-size:13px;font-weight:500;">每逢 ' + escapeHTML(dayText) + ' ' + escapeHTML(setting.signTime || '21:35') + ' 自动签到</span>'
@@ -1892,8 +1922,10 @@ async function loadAutoSignSetting() {
 }
 
 async function saveAutoSignSetting() {
-  if (!currentUser.isVip && !(Number(currentUser.signCredits || 0) > 0)) {
-    showToast('自动签到需要会员或次数卡', 'error'); return;
+  if (!isMemberActive()) {
+    showToast('自动签到是会员权益：你当前不是有效会员，打卡次数只能用于手动签到', 'error');
+    goPage('buy');
+    return;
   }
   const selectedDays = getSelectedAutoSignDays();
   if (selectedDays.length === 0) { showToast('请至少选择一天', 'error'); return; }

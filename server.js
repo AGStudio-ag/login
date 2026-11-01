@@ -694,7 +694,7 @@ async function reconcileUserSignAccess(user) {
   const out = { disabled: 0, restored: 0, timeReset: 0 };
   if (!user || !user._id) return out;
   try {
-    const access = hasSignAccess(user);
+    const access = hasAutoSignAccess(user);
     const canCustom = canCustomSignTime(user);
     const subs = await Subscription.find({ userId: user._id });
     for (const sub of subs) {
@@ -922,6 +922,22 @@ function requireSignAccess(req, res, next) {
       success: false,
       code: 'SIGN_ACCESS_REQUIRED',
       message: '自动签到需要会员或次数卡；免费用户请使用手动签到'
+    });
+  }
+  next();
+}
+
+// 自动签到只对「有效会员」开放（次数卡/打卡次数只能用于手动签到）
+function hasAutoSignAccess(user) {
+  return hasActiveVip(user);
+}
+
+function requireAutoSignAccess(req, res, next) {
+  if (!hasAutoSignAccess(req.user)) {
+    return res.status(403).json({
+      success: false,
+      code: 'AUTO_SIGN_REQUIRES_VIP',
+      message: '自动签到是会员权益：你的会员已过期或被撤销，打卡次数只能用于手动签到。开通会员即可恢复自动签到。'
     });
   }
   next();
@@ -1481,7 +1497,7 @@ async function executeAutoSign(options = {}) {
       const user = sub.userId;
       if (user && user.isActive !== false) {
         // 自动签到仅对有效付费会员开放；手动签到不受此限制
-        if (!hasSignAccess(user)) {
+        if (!hasAutoSignAccess(user)) {
           skippedNonVip++;
           continue;
         }
@@ -1657,7 +1673,7 @@ async function retryMissingSigns(label = '补签') {
       if (!user || user.isActive === false) continue;
       if (seen.has(String(user._id))) continue;
       seen.add(String(user._id));
-      if (!hasSignAccess(user)) continue;
+      if (!hasAutoSignAccess(user)) continue;
       const subTime = normalizeSignTime(sub.signTime) || AUTO_SIGN_TIME;
       const [h, m] = subTime.split(':').map(Number);
       if (h * 60 + m > nowMin) continue; // 还没到他的签到时间，先不补
@@ -2411,7 +2427,7 @@ app.get('/api/subscriptions', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/subscriptions', authMiddleware, requireSignAccess, async (req, res) => {
+app.post('/api/subscriptions', authMiddleware, requireAutoSignAccess, async (req, res) => {
   try {
     const savedSubscription = await saveAutoSignSetting(req.user._id, req.body);
     res.json({ success: true, subscription: formatAutoSignSetting(savedSubscription) });
@@ -2429,7 +2445,7 @@ app.get('/api/auto-sign', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/auto-sign', authMiddleware, requireSignAccess, async (req, res) => {
+app.post('/api/auto-sign', authMiddleware, requireAutoSignAccess, async (req, res) => {
   try {
     const setting = await saveAutoSignSetting(req.user._id, req.body);
     res.json({ success: true, setting: formatAutoSignSetting(setting) });
@@ -2438,7 +2454,7 @@ app.post('/api/auto-sign', authMiddleware, requireSignAccess, async (req, res) =
   }
 });
 
-app.put('/api/auto-sign', authMiddleware, requireSignAccess, async (req, res) => {
+app.put('/api/auto-sign', authMiddleware, requireAutoSignAccess, async (req, res) => {
   try {
     const setting = await saveAutoSignSetting(req.user._id, req.body);
     res.json({ success: true, setting: formatAutoSignSetting(setting) });
@@ -2447,7 +2463,7 @@ app.put('/api/auto-sign', authMiddleware, requireSignAccess, async (req, res) =>
   }
 });
 
-app.put('/api/subscriptions/:id', authMiddleware, requireSignAccess, async (req, res) => {
+app.put('/api/subscriptions/:id', authMiddleware, requireAutoSignAccess, async (req, res) => {
   try {
     const subscription = await Subscription.findOne({ _id: req.params.id, userId: req.user._id });
     if (!subscription) {
@@ -2470,7 +2486,7 @@ app.delete('/api/subscriptions/:id', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/subscriptions/:id/toggle', authMiddleware, requireSignAccess, async (req, res) => {
+app.post('/api/subscriptions/:id/toggle', authMiddleware, requireAutoSignAccess, async (req, res) => {
   try {
     const subscription = await Subscription.findOne({ _id: req.params.id, userId: req.user._id });
     if (!subscription) {
@@ -2867,6 +2883,7 @@ app.post('/api/admin/reconcile-sign', adminMiddleware, async (req, res) => {
         studentId: target,
         ...r,
         hasSignAccess: hasSignAccess(user),
+        hasAutoSignAccess: hasAutoSignAccess(user),
         subscriptions: subs.map(s => ({ _id: s._id, enabled: s.enabled, signTime: s.signTime, scheduleType: s.scheduleType, customDays: s.customDays, autoDisabledBySystem: !!s.autoDisabledBySystem }))
       });
     }
