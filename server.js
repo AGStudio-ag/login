@@ -495,6 +495,8 @@ function addVipDays(user, days) {
   user.isVip = true;
   user.vipExpireAt = base;
   if (!user.vipStartAt) user.vipStartAt = now;
+  user.lastRenewalReminderDays = 0;
+  user.lastRenewalReminderAt = null;
   return base;
 }
 
@@ -540,6 +542,8 @@ async function grantMembership(user, planOrTier, opts = {}) {
   user.isVip = true;
   user.vipExpireAt = expireAt;
   if (!user.vipStartAt) user.vipStartAt = now;
+  user.lastRenewalReminderDays = 0;
+  user.lastRenewalReminderAt = null;
   applyVipTier(user, plan ? plan.tier : planOrTier);
   await user.save();
   return expireAt;
@@ -554,6 +558,8 @@ async function revokeSponsorTier(user) {
   user.isVip = false;
   user.vipExpireAt = new Date(0);
   user.vipTier = 'FREE';
+  user.lastRenewalReminderDays = 0;
+  user.lastRenewalReminderAt = null;
   await user.save();
 }
 
@@ -956,27 +962,39 @@ async function sendRenewalEmail(user, daysLeft) {
 
 async function checkRenewalReminders() {
   const now = new Date();
+  const summary = { sent: 0, failed: 0, details: [] };
   for (const days of [7, 1]) {
     const start = new Date(now.getTime() + days * 24 * 3600 * 1000);
     const end = new Date(start.getTime() + 24 * 3600 * 1000);
     const users = await User.find({
       isVip: true,
-      email: { $ne: '' },
+      isGuest: { $ne: true },
+      email: { $nin: [null, ''] },
       vipExpireAt: { $gte: start, $lt: end },
       lastRenewalReminderDays: { $ne: days }
     });
     for (const user of users) {
       try {
-        await sendRenewalEmail(user, days);
-        user.lastRenewalReminderDays = days;
-        user.lastRenewalReminderAt = new Date();
-        await user.save();
-        console.log(`📧 续费提醒已发: ${user.studentId} (${days} 天)`);
+        const ok = await sendRenewalEmail(user, days);
+        if (ok) {
+          user.lastRenewalReminderDays = days;
+          user.lastRenewalReminderAt = new Date();
+          await user.save();
+          summary.sent++;
+          summary.details.push({ studentId: user.studentId, email: user.email, days, sent: true });
+          console.log(`📧 续费提醒已发: ${user.studentId} (${days} 天)`);
+        } else {
+          summary.failed++;
+          summary.details.push({ studentId: user.studentId, email: user.email, days, sent: false });
+          console.error(`续费提醒发送失败 ${user.studentId} (${days} 天)`);
+        }
       } catch (e) {
+        summary.failed++;
         console.error(`续费提醒失败 ${user.studentId}:`, e.message);
       }
     }
   }
+  return summary;
 }
 async function sendSponsorEmailToAllVips(notice) {
   if (!RESEND_API_KEY) {
@@ -2469,6 +2487,16 @@ app.get('/api/admin/autosign-report', adminMiddleware, async (req, res) => {
   }
 });
 
+// 手动执行续费提醒检查（管理员，返回发送明细）
+app.post('/api/admin/check-renewal', adminMiddleware, async (req, res) => {
+  try {
+    const summary = await checkRenewalReminders();
+    res.json({ success: true, ...summary });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // 手动触发今日管理员签到汇总（管理员）
 app.post('/api/admin/send-summary', adminMiddleware, async (req, res) => {
   try {
@@ -2619,7 +2647,7 @@ app.put('/api/admin/users/:id', adminMiddleware, async (req, res) => {
     if (email !== undefined) user.email = email;
     if (attendancePassword !== undefined) user.attendancePassword = attendancePassword;
     if (isVip !== undefined) user.isVip = isVip;
-    if (vipExpireAt) user.vipExpireAt = new Date(vipExpireAt);
+    if (vipExpireAt) { user.vipExpireAt = new Date(vipExpireAt); user.lastRenewalReminderDays = 0; user.lastRenewalReminderAt = null; }
     if (vipStartAt) user.vipStartAt = new Date(vipStartAt);
     if (vipTier !== undefined) {
       const normalizedTier = membership.normalizeTier(vipTier);
