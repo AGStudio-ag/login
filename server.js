@@ -2396,14 +2396,16 @@ app.post('/api/sign/manual', authMiddleware, async (req, res) => {
 
     const signPassword = attendancePassword || user.attendancePassword || 'Ahgydx@920';
     const signTime = new Date();
-    if (!isMember && creditsValid) {
-      user.signCredits = Math.max(0, Number(user.signCredits) - 1);
-      console.log(`🎟️ 手动签到消耗 1 次: ${user.studentId} 剩余 ${user.signCredits}`);
-    }
     
     console.log(`🚀 手动签到: ${user.studentId}`);
     
     const signResult = await realSign(user.studentId, signPassword, 3);
+    
+    // 只有签到成功才扣次数（失败不扣，下次可以继续尝试）
+    if (signResult.success && !isMember && creditsValid) {
+      user.signCredits = Math.max(0, Number(user.signCredits) - 1);
+      console.log(`🎟️ 手动签到成功，扣 1 次: ${user.studentId} 剩余 ${user.signCredits}`);
+    }
     
     user.totalSignCount = (user.totalSignCount || 0) + 1;
     if (signResult.success) {

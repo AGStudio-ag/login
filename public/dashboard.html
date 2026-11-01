@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
@@ -1515,9 +1515,16 @@ async function loadUserInfo() {
     const daysLeft = expireDate ? Math.max(0, Math.ceil((expireDate.getTime() - Date.now()) / 86400000)) : 0;
     const headerTier = document.getElementById('headerTier');
     if (headerTier) {
-      headerTier.textContent = currentUser.isVip
-        ? (isPermanent ? `${tierDisplay} · 长期` : `${tierDisplay} · ${daysLeft}天`)
-        : '免费';
+      if (!currentUser.isVip) {
+        headerTier.textContent = '免费';
+      } else if (isPermanent) {
+        headerTier.textContent = `${tierDisplay} · 长期`;
+      } else if (expireDate && expireDate.getTime() <= Date.now()) {
+        const expiredDays = Math.max(0, Math.floor((Date.now() - expireDate.getTime()) / 86400000));
+        headerTier.textContent = `${tierDisplay} · 已过期${expiredDays}天`;
+      } else {
+        headerTier.textContent = `${tierDisplay} · ${daysLeft}天`;
+      }
 
       headerTier.style.color = TIER_COLORS[tierKey] || '#71717a';
       headerTier.style.borderColor = TIER_COLORS[tierKey] || '#e4e4e7';
@@ -2017,6 +2024,9 @@ async function loadProfile() {
       vipText = '长期有效';
     } else if (expireDate && expireDate > new Date()) {
       vipText = '有效至 ' + expireDate.toLocaleDateString('zh-CN');
+    } else if (expireDate) {
+      const expiredDays = Math.max(0, Math.floor((Date.now() - expireDate.getTime()) / 86400000));
+      vipText = `已过期 ${expiredDays} 天`;
     } else {
       vipText = '已到期';
     }

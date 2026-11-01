@@ -335,9 +335,15 @@ function membershipView(user, now = new Date()) {
   const active = isActiveVipFn(user);
   const normalized = normalizeTier(user.vipTier);
   const plan = PLAN_BY_TIER[normalized] || null;
+  const exp = user.vipExpireAt ? new Date(user.vipExpireAt) : null;
+  const isExpired = !!(user.isVip && exp && exp.getTime() <= now.getTime());
+  const expiredDays = isExpired ? Math.max(0, Math.floor((now.getTime() - exp.getTime()) / DAY_MS)) : 0;
   return {
     isVip: !!user.isVip,
     active,
+    expired: isExpired,
+    expiredDays,
+    status: active ? 'active' : (isExpired ? 'expired' : 'free'),
     tier: normalized,
     planCode: plan ? plan.code : '',
     planName: plan ? plan.name : (TIER_LABELS[normalized] || '会员'),
