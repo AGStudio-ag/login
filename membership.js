@@ -309,24 +309,35 @@ function graduationDate(studentId) {
 
 /**
  * 计算某套餐的到期时间（不落库，调用方负责保存）。
- * - 固定天数套餐：now + days
- * - 年级套餐：min(毕业日期, now + years*365)，毕业日期取不到时退回 now + years*365
+ * - 固定天数套餐：base + days（base 默认 now；会员未到期时传现有到期时间即"叠加"）
+ * - 年级套餐：min(毕业日期, base + years*365)，毕业日期取不到时退回 base + years*365
  */
-function computeExpireAt(plan, user, now = new Date()) {
+function computeExpireAt(plan, user, now = new Date(), base = null) {
   if (!plan) return null;
-  const base = new Date(now.getTime());
+  const origin = (base && base.getTime() > now.getTime()) ? new Date(base.getTime()) : new Date(now.getTime());
 
   if (plan.kind === 'grade') {
-    const cap = new Date(base.getTime() + plan.years * 365 * DAY_MS);
+    const cap = new Date(origin.getTime() + plan.years * 365 * DAY_MS);
     const grad = graduationDate(user && user.studentId);
-    if (grad && grad.getTime() > base.getTime()) {
+    if (grad && grad.getTime() > origin.getTime()) {
       return new Date(Math.min(grad.getTime(), cap.getTime()));
     }
     return cap;
   }
 
   const days = Number(plan.days) || 0;
-  return new Date(base.getTime() + days * DAY_MS);
+  return new Date(origin.getTime() + days * DAY_MS);
+}
+
+/** 是否为注册赠送的 3 天体验会员（有效期跨度 2~4 天且未到期） */
+function isTrialMembership(user, now = new Date()) {
+  if (!user || !user.isVip) return false;
+  const exp = user.vipExpireAt ? new Date(user.vipExpireAt) : null;
+  const start = user.vipStartAt ? new Date(user.vipStartAt) : null;
+  if (!exp || !start) return false;
+  if (exp.getTime() <= now.getTime()) return false;
+  const span = exp.getTime() - start.getTime();
+  return span >= 2 * DAY_MS && span <= 4 * DAY_MS;
 }
 
 /** 会员视图：给前端/后台统一展示 */
@@ -340,11 +351,7 @@ function membershipView(user, now = new Date()) {
   const isExpired = !!(user.isVip && exp && exp.getTime() <= now.getTime());
   const expiredDays = isExpired ? Math.max(0, Math.floor((now.getTime() - exp.getTime()) / DAY_MS)) : 0;
   // 3 天体验会员识别（注册赠送）：有效期起点到终点的跨度约 2~4 天
-  let trial = false;
-  if (exp && start) {
-    const span = exp.getTime() - start.getTime();
-    if (span >= 2 * DAY_MS && span <= 4 * DAY_MS) trial = true;
-  }
+  const trial = !isExpired && isTrialMembership(user, now);
   const planName = trial ? '3天体验会员' : (plan ? plan.name : (TIER_LABELS[normalized] || '会员'));
   return {
     isVip: !!user.isVip,
@@ -384,5 +391,6 @@ module.exports = {
   gradeLevel,
   graduationDate,
   computeExpireAt,
+  isTrialMembership,
   membershipView
 };

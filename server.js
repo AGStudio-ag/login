@@ -522,6 +522,7 @@ function planForOrder(order) {
  * 统一发放会员权益。
  * planOrTier 可以是套餐对象、套餐 code、或会员等级。
  * opts.expireAt 用于管理员自定义到期时间（仅支持自定义时间的套餐使用）。
+ * opts.stack === false 可强制从当前时间重新计算（默认叠加：未到期会员的剩余天数不清零）。
  */
 async function grantMembership(user, planOrTier, opts = {}) {
   const now = new Date();
@@ -529,25 +530,36 @@ async function grantMembership(user, planOrTier, opts = {}) {
     ? planOrTier
     : (membership.planForCode(planOrTier) || membership.planForTier(planOrTier));
 
+  // 体验会员升级/续费：剩余天数保留（叠加），身份标签改为实际购买的套餐
+  const wasTrial = membership.isTrialMembership(user, now);
+  const stackBase = (opts.stack === false)
+    ? null
+    : (user.isVip && user.vipExpireAt && new Date(user.vipExpireAt) > now ? new Date(user.vipExpireAt) : null);
+
   let expireAt;
   if (opts.expireAt) {
     expireAt = new Date(opts.expireAt);
   } else if (plan) {
-    expireAt = membership.computeExpireAt(plan, user, now);
+    expireAt = membership.computeExpireAt(plan, user, now, stackBase);
   } else {
     const days = Number(opts.days || 0);
+    const origin = stackBase || now;
     const grad = membership.graduationDate(user.studentId);
     expireAt = days > 0
-      ? new Date(now.getTime() + days * membership.DAY_MS)
-      : (grad && grad > now ? grad : new Date(now.getTime() + 365 * membership.DAY_MS));
+      ? new Date(origin.getTime() + days * membership.DAY_MS)
+      : (grad && grad > origin ? grad : new Date(origin.getTime() + 365 * membership.DAY_MS));
   }
 
   user.isVip = true;
   user.vipExpireAt = expireAt;
-  if (!user.vipStartAt) user.vipStartAt = now;
+  if (!user.vipStartAt || wasTrial) user.vipStartAt = now;
   user.lastRenewalReminderDays = 0;
   user.lastRenewalReminderAt = null;
-  applyVipTier(user, plan ? plan.tier : planOrTier);
+  if (wasTrial && plan && plan.tier) {
+    user.vipTier = membership.normalizeTier(plan.tier); // 体验卡（学年卡 Pro 3 天）不再粘着标签
+  } else {
+    applyVipTier(user, plan ? plan.tier : planOrTier);
+  }
   await user.save();
   return expireAt;
 }
@@ -1300,12 +1312,38 @@ async function maybeSendAdminSignSummary(day = new Date(), opts = {}) {
     console.log('📊 管理员汇总已发送（所有人已完成）: ' + dayKey);
   } catch (e) { console.error('管理员汇总判断失败:', e.message); }
 }
+// ============ 单个用户签到失败 → 立刻推送管理员（带防刷屏保护）============
+const SIGN_FAIL_PUSH = { limit: 15, count: 0, bulkSent: false };
+function resetSignFailPush() { SIGN_FAIL_PUSH.count = 0; SIGN_FAIL_PUSH.bulkSent = false; }
+
+async function notifySignFailure(user, reason, label = '自动签到') {
+  try {
+    if (!user) return;
+    if (SIGN_FAIL_PUSH.bulkSent) return;
+    SIGN_FAIL_PUSH.count++;
+    if (SIGN_FAIL_PUSH.count > SIGN_FAIL_PUSH.limit) {
+      SIGN_FAIL_PUSH.bulkSent = true;
+      const plain = `已有超过 ${SIGN_FAIL_PUSH.limit} 人签到失败，可能是学校系统或网络异常。\n后续单人提醒已暂停，请到后台「签到管理」查看明细。`;
+      await notifyAdmin(`⚠️ 批量签到失败（>${SIGN_FAIL_PUSH.limit} 人）`,
+        `<div style="font-family:sans-serif;line-height:1.9;color:#334155"><p>${plain.replace(/\n/g, '<br>')}</p></div>`,
+        plain, { email: true, emailFallback: false });
+      return;
+    }
+    const timeText = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+    const plain = `学号：${user.studentId}\n姓名：${user.name || ''}\n场景：${label}\n原因：${reason || '未知'}\n时间：${timeText}`;
+    await notifyAdmin(`❌ 签到失败 · ${user.name || user.studentId} ${user.studentId}`,
+      `<div style="font-family:sans-serif;line-height:1.9;color:#334155"><p>学号：<strong>${user.studentId}</strong>　姓名：${user.name || ''}</p><p>场景：${label}</p><p>原因：<strong>${reason || '未知'}</strong></p><p>时间：${timeText}</p><p><a href="https://login.agai.online/admin.html">打开后台处理</a></p></div>`,
+      plain, {});
+  } catch (e) { console.error('签到失败推送异常:', e.message); }
+}
+
 async function executeAutoSign(options = {}) {
   const paused = await SystemConfig.findOne({ key: 'auto_sign_paused' });
   if (paused && paused.value === true) { console.log('⏸️ 假期暂停自动签到'); return; }
   const targetTime = normalizeSignTime(options.targetTime);
   const planTime = targetTime || AUTO_SIGN_TIME;
   console.log('⏰ 自动签到任务开始:', getBeijingTime());
+  resetSignFailPush();
   
   if (!MONGODB_URI) {
     console.log('⚠️ 数据库未连接');
@@ -1467,6 +1505,9 @@ async function executeAutoSign(options = {}) {
           }
           
           console.log(`✅ ${user.studentId}: ${signResult.success ? '成功' : '失败'}`);
+          if (!signResult.success) {
+            await notifySignFailure(user, signResult.message || '签到接口返回失败', '自动签到');
+          }
           
         } catch (error) {
           console.error(`❌ ${data.user.studentId}:`, error.message);
@@ -1500,6 +1541,7 @@ async function retryMissingSigns(label = '补签') {
   const result = { label, checked: 0, recovered: 0, failed: 0, passwordIssues: [], details: [], skipped: null };
   try {
     if (!isWithinSignWindow()) { result.skipped = '不在签到窗口内（21:30–24:00）'; return result; }
+    resetSignFailPush();
     const nowMin = beijingMinutesNow();
     const start = new Date(); start.setHours(0, 0, 0, 0);
     const end = new Date(); end.setHours(23, 59, 59, 999);
@@ -1537,6 +1579,7 @@ async function retryMissingSigns(label = '补签') {
       const passwordIssue = /密码|password|错误/i.test(msg);
       if (passwordIssue) result.passwordIssues.push(user.studentId);
       result.details.push({ studentId: user.studentId, name: user.name || '', message: msg, passwordIssue });
+      await notifySignFailure(user, msg, `补签(${label})`);
       if (user.email) {
         try {
           await sendTierEmail(user, `⚠️ 今晚自动签到未成功${passwordIssue ? '（考勤密码可能错误）' : ''}`, {
@@ -2732,13 +2775,13 @@ app.post('/api/admin/alert-test', adminMiddleware, async (req, res) => {
     const nowText = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
     const plain = `这是一条测试消息，手机上收到即说明提醒通道正常。\n发送时间：${nowText}`;
     const out = await notifyAdmin('【测试提醒】AG 智能考勤消息推送',
-      `<div style="font-family:sans-serif;line-height:1.9;color:#334155"><p>这是一条<strong>测试提醒</strong>，收到即说明邮件通道正常。</p><p>发送时间：${nowText}</p></div>`,
-      plain, {});
+      `<div style="font-family:sans-serif;line-height:1.9;color:#334155"><p>这是一条<strong>测试提醒</strong>，收到即说明提醒通道正常。</p><p>发送时间：${nowText}</p></div>`,
+      plain, { email: !!(req.body && req.body.email === true), emailFallback: false });
     res.json({
       success: true,
       email: out.email,
       push: out.push,
-      message: `邮件：${out.email === null ? '未配置' : (out.email ? '已发送' : '失败')}；微信推送：${out.push ? (out.push.ok ? '成功' : (out.push.message || '失败')) : '未执行'}`
+      message: `微信推送：${out.push ? (out.push.ok ? '成功' : (out.push.message || '失败')) : '未执行'}；邮件：${out.email === null ? '未发送（省额度策略：日常不用邮件）' : (out.email ? '已发送' : '失败')}`
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -3234,11 +3277,19 @@ async function pushWxpusher(subject, plainText) {
   } finally { clearTimeout(timer); }
 }
 
-// 统一管理员提醒：邮件 + WxPusher 推送（永不抛错）
+// 统一管理员提醒：WxPusher 推送为主，邮件只在"重要 / 推送失败兜底 / 显式要求"时发送（Resend 额度有限）
 async function notifyAdmin(subject, html, plainText, opts = {}) {
   const out = { email: null, push: null };
   try {
-    if (opts.email !== false && RESEND_API_KEY) {
+    if (opts.push !== false) {
+      out.push = await pushWxpusher(subject, plainText);
+      if (out.push && out.push.ok) console.log('📲 WxPusher 已推送到手机');
+    }
+    const pushOk = !!(out.push && out.push.ok);
+    const pushSkipped = !!(out.push && out.push.skipped);
+    const wantEmail = opts.email === true;                                   // 重要事件：明确要求邮件
+    const fallbackEmail = opts.emailFallback !== false && !pushOk && !pushSkipped; // 推送失败兜底
+    if (RESEND_API_KEY && (wantEmail || fallbackEmail)) {
       try {
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -3248,10 +3299,6 @@ async function notifyAdmin(subject, html, plainText, opts = {}) {
         out.email = res.ok === true;
         if (!res.ok) console.error('管理员提醒邮件失败:', (await res.text()).slice(0, 200));
       } catch (e) { out.email = false; console.error('管理员提醒邮件失败:', e.message); }
-    }
-    if (opts.push !== false) {
-      out.push = await pushWxpusher(subject, plainText);
-      if (out.push && out.push.ok) console.log('📲 WxPusher 已推送到手机');
     }
   } catch (e) { console.error('notifyAdmin 异常:', e.message); }
   return out;

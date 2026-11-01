@@ -110,3 +110,37 @@ test('会员视图输出前端需要的字段', () => {
   assert.equal(view.canCustomTime, true);
   assert.equal(view.active, true);
 });
+
+// ===== 3 天体验会员付费升级规则（2026-11-02）=====
+
+test('体验会员付费：到期时间在剩余体验期基础上叠加，不吞天数', () => {
+  const day = M.DAY_MS;
+  // 第 1 天注册体验：起点 NOW，到期 NOW+3天
+  const trialUser = {
+    studentId: '269064010',
+    isVip: true,
+    vipTier: 'YEARLY_PRO',
+    vipStartAt: new Date(NOW.getTime()),
+    vipExpireAt: new Date(NOW.getTime() + 3 * day)
+  };
+  const buyAt = new Date(NOW.getTime() + 1 * day); // 第 2 天付款买月卡(30天)
+  const expire = M.computeExpireAt(M.planForCode('monthly'), trialUser, buyAt, new Date(trialUser.vipExpireAt));
+  // NOW+3天（体验到期）+ 30天
+  assert.equal(expire.toISOString(), new Date(NOW.getTime() + 33 * day).toISOString());
+});
+
+test('体验会员识别：跨度 3 天为体验，付费后跨度变大即不再是体验', () => {
+  const day = M.DAY_MS;
+  const trialUser = { isVip: true, vipStartAt: new Date(NOW.getTime()), vipExpireAt: new Date(NOW.getTime() + 3 * day) };
+  assert.equal(M.isTrialMembership(trialUser, NOW), true);
+  const paidUser = { isVip: true, vipTier: 'MONTHLY', vipStartAt: new Date(NOW.getTime() + day), vipExpireAt: new Date(NOW.getTime() + 33 * day) };
+  assert.equal(M.isTrialMembership(paidUser, NOW), false);
+  assert.equal(M.membershipView(paidUser, NOW).planName, '月卡'); // 付费后标签按购买的套餐
+});
+
+test('年级卡叠加后仍以毕业日期封顶', () => {
+  const day = M.DAY_MS;
+  const user = { studentId: '26123456', isVip: true, vipTier: 'YEARLY_PRO', vipStartAt: NOW, vipExpireAt: new Date(NOW.getTime() + 3 * day) };
+  const expire = M.computeExpireAt(M.planForCode('freshman'), user, NOW, new Date(user.vipExpireAt));
+  assert.equal(expire.toISOString(), new Date('2030-07-15T15:59:59.000Z').toISOString());
+});

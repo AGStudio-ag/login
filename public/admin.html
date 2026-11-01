@@ -496,7 +496,7 @@
 
         <div class="content-card">
           <div class="card-header"><h3><i class="fas fa-bell"></i> 手机实时提醒（WxPusher）</h3></div>
-          <p style="color:#666;font-size:13px;margin:0 0 12px;">签到汇总、签到失败、补签结果、新留言都会<b>同时</b>发邮件到管理员邮箱，并推送到你的手机。填入 WxPusher 的 SPT 令牌后代保存，再点"发送测试提醒"就能验证。</p>
+          <p style="color:#666;font-size:13px;margin:0 0 12px;">签到汇总、<b>每个人签到失败</b>、补签结果、新留言都会<b>立刻推送到手机</b>。为省 Resend 邮件额度，日常不再发邮件，只有"重要的、或推送失败"时才用邮件兜底。填入 WxPusher 的 SPT 令牌后保存，再点"发送测试提醒"验证。</p>
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:#173b36;">
               <input type="checkbox" id="wxpusherEnabled" style="width:16px;height:16px;"> 启用手机推送
@@ -514,6 +514,7 @@
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <button class="btn btn-primary" onclick="saveAlertChannels()"><i class="fas fa-save"></i> 保存提醒设置</button>
             <button class="btn" style="background:#f0f2f6;color:#334155;border:1px solid #e2e8f0;" onclick="testAlertChannels()"><i class="fas fa-paper-plane"></i> 发送测试提醒</button>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#64748b;cursor:pointer;"><input type="checkbox" id="alertTestEmail" style="width:14px;height:14px;"> 同时发一封邮件</label>
             <button class="btn" style="background:#f0f2f6;color:#334155;border:1px solid #e2e8f0;" onclick="enableBrowserNotify()"><i class="fas fa-desktop"></i> 开启浏览器通知</button>
             <span id="alertSaveResult" style="color:#666;font-size:13px;"></span>
           </div>
@@ -1923,13 +1924,14 @@
         const res = await fetch(`${API_BASE}/admin/alert-test`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({})
+          body: JSON.stringify({ email: !!(document.getElementById('alertTestEmail') || {}).checked })
         });
         const data = await res.json();
         if (!data.success) { if (out) out.innerHTML = '❌ ' + escapeAttr(data.message || '发送失败'); return; }
         const push = data.push || null;
         const pushLine = push ? `${push.ok ? '✅' : '❌'} 手机推送（WxPusher）${push.ok ? '' : '：' + escapeAttr(push.message || '失败')}` : '<span style="color:#94a3b8;">手机推送未启用</span>';
-        if (out) out.innerHTML = `<div>📧 邮件：${data.email === null ? '未配置' : (data.email ? '已发送' : '发送失败')}</div><div>${pushLine}</div>`;
+        const mailLine = data.email === null ? '<span style="color:#94a3b8;">邮件：未发送（日常不用邮件，仅重要事件或推送失败时兜底）</span>' : `📧 邮件：${data.email ? '已发送' : '发送失败'}`;
+        if (out) out.innerHTML = `<div>${pushLine}</div><div>${mailLine}</div>`;
       } catch (e) { if (out) out.innerHTML = '❌ ' + escapeAttr(e.message); }
     }
 
