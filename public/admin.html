@@ -1254,18 +1254,23 @@
         box.innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>订单号</th><th>用户</th><th>套餐</th><th>金额</th><th>状态</th><th>核对</th><th>支付备注</th><th>创建时间</th><th>操作</th></tr></thead><tbody>' +
           data.orders.map(o => {
             const u = o.userId || {};
-            const canConfirm = o.status === 'granted' && o.reviewStatus !== 'confirmed';
+            const canConfirm = o.reviewStatus !== 'rejected';
             const canRevoke = o.status === 'granted' && o.reviewStatus !== 'rejected';
-            const actions = (canConfirm ? '<button class="btn btn-success" style="padding:6px 10px;font-size:12px;" onclick="confirmSponsorOrder(\'' + o._id + '\',' + Number(o.amount || 0) + ')">确认到账</button> ' : '') +
+            const confirmLabel = o.reviewStatus === 'confirmed' ? '调整套餐' : '确认到账';
+            const actions = (canConfirm ? '<button class="btn btn-success" style="padding:6px 10px;font-size:12px;" onclick="confirmSponsorOrder(\'' + o._id + '\',' + Number(o.amount || 0) + ')">' + confirmLabel + '</button> ' : '') +
               (canRevoke ? '<button class="btn btn-danger" style="padding:6px 10px;font-size:12px;" onclick="revokeSponsorOrder(\'' + o._id + '\')">取消权益</button>' : '');
             const planName = o.packageName || tierLabel(o.tier);
             const duration = o.durationLabel || (o.days ? o.days + ' 天' : '');
+            const grantedLine = (o.grantedPackageName && o.grantedPackageName !== planName)
+              ? '<br><span style="font-size:12px;color:#2563eb;">实开：' + escSponsor(o.grantedPackageName) + (o.grantedDays ? '（' + o.grantedDays + ' 天）' : '') + '</span>'
+              : '';
             const coupon = o.couponDiscount > 0 ? '<br><span style="font-size:12px;color:#f59e0b;">优惠码 ' + escSponsor(o.couponCode) + ' -¥' + Number(o.couponDiscount).toFixed(2) + '</span>' : '';
+            const actualLine = (o.amountMismatch && o.actualAmount) ? '<br><span style="font-size:12px;color:#0891b2;">实收 ¥' + Number(o.actualAmount).toFixed(2) + '</span>' : '';
             return '<tr>' +
               '<td style="font-size:12px;">' + escSponsor(o.orderNo) + '</td>' +
               '<td>' + escSponsor(u.studentId || '') + '<br><span style="color:#94a3b8;font-size:12px;">' + escSponsor(u.name || '') + '</span></td>' +
-              '<td>' + escSponsor(planName) + '<br><span style="color:#94a3b8;font-size:12px;">' + escSponsor(duration) + '</span></td>' +
-              '<td>¥' + Number(o.amount || 0).toFixed(2) + coupon + '</td>' +
+              '<td>' + escSponsor(planName) + '<br><span style="color:#94a3b8;font-size:12px;">' + escSponsor(duration) + '</span>' + grantedLine + '</td>' +
+              '<td>¥' + Number(o.amount || 0).toFixed(2) + actualLine + coupon + '</td>' +
               '<td>' + escSponsor(o.status) + '</td>' +
               '<td>' + escSponsor(o.reviewStatus) + '</td>' +
               '<td style="max-width:160px;word-break:break-all;font-size:12px;">' + escSponsor(o.paymentRef || o.claimNote || '') + '</td>' +
@@ -1276,14 +1281,36 @@
     }
     async function confirmSponsorOrder(id, amount) {
       const orderAmount = Number(amount || 0);
-      const input = prompt(`实收金额（元）\n订单金额：¥${orderAmount.toFixed(2)}\n若用户选错套餐/实收金额不同，请填实际到账金额 —— 系统会按实际金额开通，并在他下次登录时弹窗说明（不发邮件）。`, orderAmount.toFixed(2));
+      const input = prompt(`实收金额（元）\n订单金额：¥${orderAmount.toFixed(2)}\n若实收不同，填实际到账金额（下一步可以再手动指定套餐）。`, orderAmount.toFixed(2));
       if (input === null) return;
       const actualAmount = Number(String(input).replace(/[^\d.]/g, ''));
       if (!Number.isFinite(actualAmount) || actualAmount <= 0) { alert('金额格式不正确'); return; }
+
+      // 可选：手动指定要开通的套餐（改套餐会按新套餐重新计算到期时间）
+      const planList = [
+        { code: 'monthly', label: '月卡  ¥6.66（30 天）' },
+        { code: 'term', label: '学期卡  ¥9.99（120 天）' },
+        { code: 'yearly', label: '学年卡  ¥15.01（365 天）' },
+        { code: 'yearly_pro', label: '学年卡 Pro  ¥20.00（365 天，可自定义时间）' },
+        { code: 'freshman', label: '大一启航卡  ¥49.90（至毕业）' },
+        { code: 'sophomore', label: '大二续航卡  ¥39.90（至毕业/3 年封顶）' },
+        { code: 'junior', label: '大三冲刺卡  ¥28.80（至毕业/2 年封顶）' }
+      ];
+      const pickText = planList.map((p, i) => `${i + 1}. ${p.label}`).join('\n');
+      const planPick = prompt(`要改成其它套餐吗？（留空 = 按实收金额自动匹配）\n${pickText}`, '');
+      if (planPick === null) return;
+      let grantPlanCode = '';
+      const pickNo = Number(String(planPick).trim());
+      if (pickNo >= 1 && pickNo <= planList.length) grantPlanCode = planList[pickNo - 1].code;
+
       const body = { actualAmount };
-      if (Math.abs(actualAmount - orderAmount) > 0.01) {
+      if (grantPlanCode) body.grantPlanCode = grantPlanCode;
+      if (grantPlanCode) {
+        if (!confirm(`将把该订单改为「${planList[pickNo - 1].label}」，并按新套餐重新计算到期时间（实收 ¥${actualAmount.toFixed(2)}）。继续？`)) return;
+      } else if (Math.abs(actualAmount - orderAmount) > 0.1) {
         if (!confirm(`订单 ¥${orderAmount.toFixed(2)}，实收 ¥${actualAmount.toFixed(2)}：将按实收金额匹配套餐开通，并弹窗通知用户（不发邮件）。继续？`)) return;
       }
+
       let data = null;
       try {
         let res = await fetch(`${API_BASE}/admin/sponsor-orders/${id}/confirm`, {

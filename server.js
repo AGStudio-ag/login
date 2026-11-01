@@ -452,6 +452,10 @@ const paymentOrderSchema = new mongoose.Schema({
   actualAmount: { type: Number, default: 0 },
   amountMismatch: { type: Boolean, default: false },
   grantedPlanCode: { type: String, default: '' },
+  // 实际开通的套餐快照（与下单时的套餐区分，后台表格按这个展示真实天数）
+  grantedPackageName: { type: String, default: '' },
+  grantedDays: { type: Number, default: 0 },
+  grantedDurationLabel: { type: String, default: '' },
   revokedAt: Date
 });
 
@@ -532,6 +536,40 @@ function planForOrder(order) {
     return { ...plan, days: Number(order.days) };
   }
   return plan;
+}
+
+/** 订单实际开通的套餐（金额不符改过套餐时以 grantedPlanCode 为准） */
+function effectivePlanForOrder(order) {
+  if (!order) return null;
+  if (order.grantedPlanCode) {
+    const p = membership.planForCode(order.grantedPlanCode) || membership.planForTier(order.grantedPlanCode);
+    if (p) return p;
+  }
+  return planForOrder(order);
+}
+
+/** 该用户其它有效订单能顶到的最晚到期时间（改套餐/撤销后重算时用作基点） */
+async function computeOtherOrdersExpiry(user, excludeOrderId) {
+  try {
+    const others = await PaymentOrder.find({
+      userId: user._id,
+      _id: { $ne: excludeOrderId },
+      status: 'granted',
+      revokedAt: null,
+      reviewStatus: { $ne: 'rejected' }
+    }).lean();
+    let best = null;
+    for (const o of others) {
+      const p = effectivePlanForOrder(o);
+      if (!p) continue;
+      const g = new Date(o.grantedAt || o.paidAt || o.createdAt || Date.now());
+      const e = p.kind === 'grade'
+        ? membership.computeExpireAt(p, user, g)
+        : new Date(g.getTime() + Number(p.days || 0) * membership.DAY_MS);
+      if (!best || e.getTime() > best.getTime()) best = e;
+    }
+    return best;
+  } catch (e) { return null; }
 }
 
 /**
@@ -3914,66 +3952,88 @@ app.post('/api/admin/sponsor-orders/:id/confirm', adminMiddleware, async (req, r
     if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
 
     const isCounts = order.packageType === 'counts' || order.tier === 'COUNTS';
+    const wasConfirmed = order.reviewStatus === 'confirmed';
     const rawActual = Number(req.body && req.body.actualAmount);
     const hasActual = Number.isFinite(rawActual) && rawActual > 0;
     const paidAmount = hasActual ? Number(rawActual.toFixed(2)) : Number(order.amount || 0);
-    const mismatch = hasActual && !isCounts && Math.abs(paidAmount - Number(order.amount || 0)) > 0.01;
+    // 订单金额带随机分尾（用于对账），容差 0.1 元内算"按订单金额付的"
+    const amountDiff = hasActual && !isCounts && Math.abs(paidAmount - Number(order.amount || 0)) > 0.1;
 
-    // 金额不符：以实际支付金额为准匹配套餐（管理员也可直接指定套餐 code）
-    let effectivePlan = planForOrder(order);
-    if (mismatch) {
+    const orderedPlan = planForOrder(order);
+    let effectivePlan = orderedPlan;
+    let planChanged = false;
+
+    if (!isCounts) {
       const wanted = String((req.body && req.body.grantPlanCode) || '').trim();
-      let picked = wanted ? (membership.planForCode(wanted) || membership.planForTier(wanted)) : null;
-      if (!picked) {
-        const hits = membership.PLANS.filter(p => p.kind === 'days' && Math.abs(Number(p.price) - paidAmount) < 0.01);
-        if (hits.length) picked = hits[0];
+      if (wanted) {
+        const picked = membership.planForCode(wanted) || membership.planForTier(wanted);
+        if (!picked) return res.status(400).json({ success: false, message: '指定的套餐不存在' });
+        effectivePlan = picked;
+      } else if (amountDiff) {
+        // 按实收金额匹配在售套餐（容差 ±1 元，吸收随机分尾/抹零）
+        const hits = membership.PLANS
+          .filter(p => p.kind === 'days' && Math.abs(Number(p.price) - paidAmount) <= 1.0)
+          .sort((a, b) => Math.abs(Number(a.price) - paidAmount) - Math.abs(Number(b.price) - paidAmount));
+        if (!hits.length) {
+          return res.status(400).json({
+            success: false,
+            needPlan: true,
+            message: `实收 ¥${paidAmount.toFixed(2)} 没匹配到在售套餐（可能用了优惠码），请手动选择要开通的套餐`,
+            plans: membership.PLANS.map(p => ({ code: p.code, name: p.name, price: p.price, kind: p.kind, days: p.days, durationLabel: p.durationLabel }))
+          });
+        }
+        effectivePlan = hits[0];
       }
-      if (!picked) {
-        return res.status(400).json({
-          success: false,
-          needPlan: true,
-          message: `实收 ¥${paidAmount.toFixed(2)} 没匹配到在售套餐（可能用了优惠码），请手动选择要开通的套餐`,
-          plans: membership.PLANS.map(p => ({ code: p.code, name: p.name, price: p.price, kind: p.kind, days: p.days }))
-        });
-      }
-      effectivePlan = picked;
+      planChanged = !!(effectivePlan && order.planCode && effectivePlan.code !== order.planCode);
     }
 
-    if (order.status !== 'granted') {
+    const now = new Date();
+    const mismatch = amountDiff || planChanged;
+
+    if (planChanged) {
+      // 改套餐 = 按新套餐重新计算时长（不再用"差额天数"，避免年级卡 days=0 导致算不动）
+      const otherExpiry = await computeOtherOrdersExpiry(user, order._id);
+      const base = (otherExpiry && otherExpiry.getTime() > now.getTime()) ? otherExpiry : now;
+      const expireAt = effectivePlan.kind === 'grade'
+        ? membership.computeExpireAt(effectivePlan, user, base)
+        : new Date(base.getTime() + Number(effectivePlan.days || 0) * membership.DAY_MS);
+      user.isVip = true;
+      user.vipExpireAt = expireAt;
+      user.vipTier = membership.normalizeTier(effectivePlan.tier);
+      if (!user.vipStartAt) user.vipStartAt = now;
+      user.lastRenewalReminderDays = 0;
+      user.lastRenewalReminderAt = null;
+      await user.save();
+      await reconcileUserSignAccess(user).catch(() => {});
+
+      order.status = 'granted';
+      order.grantedAt = order.grantedAt || now;
+      order.grantedPlanCode = effectivePlan.code;
+      order.grantedPackageName = effectivePlan.name;
+      order.grantedDays = effectivePlan.kind === 'days' ? Number(effectivePlan.days || 0) : 0;
+      order.grantedDurationLabel = effectivePlan.durationLabel || '';
+    } else if (order.status !== 'granted') {
       await grantMembership(user, effectivePlan || order.tier, { days: order.days });
       order.status = 'granted';
-      order.grantedAt = new Date();
-    } else if (mismatch && effectivePlan) {
-      // 用户已自助认领（按所选套餐发放）：按实收金额纠正——只补/扣差额天数，保留原有叠加
-      const orderedDays = Number(order.days || (planForOrder(order) || {}).days || 0);
-      if (effectivePlan.kind === 'days') {
-        const delta = Number(effectivePlan.days || 0) - orderedDays;
-        if (delta !== 0) {
-          const cur = user.vipExpireAt ? new Date(user.vipExpireAt) : new Date();
-          const base = cur.getTime() > Date.now() ? cur : new Date();
-          base.setDate(base.getDate() + delta);
-          user.isVip = true;
-          user.vipExpireAt = base;
-          user.vipTier = membership.normalizeTier(effectivePlan.tier);
-          if (!user.vipStartAt) user.vipStartAt = new Date();
-          await user.save();
-          await reconcileUserSignAccess(user).catch(() => {});
-        }
-      } else {
-        await grantMembership(user, effectivePlan, { stack: false });
+      order.grantedAt = now;
+      if (effectivePlan) {
+        order.grantedPlanCode = effectivePlan.code;
+        order.grantedPackageName = effectivePlan.name;
+        order.grantedDays = effectivePlan.kind === 'days' ? Number(effectivePlan.days || 0) : 0;
+        order.grantedDurationLabel = effectivePlan.durationLabel || '';
       }
     }
 
     if (mismatch) {
       order.actualAmount = paidAmount;
       order.amountMismatch = true;
-      order.grantedPlanCode = effectivePlan.code;
       const orderedName = order.packageName || membership.tierLabel(order.tier);
       const grantText = `${effectivePlan.name}${effectivePlan.kind === 'days' ? '（' + effectivePlan.days + ' 天）' : ''}`;
+      const expireText = user.vipExpireAt ? new Date(user.vipExpireAt).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '';
       queueUserNotice(user,
         '套餐已按实际支付金额开通',
         `你提交的订单是「${orderedName}」（¥${Number(order.amount || 0).toFixed(2)}），实际到账 ¥${paidAmount.toFixed(2)}。\n` +
-        `已按实际支付金额为你开通：${grantText}。\n` +
+        `已按实际支付金额为你开通：${grantText}${expireText ? '，会员到期 ' + expireText : ''}。\n` +
         `如果金额有误，请把支付截图和订单号发到 support@agai.online。`,
         'info');
       await user.save();
@@ -3986,10 +4046,17 @@ app.post('/api/admin/sponsor-orders/:id/confirm', adminMiddleware, async (req, r
     await order.save();
 
     if (mismatch) {
-      return res.json({ success: true, message: `已按实际到账 ¥${paidAmount.toFixed(2)} 开通「${effectivePlan.name}」，用户下次登录会看到弹窗提示（未发邮件）` });
+      const expireText = user.vipExpireAt ? new Date(user.vipExpireAt).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '';
+      return res.json({
+        success: true,
+        message: `已按实际到账 ¥${paidAmount.toFixed(2)} 开通「${effectivePlan.name}${effectivePlan.kind === 'days' ? '（' + effectivePlan.days + ' 天）' : ''}」${expireText ? '，到期 ' + expireText : ''}；用户下次登录会看到弹窗说明（未发邮件）`
+      });
     }
-    sendSponsorMail(user, order, 'confirmed').catch(e => console.error('赞助邮件失败:', e.message));
-    res.json({ success: true, message: '已确认到账并发送通知' });
+    if (!wasConfirmed) {
+      sendSponsorMail(user, order, 'confirmed').catch(e => console.error('赞助邮件失败:', e.message));
+      return res.json({ success: true, message: '已确认到账并发送通知' });
+    }
+    res.json({ success: true, message: '订单已是确认状态，本次没做变更' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -4002,10 +4069,35 @@ app.post('/api/admin/sponsor-orders/:id/revoke', adminMiddleware, async (req, re
     const user = await User.findById(order.userId);
     if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
 
-    // 撤销权益：优先只扣掉本订单的天数，保留该用户其它已付订单的会员时间
-    const orderDays = Number(order.days || (planForOrder(order) || {}).days || 0);
+    // 撤销权益：优先只扣掉本订单实际开通的时长，保留该用户其它已付订单的会员时间
+    const gPlan = effectivePlanForOrder(order);
+    const orderDays = Number(order.grantedDays || (gPlan && gPlan.kind === 'days' ? gPlan.days : 0) || order.days || 0);
+    const isGradeGrant = !!(gPlan && gPlan.kind === 'grade');
     let partialRevoke = false;
-    if (orderDays > 0 && user.isVip && user.vipExpireAt) {
+    if (isGradeGrant) {
+      // 年级卡（到毕业）：撤销后回落到其它有效订单，没有就整体关闭
+      const otherExpiry = await computeOtherOrdersExpiry(user, order._id);
+      if (otherExpiry && otherExpiry.getTime() > Date.now()) {
+        const others = await PaymentOrder.find({
+          userId: user._id, _id: { $ne: order._id }, status: 'granted', revokedAt: null, reviewStatus: { $ne: 'rejected' }
+        }).lean();
+        let bestTier = 'FREE', bestRank = -1;
+        for (const o of others) {
+          const p = effectivePlanForOrder(o);
+          if (!p) continue;
+          const r = membership.tierRank(p.tier);
+          if (r > bestRank) { bestRank = r; bestTier = p.tier; }
+        }
+        user.vipExpireAt = otherExpiry;
+        user.vipTier = membership.normalizeTier(bestTier === 'FREE' ? 'FREE' : bestTier);
+        user.isVip = true;
+        await user.save();
+        await reconcileUserSignAccess(user).catch(() => {});
+        partialRevoke = true;
+      } else {
+        await revokeSponsorTier(user);
+      }
+    } else if (orderDays > 0 && user.isVip && user.vipExpireAt) {
       const base = new Date(user.vipExpireAt);
       base.setDate(base.getDate() - orderDays);
       if (base.getTime() > Date.now()) {
@@ -4029,16 +4121,17 @@ app.post('/api/admin/sponsor-orders/:id/revoke', adminMiddleware, async (req, re
     await order.save();
 
     // 不发邮件：改为用户下次登录/打开站点时弹一条通知
-    const planName = order.packageName || membership.tierLabel(order.tier);
+    const planName = order.grantedPackageName || order.packageName || membership.tierLabel(order.tier);
+    const grantedDaysText = order.grantedDays ? ' · ' + order.grantedDays + ' 天' : (order.days ? ' · ' + order.days + ' 天' : '');
     queueUserNotice(user,
       '会员权益已撤销',
-      `订单 ${order.orderNo}（${planName}${order.days ? ' · ' + order.days + ' 天' : ''}）经核对未匹配到对应付款，会员权益已撤销。` +
+      `订单 ${order.orderNo}（${planName}${grantedDaysText}）经核对未匹配到对应付款，会员权益已撤销。` +
       (order.reviewNote ? `\n原因：${order.reviewNote}` : '') +
       '\n如果你确实已完成支付，请把支付截图和订单号发到 support@agai.online，我们会人工补发。',
       'warning');
     await user.save();
     res.json({ success: true, message: partialRevoke
-      ? `已取消该订单权益（扣回 ${orderDays} 天，其它已付会员时间保留），用户下次登录会看到弹窗说明（未发邮件）`
+      ? `已取消该订单权益（已回落到其它已付订单的到期时间），用户下次登录会看到弹窗说明（未发邮件）`
       : '已取消该订单权益（会员权益已关闭），用户下次登录会看到弹窗说明（未发邮件）' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
