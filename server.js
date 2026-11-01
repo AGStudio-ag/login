@@ -138,6 +138,9 @@ const userSchema = new mongoose.Schema({
   checkinStreak: { type: Number, default: 0 },
   lastCheckinDate: { type: String, default: '' },
   checkinTotal: { type: Number, default: 0 },
+  // 新手引导是否已完成/跳过（存在账号上，换设备也不会反复弹）
+  onboardingDone: { type: Boolean, default: false },
+  onboardingDoneAt: { type: Date, default: null },
   lastRenewalReminderDays: { type: Number, default: 0 },
   lastRenewalReminderAt: { type: Date, default: null },
   // 管理员留下的站内通知：用户下次登录/打开仪表盘时弹一次（不消耗邮件额度）
@@ -2040,6 +2043,8 @@ app.post('/api/login', async (req, res) => {
         invitedBy: user.invitedBy,
         inviteCount: user.inviteCount,
         totalSignCount: user.totalSignCount,
+
+        onboardingDone: !!user.onboardingDone,
         successSignCount: user.successSignCount
       }
     });
@@ -2074,6 +2079,8 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
       invitedBy: user.invitedBy,
       inviteCount: user.inviteCount,
       totalSignCount: user.totalSignCount,
+
+      onboardingDone: !!user.onboardingDone,
       successSignCount: user.successSignCount,
       createdAt: user.createdAt,
       payQR: user.payQR || { wechat: '', alipay: '' }
@@ -2090,6 +2097,19 @@ app.put('/api/user/profile', authMiddleware, async (req, res) => {
     if (attendancePassword) user.attendancePassword = attendancePassword;
     await user.save();
     res.json({ success: true, user: { name: user.name } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 新手引导：完成后在账号上打标记（跨设备只显示一次）
+app.post('/api/user/onboarding', authMiddleware, async (req, res) => {
+  try {
+    const user = req.user;
+    user.onboardingDone = true;
+    user.onboardingDoneAt = new Date();
+    await user.save();
+    res.json({ success: true, onboardingDone: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

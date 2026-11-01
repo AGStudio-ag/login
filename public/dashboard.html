@@ -1476,23 +1476,52 @@ function dismissOnboarding() {
   localStorage.setItem('onboardingDismissed', '1');
   const card = document.getElementById('onboardingCard');
   if (card) card.classList.add('hidden');
+  markOnboardingDone();
+}
+
+// 记住"引导已处理"在账号上，换手机/清缓存也不会反复出现
+let onboardingMarking = false;
+async function markOnboardingDone() {
+  if (onboardingMarking) return;
+  if (currentUser && currentUser.onboardingDone) return;
+  onboardingMarking = true;
+  try {
+    await api('/user/onboarding', { method: 'POST', body: {} });
+    if (currentUser) currentUser.onboardingDone = true;
+    try {
+      const cached = JSON.parse(localStorage.getItem('user') || '{}') || {};
+      cached.onboardingDone = true;
+      localStorage.setItem('user', JSON.stringify(cached));
+    } catch (e) {}
+    localStorage.setItem('onboardingDismissed', '1');
+  } catch (e) { onboardingMarking = false; }
 }
 
 function renderOnboarding() {
   const card = document.getElementById('onboardingCard');
   if (!card) return;
-  if (localStorage.getItem('onboardingDismissed') === '1') { card.classList.add('hidden'); return; }
+  if ((currentUser && currentUser.onboardingDone) || localStorage.getItem('onboardingDismissed') === '1') {
+    card.classList.add('hidden');
+    return;
+  }
 
+  // 密码在登录时已经验证过，不再单列一步
   const steps = [
-    { title: '确认考勤密码', desc: '默认 Ahgydx@920，改过就填新密码', done: localStorage.getItem('pwdConfirmed') === '1', label: '去确认', action: () => goPage('profile') },
     { title: '绑定邮箱', desc: '签到成功或失败都会发邮件提醒', done: !!currentUser.emailVerified, label: '去绑定', action: () => goPage('email') },
-    { title: '手动签到一次', desc: '免费，不需要会员', done: (statsState.todaySigns || 0) > 0, label: '立即签到', action: () => { goPage('dashboard'); setTimeout(quickSign, 260); } },
-    { title: '开启自动签到', desc: '每天自动签到，需要会员或次数卡', done: !!autoSignState.enabled, label: '去开启', action: () => goPage('subscriptions') }
+    { title: '手动签到一次', desc: '免费，不需要会员', done: (statsState.todaySigns || 0) > 0, label: '立即签到', action: () => { goPage('dashboard'); setTimeout(quickSign, 260); } }
   ];
+  // 只有有效会员才需要"开启自动签到"这一步，免费用户做完前两步就自动收起
+  if (isMemberActive()) {
+    steps.push({ title: '开启自动签到', desc: '每天自动签到，会员专享', done: !!autoSignState.enabled, label: '去开启', action: () => goPage('subscriptions') });
+  }
 
   const doneCount = steps.filter(s => s.done).length;
   const total = steps.length;
-  if (doneCount === total) { card.classList.add('hidden'); return; }
+  if (doneCount === total) {
+    card.classList.add('hidden');
+    markOnboardingDone();
+    return;
+  }
   card.classList.remove('hidden');
 
   const bar = document.getElementById('onboardingBar');
@@ -2115,7 +2144,6 @@ async function updateProfile() {
     if (data.success) {
       showToast('已保存', 'success');
       document.getElementById('profileAttendancePassword').value = '';
-      localStorage.setItem('pwdConfirmed', '1');
       await loadUserInfo(); renderOnboarding();
     } else { showToast(data.message || '保存失败', 'error'); }
   } catch (e) { showToast((e && e.message) || '网络错误', 'error'); }
