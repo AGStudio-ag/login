@@ -235,6 +235,24 @@ function planForCode(code) {
   return PLAN_BY_CODE[String(code)] || PLAN_BY_CODE[String(code).toLowerCase()] || null;
 }
 
+/**
+ * 管理后台用的套餐元数据：唯一形状，后端两处（/api/admin/tier-meta 与赞助订单 needPlan 分支）共用。
+ * 字段刻意保持最小集，前端只依赖这几项：code / name / price / kind / days / durationLabel。
+ * 顺序按 plan.sort，管理后台的套餐编号就是这里的顺序，不要重排。
+ */
+function planMetaList() {
+  return PLANS.slice()
+    .sort((a, b) => (Number(a.sort) || 0) - (Number(b.sort) || 0))
+    .map(p => ({
+      code: p.code,
+      name: p.name,
+      price: p.price,
+      kind: p.kind,
+      days: p.days,
+      durationLabel: p.durationLabel || ''
+    }));
+}
+
 function tierLabel(tier) {
   const normalized = normalizeTier(tier);
   return TIER_LABELS[normalized] || LEGACY_TIER_LABELS[normalized] || '会员';
@@ -383,6 +401,7 @@ module.exports = {
   normalizeTier,
   planForTier,
   planForCode,
+  planMetaList,
   tierLabel,
   tierRank,
   tierAllowsCustomTime,

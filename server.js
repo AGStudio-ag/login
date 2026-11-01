@@ -3726,7 +3726,9 @@ app.get('/api/admin/tier-meta', adminMiddleware, async (req, res) => {
       tierLabels,
       customTimeTiers: membership.CUSTOM_TIME_TIERS,
       legacyTiers,
-      tierOrder: Object.keys(tierLabels)
+      tierOrder: Object.keys(tierLabels),
+      // 套餐价格元数据：唯一真相在 membership.PLANS，管理后台不再硬编码（TD-2）
+      planPrices: membership.planMetaList()
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -4007,7 +4009,7 @@ app.post('/api/admin/sponsor-orders/:id/confirm', adminMiddleware, async (req, r
             success: false,
             needPlan: true,
             message: `实收 ¥${paidAmount.toFixed(2)} 没匹配到在售套餐（可能用了优惠码），请手动选择要开通的套餐`,
-            plans: membership.PLANS.map(p => ({ code: p.code, name: p.name, price: p.price, kind: p.kind, days: p.days, durationLabel: p.durationLabel }))
+            plans: membership.planMetaList()
           });
         }
         effectivePlan = hits[0];

@@ -175,3 +175,37 @@ test('等级契约：旧 VIP 归一化为 YEARLY_PRO（所以 UI 显示同名是
   assert.equal(M.normalizeTier('VIP'), 'YEARLY_PRO');
   assert.equal(M.TIER_LABELS.VIP, M.TIER_LABELS.YEARLY_PRO);
 });
+
+// ===== 套餐价格契约（/api/admin/tier-meta.planPrices 的数据源护栏，TD-2）=====
+
+test('套餐价格契约：planMetaList 字段形状固定，不再各自拼一份', () => {
+  const list = M.planMetaList();
+  assert.equal(list.length, M.PLANS.length, '必须覆盖全部在售套餐');
+  for (const item of list) {
+    assert.deepEqual(Object.keys(item).sort(), ['code', 'days', 'durationLabel', 'kind', 'name', 'price']);
+    assert.equal(typeof item.code, 'string');
+    assert.equal(typeof item.name, 'string');
+    assert.equal(typeof item.price, 'number');
+    assert.equal(typeof item.days, 'number');
+    assert.equal(typeof item.kind, 'string');
+    assert.equal(typeof item.durationLabel, 'string');
+    assert.ok(item.durationLabel.length > 0, item.code + ' 缺少 durationLabel');
+  }
+});
+
+test('套餐价格契约：planMetaList 按 sort 排序且价格/名称与 PLANS 完全一致', () => {
+  const list = M.planMetaList();
+  // 管理后台的套餐编号就是这个顺序，改动等于改变用户可见的编号，必须显式确认
+  assert.deepEqual(list.map(p => p.code), ['monthly', 'term', 'yearly', 'yearly_pro', 'freshman', 'sophomore', 'junior']);
+  for (const item of list) {
+    const src = M.planForCode(item.code);
+    assert.ok(src, item.code + ' 在 PLANS 中不存在');
+    assert.equal(item.name, src.name);
+    assert.equal(item.price, src.price);
+    assert.equal(item.kind, src.kind);
+    assert.equal(item.days, src.days);
+    assert.equal(item.durationLabel, src.durationLabel || '');
+  }
+  // 价格快照：改价必须同时改测试（防止前端展示与后端收费悄悄漂移）
+  assert.deepEqual(list.map(p => p.price), [6.66, 9.99, 15.01, 20, 49.9, 39.9, 28.8]);
+});
