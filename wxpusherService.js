@@ -80,4 +80,57 @@ function signResultMessage({ studentId, success, reason }) {
   return { summary: '签到失败', content: `❌ 学号${sid} 签到失败，原因：${reason || '未知原因'}\n可以打开 AG 考勤手动补签。` };
 }
 
-module.exports = { createQrcode, listUsers, sendToUid, signResultMessage };
+// ===== 事件回调（关注 / 上行消息）=====
+// 上行消息格式（WxPusher 文档）：
+// { "action": "send_up_cmd", "data": { "uid": "UID_xxx", "appId": 145060, "content": "#145060 内容" } }
+// 关注事件：{ "action": "app_subscribe", "data": { "uid": "UID_xxx", "extra": "学号" } }
+const UPLINK_ACTION = 'send_up_cmd';
+const DEFAULT_APP_ID = '145060';
+
+/** 去掉用户消息开头的 "#AppId"（兼容 # 145060 / ＃145060 / #145060: 等写法） */
+function stripAppIdPrefix(content, appId = DEFAULT_APP_ID) {
+  const s = String(content == null ? '' : content).trim();
+  const id = String(appId == null ? '' : appId).trim();
+  if (!s || !id) return s;
+  const safeId = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return s.replace(new RegExp(`^[#＃]\\s*${safeId}\\s*[:：,，]?\\s*`), '').trim();
+}
+
+/**
+ * 解析 WxPusher 回调。容错：action 缺失时按"有没有 content"判断；
+ * 关注事件永远不算上行消息，避免把绑定回调误存成反馈。
+ */
+function parseCallback(body, appId = DEFAULT_APP_ID) {
+  const b = body || {};
+  const data = (b.data && typeof b.data === 'object') ? b.data : b;
+  const action = String(b.action || b.event || b.type || '').trim();
+  const uid = String(data.uid || '').trim();
+  const extra = String(data.extra || '').trim();
+  const rawContent = String(data.content != null ? data.content : (data.message != null ? data.message : (data.text || ''))).trim();
+  const isSubscribe = /subscribe/i.test(action);
+  const isUplink = !isSubscribe && (
+    action === UPLINK_ACTION
+    || /up_?cmd|uplink|message/i.test(action)
+    || !!rawContent
+  );
+  return {
+    action,
+    uid,
+    extra,
+    rawContent,
+    content: stripAppIdPrefix(rawContent, appId),
+    isUplink,
+    isSubscribe
+  };
+}
+
+module.exports = {
+  createQrcode,
+  listUsers,
+  sendToUid,
+  signResultMessage,
+  stripAppIdPrefix,
+  parseCallback,
+  UPLINK_ACTION,
+  DEFAULT_APP_ID
+};

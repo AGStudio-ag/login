@@ -511,10 +511,21 @@ const SystemConfig = mongoose.models.SystemConfig || mongoose.model('SystemConfi
 const InviteLog = mongoose.models.InviteLog || mongoose.model('InviteLog', inviteLogSchema);
 const Feedback = mongoose.models.Feedback || mongoose.model('Feedback', feedbackSchema);
 
+// 微信上行消息反馈（用户在 WxPusher 公众号里发 "#145060 内容"）
+const userFeedbackSchema = new mongoose.Schema({
+  uid: { type: String, default: '', index: true },
+  studentId: { type: String, default: '', index: true },
+  content: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+  source: { type: String, enum: ['wechat'], default: 'wechat' }
+});
+const UserFeedback = mongoose.models.UserFeedback || mongoose.model('UserFeedback', userFeedbackSchema);
+
 const AUTO_SIGN_NAME = '自动签到';
 const AUTO_SIGN_TIME = '21:35';
 const AUTO_SIGN_CRON = '35 21 * * *';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'ag985211ag@qq.com';
+const WXPUSHER_APP_ID = String(process.env.WXPUSHER_APP_ID || '145060').trim();
 const DEFAULT_AUTO_SIGN_DAYS = [0, 1, 2, 3, 4, 5, 6];
 const VIP_TIER_RANK = membership.TIER_RANK;
 
@@ -3658,6 +3669,20 @@ async function notifyAdmin(subject, html, plainText, opts = {}) {
   return out;
 }
 
+// 用户微信上行反馈 → 立刻推给管理员（失败只记日志，绝不影响入库）
+async function notifyAdminWechatFeedback({ uid, studentId, content }) {
+  try {
+    const who = studentId ? `学号 ${studentId}` : `UID ${String(uid || '').slice(0, 12)}…`;
+    const text = `📩 收到用户 ${who} 的反馈：${String(content || '').slice(0, 500)}`;
+    const r = await pushWxpusher('📩 用户反馈', text);
+    if (!r || !r.ok) console.error('反馈推送未送达:', (r && r.message) || 'unknown');
+    return r;
+  } catch (e) {
+    console.error('反馈推送异常:', e.message);
+    return { ok: false, message: e.message };
+  }
+}
+
 async function sendSponsorMail(user, order, kind) {
   const tier = getTierProfile(user);
   const orderPkg = await SponsorPackage.findOne({ packageId: order.packageId }).catch(() => null);
@@ -3993,24 +4018,42 @@ app.post('/api/admin/wx-test', adminMiddleware, async (req, res) => {
   }
 });
 
-// WxPusher 扫码回调（公开接口）：用户关注后 WxPusher 会 POST 过来，data.extra 就是学号
+// WxPusher 事件回调（公开接口）：
+// - 关注事件：data.extra 是学号 → 绑定 wxpusherUid（原有逻辑）
+// - 上行消息（send_up_cmd）：用户在公众号发 "#145060 内容" → 存 UserFeedback + 通知管理员
 app.post('/api/wxpusher/callback', async (req, res) => {
   try {
     const body = req.body || {};
-    const data = body.data || body;
-    const uid = String(data.uid || '').trim();
-    const extra = String(data.extra || '').trim();
-    console.log('[wxpusher-callback]', body.action || body.event || '', uid ? uid.slice(0, 12) + '…' : '', extra);
-    if (uid && extra) {
-      const user = await User.findOne({ studentId: extra });
+    const evt = wxpusher.parseCallback(body, WXPUSHER_APP_ID);
+    console.log('[wxpusher-callback]', evt.action || '(no-action)',
+      evt.uid ? evt.uid.slice(0, 12) + '…' : '', evt.extra || '', evt.isUplink ? 'uplink' : '');
+
+    // 1) 上行消息：先入库，再尝试通知管理员（通知失败不影响入库）
+    if (evt.isUplink && evt.uid && evt.content) {
+      const user = await User.findOne({ wxpusherUid: evt.uid }).catch(() => null);
+      const studentId = user ? user.studentId : (evt.extra || '');
+      const content = String(evt.content).slice(0, 2000);
+      await UserFeedback.create({ uid: evt.uid, studentId, content, source: 'wechat' });
+      try {
+        await notifyAdminWechatFeedback({ uid: evt.uid, studentId, content });
+      } catch (e) {
+        console.error('[wxpusher-callback] 反馈通知失败（已入库）:', e.message);
+      }
+      console.log(`[wxpusher-callback] 上行反馈已入库 ${studentId || 'UID:' + evt.uid.slice(0, 8)}`);
+      return res.json({ success: true, stored: true });
+    }
+
+    // 2) 关注/绑定事件（保持原逻辑）
+    if (evt.uid && evt.extra && !evt.isUplink) {
+      const user = await User.findOne({ studentId: evt.extra });
       if (user) {
-        user.wxpusherUid = uid;
+        user.wxpusherUid = evt.uid;
         user.wxpusherBindTime = new Date();
         user.wxpusherBindSession = null;
         await user.save();
-        console.log(`[wxpusher-callback] 绑定成功 ${extra} -> ${uid.slice(0, 12)}…`);
+        console.log(`[wxpusher-callback] 绑定成功 ${evt.extra} -> ${evt.uid.slice(0, 12)}…`);
       } else {
-        console.log(`[wxpusher-callback] extra=${extra} 没有对应用户`);
+        console.log(`[wxpusher-callback] extra=${evt.extra} 没有对应用户`);
       }
     }
     res.json({ success: true });
