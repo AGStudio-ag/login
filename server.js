@@ -11,6 +11,7 @@ const cron = require('node-cron');
 const { spawn } = require('child_process');
 const path = require('path');
 const crypto = require('crypto');
+const wxpusher = require('./wxpusherService');
 const fs = require('fs');
 const http = require('http');
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -151,6 +152,11 @@ const userSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
   }],
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  // 微信通知绑定（WxPusher 服务号，无需装 App）
+  wxpusherUid: { type: String, default: '' },
+  wxpusherBindTime: { type: Date, default: null },
+  // 本次绑定会话的开始时间：扫码后靠它识别「刚刚出现的订阅者」
+  wxpusherBindSession: { type: Date, default: null },
   isActive: { type: Boolean, default: true },
   attendancePassword: { type: String, default: 'Ahgydx@920' },
   createdAt: { type: Date, default: Date.now },
@@ -1485,6 +1491,21 @@ async function maybeSendAdminSignSummary(day = new Date(), opts = {}) {
     console.log('📊 管理员汇总已发送（所有人已完成）: ' + dayKey);
   } catch (e) { console.error('管理员汇总判断失败:', e.message); }
 }
+// ============ 单个用户签到结果 → 微信通知（仅绑定了 WxPusher 的用户）============
+// 原则：发送失败只记日志，绝不影响签到主流程
+async function notifyUserWxpusher(user, success, reason) {
+  try {
+    if (!user || !user.wxpusherUid) return;
+    const cfg = await getWxpusherConfig();
+    if (!cfg.appToken) return;
+    const msg = wxpusher.signResultMessage({ studentId: user.studentId, success, reason });
+    const r = await wxpusher.sendToUid(cfg.appToken, user.wxpusherUid, msg.summary, msg.content);
+    if (!r.ok) console.error(`WxPusher 通知失败 ${user.studentId}: ${r.message}`);
+  } catch (e) {
+    console.error('WxPusher 通知异常:', e.message);
+  }
+}
+
 // ============ 单个用户签到失败 → 立刻推送管理员（带防刷屏保护）============
 const SIGN_FAIL_PUSH = { limit: 15, count: 0, bulkSent: false };
 function resetSignFailPush() { SIGN_FAIL_PUSH.count = 0; SIGN_FAIL_PUSH.bulkSent = false; }
@@ -1680,6 +1701,10 @@ async function executeAutoSign(options = {}) {
           console.log(`✅ ${user.studentId}: ${signResult.success ? '成功' : '失败'}`);
           if (!signResult.success) {
             await notifySignFailure(user, signResult.message || '签到接口返回失败', '自动签到');
+          }
+          // 微信通知：只发给绑定了 WxPusher 的用户，失败只记日志（不 await，绝不拖慢/拖垮签到）
+          if (user.wxpusherUid) {
+            notifyUserWxpusher(user, signResult.success, signResult.message).catch(() => {});
           }
           
         } catch (error) {
@@ -3720,6 +3745,96 @@ app.get('/api/payment/packages', authMiddleware, async (req, res) => {
 
 // 管理员：会员等级元数据（前端 admin.html 不再硬编码 TIER_LABELS / CUSTOM_TIME_TIERS）
 // 字段直接取 membership.js 的导出，前端不做映射；legacyTiers = 不在售的历史等级（VIP/SVIP/LEGACY）
+// ===== 微信通知绑定（WxPusher 服务号，普通用户；无需装 App）=====
+app.get('/api/user/wxpusher/qrcode', authMiddleware, async (req, res) => {
+  try {
+    const cfg = await getWxpusherConfig();
+    if (!cfg.appToken) return res.status(503).json({ success: false, message: '服务端未配置微信通知（AppToken）' });
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
+    const qr = await wxpusher.createQrcode(cfg.appToken, user.studentId, 600);
+    if (!qr.ok) return res.status(502).json({ success: false, message: qr.message || '生成二维码失败' });
+    user.wxpusherBindSession = new Date();
+    await user.save();
+    res.json({ success: true, url: qr.url, shortUrl: qr.shortUrl, expires: qr.expires, extra: qr.extra });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/user/wxpusher/status', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
+    if (user.wxpusherUid) {
+      return res.json({ success: true, bound: true, uid: user.wxpusherUid, bindTime: user.wxpusherBindTime });
+    }
+    const cfg = await getWxpusherConfig();
+    if (!cfg.appToken) return res.status(503).json({ success: false, bound: false, message: '服务端未配置微信通知（AppToken）' });
+    const sessionStart = user.wxpusherBindSession ? new Date(user.wxpusherBindSession).getTime() : 0;
+    if (!sessionStart) return res.json({ success: true, bound: false, waiting: false, message: '请先获取二维码' });
+    if (Date.now() - sessionStart > 15 * 60 * 1000) return res.json({ success: true, bound: false, expired: true, message: '二维码已过期，请重新获取' });
+    // 安全阀：同时有别人在绑定会话中时，绝不做「按时间猜人」，避免把别人的微信绑到你账号上
+    const others = await User.countDocuments({ _id: { $ne: user._id }, wxpusherBindSession: { $gt: new Date(Date.now() - 15 * 60 * 1000) } });
+    if (others > 0) return res.json({ success: true, bound: false, waiting: true, message: '有其他用户正在绑定，请稍后再试' });
+    const list = await wxpusher.listUsers(cfg.appToken, 1, 100);
+    if (!list.ok) return res.status(502).json({ success: false, bound: false, message: list.message || '查询订阅者失败' });
+    const boundUids = new Set((await User.find({ wxpusherUid: { $ne: '' } }).select('wxpusherUid').lean()).map(u => u.wxpusherUid));
+    const fresh = list.records.filter(r => !boundUids.has(r.uid) && Number(r.createTime || 0) >= sessionStart - 60 * 1000);
+    if (fresh.length === 1) {
+      user.wxpusherUid = fresh[0].uid;
+      user.wxpusherBindTime = new Date();
+      user.wxpusherBindSession = null;
+      await user.save();
+      return res.json({ success: true, bound: true, uid: user.wxpusherUid, bindTime: user.wxpusherBindTime, via: 'poll' });
+    }
+    res.json({ success: true, bound: false, waiting: true, candidates: fresh.length });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/user/wxpusher/unbind', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
+    user.wxpusherUid = '';
+    user.wxpusherBindTime = null;
+    user.wxpusherBindSession = null;
+    await user.save();
+    res.json({ success: true, message: '已解除微信绑定' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// WxPusher 扫码回调（公开接口）：用户关注后 WxPusher 会 POST 过来，data.extra 就是学号
+app.post('/api/wxpusher/callback', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const data = body.data || body;
+    const uid = String(data.uid || '').trim();
+    const extra = String(data.extra || '').trim();
+    console.log('[wxpusher-callback]', body.action || body.event || '', uid ? uid.slice(0, 12) + '…' : '', extra);
+    if (uid && extra) {
+      const user = await User.findOne({ studentId: extra });
+      if (user) {
+        user.wxpusherUid = uid;
+        user.wxpusherBindTime = new Date();
+        user.wxpusherBindSession = null;
+        await user.save();
+        console.log(`[wxpusher-callback] 绑定成功 ${extra} -> ${uid.slice(0, 12)}…`);
+      } else {
+        console.log(`[wxpusher-callback] extra=${extra} 没有对应用户`);
+      }
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[wxpusher-callback] 异常:', error.message);
+    res.json({ success: true });
+  }
+});
+
 app.get('/api/admin/tier-meta', adminMiddleware, async (req, res) => {
   try {
     const tierLabels = membership.TIER_LABELS;
