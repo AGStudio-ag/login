@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AG AI 内测申请 | AG Studio</title>
+<meta name="description" content="申请 AG AI 自动化平台专属内测：告诉我们你的联系方式、所属行业、使用场景和期望接入的平台，提交后进入待审核列表。">
+<link rel="canonical" href="https://agai.online/beta/">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta name="theme-color" content="#0a1122">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AG Studio">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="AG AI 内测申请 | AG Studio">
+<meta property="og:description" content="提交内测申请，体验 AG AI 自动化平台的专属能力。">
+<meta property="og:url" content="https://agai.online/beta/">
+<meta property="og:image" content="https://agai.online/assets/ag-ai-og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AG AI 内测申请">
+<meta name="twitter:description" content="提交内测申请，体验 AG AI 自动化平台。">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://agai.online/beta/#page",
+      "url": "https://agai.online/beta/",
+      "name": "AG AI 内测申请",
+      "description": "申请 AG AI 自动化平台专属内测。",
+      "inLanguage": "zh-CN",
+      "isPartOf": { "@id": "https://agai.online/#website" },
+      "publisher": { "@type": "Organization", "name": "AG Studio", "url": "https://agai.online/" }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "首页", "item": "https://agai.online/" },
+        { "@type": "ListItem", "position": 2, "name": "AG AI 内测申请", "item": "https://agai.online/beta/" }
+      ]
+    }
+  ]
+}
+</script>
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/beta.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="/" aria-label="AG Studio 首页"><img class="logo-mark" src="/assets/ag-logo.svg" alt="AG" width="30" height="30"><span>AG Studio</span></a>
+    <nav class="nav-links" aria-label="主导航">
+      <a href="/">首页</a>
+      <a href="/products/">产品</a>
+      <a href="/ai-demo/">AG AI 演示</a>
+      <a href="/about/">关于我们</a>
+      <a href="/#contact">联系我们</a>
+    </nav>
+    <a class="nav-cta" href="/ai-demo/">返回演示</a>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <span class="eyebrow">AG AI · Beta Program</span>
+      <h1 style="font-size:clamp(40px,6vw,72px);line-height:1.04;letter-spacing:-.05em;margin:22px 0 18px;">申请专属内测，<br><span style="background:linear-gradient(90deg,#fff,#9bb7ff 50%,#b79bff);-webkit-background-clip:text;background-clip:text;color:transparent;">先把你的场景告诉我们。</span></h1>
+      <p class="hero-sub" style="max-width:38em;">AG AI 正在招募第一批内测用户。告诉我们你所在行业、想自动化的场景和期望接入的平台，申请提交后会进入待审核列表，我们会按顺序联系你。</p>
+      <div class="status-line">
+        <span class="pill pill-demo"><i></i>内测申请开放</span>
+        <span>提交后进入待审核列表 · 正式应用入口规划中</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap beta-grid">
+      <div class="beta-form-card reveal">
+        <div class="kicker">Application form</div>
+        <h2 class="section-title" style="font-size:clamp(20px,2.4vw,26px);margin-bottom:6px;">内测申请表</h2>
+        <p style="font-size:12.5px;color:var(--text-3);margin-bottom:22px;">带 * 为必填。联系方式仅用于内测沟通，不会公开。</p>
+
+        <form id="betaForm" novalidate>
+          <div class="field">
+            <label for="fContact">联系方式 <span class="req">*</span></label>
+            <input id="fContact" name="contact" type="text" placeholder="邮箱或手机号" maxlength="100" required>
+            <p class="field-err" id="errContact" hidden>请填写有效的联系方式（3–100 字符）</p>
+          </div>
+
+          <div class="field">
+            <label for="fIndustry">所属行业</label>
+            <select id="fIndustry" name="industry">
+              <option value="">请选择（可选）</option>
+              <option value="电商零售">电商零售</option>
+              <option value="教育培训">教育培训</option>
+              <option value="校园服务">校园服务</option>
+              <option value="内容创作">内容创作</option>
+              <option value="本地生活">本地生活</option>
+              <option value="软件服务">软件服务</option>
+              <option value="金融咨询">金融咨询</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="fScenario">目标使用场景</label>
+            <select id="fScenario" name="scenario">
+              <option value="">请选择（可选）</option>
+              <option value="多平台消息自动回复">多平台消息自动回复</option>
+              <option value="自动化工作流">自动化工作流（触发→分析→判断→执行→反馈）</option>
+              <option value="内容生成">内容生成（回复、摘要、待办）</option>
+              <option value="数据整理与提醒">数据整理与定时提醒</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>期望接入的平台（可多选）</label>
+            <div class="check-group">
+              <label class="check"><input type="checkbox" name="platforms" value="微信"><span>微信</span></label>
+              <label class="check"><input type="checkbox" name="platforms" value="抖音"><span>抖音</span></label>
+              <label class="check"><input type="checkbox" name="platforms" value="飞书"><span>飞书</span></label>
+              <label class="check"><input type="checkbox" name="platforms" value="钉钉"><span>钉钉</span></label>
+              <label class="check"><input type="checkbox" name="platforms" value="企业微信"><span>企业微信</span></label>
+              <label class="check"><input type="checkbox" name="platforms" value="网页"><span>网页</span></label>
+              <label class="check"><input type="checkbox" name="platforms" value="其他"><span>其他</span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="fNote">申请说明</label>
+            <textarea id="fNote" name="note" rows="4" maxlength="1000" placeholder="简单说说你想用 AG AI 做什么（可选）"></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-primary" id="betaSubmit" type="submit" style="height:46px;">提交申请</button>
+            <span class="form-hint">提交即表示同意我们通过你留下的联系方式与你联系</span>
+          </div>
+
+          <div class="form-result" id="betaResult" role="status" hidden></div>
+        </form>
+      </div>
+
+      <div class="beta-side reveal">
+        <div class="side-card">
+          <div class="kicker">What happens next</div>
+          <h3>提交之后</h3>
+          <ul class="side-list">
+            <li>申请进入后台待审核列表，状态为「待审核」</li>
+            <li>我们按提交顺序与你联系，确认场景与接入平台</li>
+            <li>通过后发放内测资格，当前不提供公开注册入口</li>
+          </ul>
+        </div>
+        <div class="side-card">
+          <div class="kicker">Availability</div>
+          <h3>当前状态</h3>
+          <div class="status-panel" style="margin-top:14px;">
+            <div class="status-row"><span>公众演示</span><span class="status-val"><i class="dot dot-on"></i>开放</span></div>
+            <div class="status-row"><span>内测申请</span><span class="status-val"><i class="dot dot-on"></i>开放</span></div>
+            <div class="status-row"><span>正式应用</span><span class="status-val"><i class="dot dot-off"></i>规划中</span></div>
+          </div>
+        </div>
+        <div class="side-card">
+          <div class="kicker">Try first</div>
+          <h3>先体验，再申请</h3>
+          <p style="font-size:12.5px;color:var(--text-2);line-height:1.85;margin-top:8px;">不确定 AG AI 能做什么？先到公众演示页亲手试试三个场景，再决定要不要申请内测。</p>
+          <a class="btn btn-ghost btn-sm" href="/ai-demo/" style="margin-top:14px;">去演示页看看</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer" id="contact">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a class="logo" href="/"><img class="logo-mark" src="/assets/ag-logo.svg" alt="AG" width="30" height="30"><span>AG Studio</span></a>
+        <p>AG工作室 · 专注于 AI、智能软件与数字化产品研发。让技术落地，让创新发生。</p>
+      </div>
+      <div><h4>站点</h4><div class="footer-links"><a href="/">首页</a><a href="/products/">产品矩阵</a><a href="/ai-demo/">AG AI 演示</a><a href="/about/">关于我们</a><a href="/">返回主站</a></div></div>
+      <div><h4>产品与联系</h4><div class="footer-links"><a href="/products/ag-attendance/">AG 智能考勤</a><a href="/products/ag-ai/">AG AI</a><a href="/beta/">申请内测</a><a href="mailto:support@agai.online">support@agai.online</a></div></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 AG Studio · AG工作室</span><span>AG AI · Beta Program</span></div>
+  </div>
+</footer>
+
+<script src="/assets/site.js"></script>
+<script src="/assets/beta.js"></script>
+</body>
+</html>

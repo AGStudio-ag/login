@@ -4312,12 +4312,14 @@ app.get('/api/admin/email-recipients-count', adminMiddleware, async (req, res) =
 const FRONTEND_DIR = path.join(__dirname, 'public');
 if (fs.existsSync(FRONTEND_DIR)) {
   app.use(express.static(FRONTEND_DIR, { index: 'index.html', maxAge: '1h' }));
-  // 无扩展名单段路径 → 同名 .html（兼容 /dashboard /admin /terms /privacy /faq /market /plant /shudian）
+  // 无扩展名单段路径 → 同名 .html；若是目录则跳转到带斜杠路径（兼容 /dashboard /admin /about /products）
   app.get(/^\/([^/]+)$/, (req, res, next) => {
     const seg = req.params[0];
     if (seg === 'api' || seg === 'health' || seg.includes('.')) return next();
     const file = path.join(FRONTEND_DIR, seg + '.html');
     if (fs.existsSync(file)) return res.sendFile(file);
+    const dirIndex = path.join(FRONTEND_DIR, seg, 'index.html');
+    if (fs.existsSync(dirIndex)) return res.redirect(301, '/' + seg + '/');
     next();
   });
 }

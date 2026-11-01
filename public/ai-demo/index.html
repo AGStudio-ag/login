@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AG AI 演示 - AI 自动化平台 | AG Studio</title>
+<meta name="description" content="AG AI 公众演示环境：智能消息处理、自动化工作流、智能记忆与理解三个交互场景，模拟数据，无需登录，不连接真实微信或抖音账号。">
+<link rel="canonical" href="https://agai.online/ai-demo/">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta name="theme-color" content="#0a1122">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AG Studio">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="AG AI 演示 - AI 自动化平台 | AG Studio">
+<meta property="og:description" content="三个交互场景，模拟数据：智能消息处理、自动化工作流、智能记忆与理解。">
+<meta property="og:url" content="https://agai.online/ai-demo/">
+<meta property="og:image" content="https://agai.online/assets/ag-ai-og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AG AI 演示 - AI 自动化平台">
+<meta name="twitter:description" content="智能消息处理、自动化工作流、智能记忆与理解。">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://agai.online/ai-demo/#page",
+      "url": "https://agai.online/ai-demo/",
+      "name": "AG AI 公众演示",
+      "description": "AG AI 自动化平台的公众演示环境：智能消息处理、自动化工作流、智能记忆与理解。",
+      "inLanguage": "zh-CN",
+      "isPartOf": { "@id": "https://agai.online/#website" },
+      "publisher": { "@type": "Organization", "name": "AG Studio", "url": "https://agai.online/" }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "首页", "item": "https://agai.online/" },
+        { "@type": "ListItem", "position": 2, "name": "AG AI 演示", "item": "https://agai.online/ai-demo/" }
+      ]
+    }
+  ]
+}
+</script>
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/ai-demo.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="/" aria-label="AG Studio 首页"><img class="logo-mark" src="/assets/ag-logo.svg" alt="AG" width="30" height="30"><span>AG Studio</span></a>
+    <nav class="nav-links" aria-label="主导航">
+      <a href="/">首页</a>
+      <a href="/products/">产品</a>
+      <a href="/ai-demo/" aria-current="page">AG AI 演示</a>
+      <a href="/about/">关于我们</a>
+      <a href="/#contact">联系我们</a>
+    </nav>
+    <a class="nav-cta" href="/beta/">申请专属内测</a>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <span class="eyebrow">AG AI · Live Demo</span>
+      <h1 style="font-size:clamp(40px,6vw,72px);line-height:1.04;letter-spacing:-.05em;margin:22px 0 18px;">三个场景，<br><span style="background:linear-gradient(90deg,#fff,#9bb7ff 50%,#b79bff);-webkit-background-clip:text;background-clip:text;color:transparent;">一次看懂 AG AI。</span></h1>
+      <p class="hero-sub" style="max-width:38em;">这是 AG AI 的公众演示环境：消息处理、自动化工作流、记忆与理解，全部可以点击体验。演示使用模拟数据，不连接真实微信或抖音账号，也不调用任何模型密钥。</p>
+      <div class="status-line">
+        <span class="pill pill-demo"><i></i>演示环境</span>
+        <span>无需登录 · 模拟数据 · 独立演示接口（限流 + 调用预算）</span>
+      </div>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#demo-1">开始演示
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+        </a>
+        <a class="btn btn-ghost" href="/beta/">申请专属内测</a>
+      </div>
+      <div class="hero-meta">
+        <div><b>No login</b>无需登录</div>
+        <div><b>Mock data</b>模拟数据</div>
+        <div><b>Isolated</b>与正式业务隔离</div>
+      </div>
+    </div>
+  </section>
+
+  <nav class="demo-nav" aria-label="演示导航">
+    <div class="wrap">
+      <a href="#demo-1">01 · 智能消息处理</a>
+      <a href="#demo-2">02 · 自动化工作流</a>
+      <a href="#demo-3">03 · 智能记忆与理解</a>
+      <a href="#safety">安全说明</a>
+    </div>
+  </nav>
+
+  <section class="section" id="demo-1">
+    <div class="wrap">
+      <div class="reveal">
+        <div class="kicker">Scenario 01</div>
+        <h2 class="section-title">智能消息处理</h2>
+        <p class="section-lead">模拟微信、抖音等平台的消息：AG AI 先理解意图与上下文，再生成可用的回复。在下面输入一条消息试试。</p>
+      </div>
+      <div class="demo-sec">
+        <div class="demo-box reveal">
+          <div class="demo-box-head"><b>模拟会话窗口</b><span class="tag">Mock chat</span></div>
+          <div class="demo-box-pad">
+            <div class="platform-tabs" role="tablist" aria-label="平台">
+              <button class="on" data-skin="wechat" type="button">微信风格</button>
+              <button data-skin="douyin" type="button">抖音风格</button>
+              <button data-skin="generic" type="button">通用</button>
+            </div>
+            <div class="chat-window skin-wechat" id="chatWindow">
+              <div class="chat-head"><span class="avatar">AI</span><span id="chatTitle">AG AI · 模拟微信会话</span><span class="demo-flag">DEMO</span></div>
+              <div class="chat-body" id="chatBody" aria-live="polite">
+                <div class="chat-empty">输入一条消息，或点下面的示例，看看 AG AI 怎么理解与回复。</div>
+              </div>
+              <div class="chat-input">
+                <input id="chatInput" type="text" placeholder="输入模拟消息…" maxlength="200" aria-label="消息内容">
+                <button id="chatSend" type="button">发送</button>
+              </div>
+            </div>
+            <div class="sample-chips">
+              <button type="button" data-msg="你好，这个服务怎么收费？">客户问价格</button>
+              <button type="button" data-msg="我要退款，东西有质量问题">客户要退款</button>
+              <button type="button" data-msg="明天下午三点提醒我开会">日程提醒</button>
+              <button type="button" data-msg="这个怎么用，有教程吗？">使用帮助</button>
+            </div>
+            <p class="demo-note">以上消息与回复均为模拟数据，不代表真实客户内容。</p>
+          </div>
+        </div>
+        <div class="demo-box reveal">
+          <div class="demo-box-head"><b>理解与回复</b><span class="tag" id="modeTag">等待输入</span></div>
+          <div class="demo-box-pad" id="analysisArea">
+            <div class="analysis-grid">
+              <div class="analysis-row"><div class="ar-label">Intent · 意图</div><div class="ar-value" id="aIntent">—</div></div>
+              <div class="analysis-row"><div class="ar-label">Entities · 关键信息</div><div class="ar-value" id="aEntities">—</div></div>
+              <div class="analysis-row"><div class="ar-label">Sentiment · 情绪</div><div class="ar-value" id="aSentiment">—</div></div>
+              <div class="analysis-row"><div class="ar-label">Suggested reply · 建议回复</div><div class="ar-value" id="aReply">发送消息后，这里会显示 AG AI 生成的建议回复。</div></div>
+            </div>
+            <div class="mode-line">
+              <span class="mode-badge local" id="modeBadge">本地规则引擎</span>
+              <span id="budgetLine">演示网关：独立接口，带限流与每日调用预算</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="demo-2">
+    <div class="wrap">
+      <div class="reveal">
+        <div class="kicker">Scenario 02</div>
+        <h2 class="section-title">自动化工作流</h2>
+        <p class="section-lead">一条完整的自动化流水线：触发 → 分析 → 判断 → 执行 → 反馈。选一个场景，点「运行演示」看每一步做了什么。</p>
+      </div>
+      <div class="demo-box reveal" style="margin-top:36px;">
+        <div class="demo-box-head"><b>工作流运行台</b><span class="tag">Simulated run</span></div>
+        <div class="demo-box-pad">
+          <div class="flow-scenarios">
+            <button class="on" data-flow="order" type="button">场景 A · 新订单消息</button>
+            <button data-flow="alert" type="button">场景 B · 异常消息上报</button>
+            <button data-flow="daily" type="button">场景 C · 每日内容整理</button>
+          </div>
+          <div class="flow-steps" id="flowSteps">
+            <div class="flow-node"><span class="fn-num">STEP 1</span><span class="fn-name">触发</span></div>
+            <div class="flow-node"><span class="fn-num">STEP 2</span><span class="fn-name">分析</span></div>
+            <div class="flow-node"><span class="fn-num">STEP 3</span><span class="fn-name">判断</span></div>
+            <div class="flow-node"><span class="fn-num">STEP 4</span><span class="fn-name">执行</span></div>
+            <div class="flow-node"><span class="fn-num">STEP 5</span><span class="fn-name">反馈</span></div>
+          </div>
+          <div class="flow-log" id="flowLog" aria-live="polite"></div>
+          <div class="progress-track"><div class="progress-bar" id="flowProgress"></div></div>
+          <div class="flow-result" id="flowResult" hidden></div>
+          <div class="flow-actions">
+            <button class="btn-run" id="flowRun" type="button">运行演示</button>
+            <button class="btn-reset" id="flowReset" type="button">重置</button>
+          </div>
+          <p class="demo-note">流程与数据均为模拟演示，不代表真实业务执行。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="demo-3">
+    <div class="wrap">
+      <div class="reveal">
+        <div class="kicker">Scenario 03</div>
+        <h2 class="section-title">智能记忆与理解</h2>
+        <p class="section-lead">先教 AG AI 记住你的偏好，再提问，看历史上下文如何改变它的回复。可以随时关闭记忆对比效果。</p>
+      </div>
+      <div class="demo-sec">
+        <div class="demo-box reveal">
+          <div class="demo-box-head"><b>对话</b><span class="tag">Context demo</span></div>
+          <div class="demo-box-pad">
+            <div class="chat-window skin-generic" style="height:auto;">
+              <div class="chat-head"><span class="avatar">AI</span><span>AG AI · 上下文对话</span><span class="demo-flag">DEMO</span></div>
+              <div class="chat-body" id="memChatBody" aria-live="polite" style="height:230px;">
+                <div class="chat-empty">先告诉 AG AI 你的偏好（例如「记住：我喜欢简洁的回复」），再问它问题。</div>
+              </div>
+              <div class="chat-input">
+                <input id="memChatInput" type="text" placeholder="输入「记住：…」或直接提问…" maxlength="200" aria-label="对话内容">
+                <button id="memChatSend" type="button">发送</button>
+              </div>
+            </div>
+            <div class="sample-chips">
+              <button type="button" data-mem="记住：我喜欢简洁的回复，先说结论">教它：喜欢简洁</button>
+              <button type="button" data-mem="记住：请叫我小 A">教它：称呼</button>
+              <button type="button" data-mem="帮我看下明天的安排">提问：安排</button>
+            </div>
+          </div>
+        </div>
+        <div class="demo-box reveal">
+          <div class="demo-box-head"><b>记忆库</b><span class="tag">In-page only</span></div>
+          <div class="demo-box-pad">
+            <div class="mem-panel">
+              <div class="mem-head">已记住的偏好<span class="tag">内存演示 · 不落库</span></div>
+              <ul class="mem-list" id="memList"></ul>
+            </div>
+            <div class="mem-toggle">
+              <button class="switch on" id="memSwitch" type="button" role="switch" aria-checked="true" aria-label="开启或关闭记忆"></button>
+              <span id="memSwitchLabel">记忆已开启 · 回复会参考你的偏好</span>
+            </div>
+            <button class="copy-btn" id="memReset" type="button" style="margin-top:10px;">清空记忆并重置</button>
+            <p class="demo-note">记忆只保存在当前页面内存里，刷新即清空，不会上传任何数据。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="safety">
+    <div class="wrap">
+      <div class="reveal">
+        <div class="kicker">Safety</div>
+        <h2 class="section-title">演示环境的边界。</h2>
+      </div>
+      <div class="safety-grid reveal">
+        <div class="safety-item"><b>模拟数据</b><p>所有消息、流程与记忆均为虚构数据，不连接真实微信或抖音账号，也不读取任何正式用户数据。</p></div>
+        <div class="safety-item"><b>无密钥暴露</b><p>演示为规则引擎模拟，不调用任何模型 API，浏览器与页面中不存在任何 API Key。</p></div>
+        <div class="safety-item"><b>独立接口</b><p>演示网关独立部署，带每 IP 请求限流与每日调用预算，额度用完自动拒绝。</p></div>
+        <div class="safety-item"><b>业务隔离</b><p>演示环境与正式业务数据完全隔离，与智能考勤系统互不影响。</p></div>
+      </div>
+      <div class="cta-band reveal">
+        <div>
+          <h3>想在自己的业务里用上 AG AI？</h3>
+          <p>提交内测申请，告诉我们你的行业、场景和想接入的平台，我们会按顺序联系你。</p>
+        </div>
+        <div class="band-actions">
+          <a class="btn btn-primary" href="/beta/">申请专属内测</a>
+          <a class="btn btn-ghost" href="/products/ag-ai/">了解 AG AI</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer" id="contact">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a class="logo" href="/"><img class="logo-mark" src="/assets/ag-logo.svg" alt="AG" width="30" height="30"><span>AG Studio</span></a>
+        <p>AG工作室 · 专注于 AI、智能软件与数字化产品研发。让技术落地，让创新发生。</p>
+      </div>
+      <div><h4>站点</h4><div class="footer-links"><a href="/">首页</a><a href="/products/">产品矩阵</a><a href="/ai-demo/">AG AI 演示</a><a href="/about/">关于我们</a><a href="/">返回主站</a></div></div>
+      <div><h4>产品与联系</h4><div class="footer-links"><a href="/products/ag-attendance/">AG 智能考勤</a><a href="/products/ag-ai/">AG AI</a><a href="/beta/">申请内测</a><a href="mailto:support@agai.online">support@agai.online</a></div></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 AG Studio · AG工作室</span><span>AG AI · 公众演示环境</span></div>
+  </div>
+</footer>
+
+<script src="/assets/site.js"></script>
+<script src="/assets/ai-demo.js"></script>
+</body>
+</html>
