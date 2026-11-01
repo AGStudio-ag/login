@@ -878,7 +878,7 @@
                   <td>${u.email || '-'} ${u.emailVerified ? '✓' : ''}</td>
                   <td>${u.isVip
                     ? (u.vipExpireAt && new Date(u.vipExpireAt).getTime() <= Date.now()
-                        ? `<span class="badge badge-danger">${memberLabel(u)} · 已过期${Math.max(0, Math.floor((Date.now() - new Date(u.vipExpireAt).getTime()) / 86400000))}天</span><br><span style="font-size:12px;color:#94a3b8;">到期 ${fmtDate(u.vipExpireAt)}</span>`
+                        ? `<span class="badge badge-danger">${memberLabel(u)} · 已过期${Math.max(0, Math.floor((Date.now() - new Date(u.vipExpireAt).getTime()) / 86400000)) > 0 ? Math.max(0, Math.floor((Date.now() - new Date(u.vipExpireAt).getTime()) / 86400000)) + '天' : '（今天）'}</span><br><span style="font-size:12px;color:#94a3b8;">到期 ${fmtDate(u.vipExpireAt)}</span>`
                         : `<span class="badge badge-success">${memberLabel(u)}</span><br><span style="font-size:12px;color:#94a3b8;">${fmtDate(u.vipExpireAt)}${tierSupportsCustom(u.vipTier) ? ' · 可自定义' : ''}</span>`)
                     : '<span class="badge badge-danger">普通</span>'}</td>
                   <td>${u.role === 'admin' ? '<span class="badge badge-admin">管理员</span>' : '<span class="badge badge-info">用户</span>'}</td>

@@ -1521,7 +1521,7 @@ async function loadUserInfo() {
         headerTier.textContent = `${tierDisplay} · 长期`;
       } else if (expireDate && expireDate.getTime() <= Date.now()) {
         const expiredDays = Math.max(0, Math.floor((Date.now() - expireDate.getTime()) / 86400000));
-        headerTier.textContent = `${tierDisplay} · 已过期${expiredDays}天`;
+        headerTier.textContent = `${tierDisplay} · 已过期${expiredDays > 0 ? expiredDays + '天' : '（今天）'}`;
       } else {
         headerTier.textContent = `${tierDisplay} · ${daysLeft}天`;
       }
@@ -2026,7 +2026,7 @@ async function loadProfile() {
       vipText = '有效至 ' + expireDate.toLocaleDateString('zh-CN');
     } else if (expireDate) {
       const expiredDays = Math.max(0, Math.floor((Date.now() - expireDate.getTime()) / 86400000));
-      vipText = `已过期 ${expiredDays} 天`;
+      vipText = expiredDays > 0 ? `已过期 ${expiredDays} 天` : '今天已过期';
     } else {
       vipText = '已到期';
     }
