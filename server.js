@@ -476,7 +476,7 @@ const AUTO_SIGN_NAME = '自动签到';
 const AUTO_SIGN_TIME = '21:35';
 const AUTO_SIGN_CRON = '35 21 * * *';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'ag985211ag@qq.com';
-const DEFAULT_AUTO_SIGN_DAYS = [1, 2, 3, 4, 5];
+const DEFAULT_AUTO_SIGN_DAYS = [0, 1, 2, 3, 4, 5, 6];
 const VIP_TIER_RANK = membership.TIER_RANK;
 
 function applyVipTier(user, tier) {
@@ -2442,6 +2442,33 @@ app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
   }
 });
 
+// 自动签到今日报告：谁签了、谁没签（管理员）
+app.get('/api/admin/autosign-report', adminMiddleware, async (req, res) => {
+  try {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const end = new Date(); end.setHours(23, 59, 59, 999);
+    const subs = await Subscription.find({ enabled: true }).populate('userId');
+    const users = subs.map(s => s.userId).filter(u => u && typeof u === 'object');
+    const ids = users.map(u => u._id);
+    const logs = await SignLog.find({ userId: { $in: ids }, signTime: { $gte: start, $lte: end } }).select('userId status message').lean();
+    const signed = new Map();
+    for (const l of logs) { const k = String(l.userId); if (!signed.has(k)) signed.set(k, []); signed.get(k).push(l.status); }
+    const rows = users.map(u => ({
+      studentId: u.studentId,
+      name: u.name || '',
+      isVip: u.isVip === true,
+      vipTier: u.vipTier || '',
+      vipExpireAt: u.vipExpireAt || null,
+      signed: signed.has(String(u._id)),
+      statuses: signed.get(String(u._id)) || []
+    }));
+    const signedCount = rows.filter(r => r.signed).length;
+    res.json({ success: true, total: rows.length, signed: signedCount, missing: rows.filter(r => !r.signed) });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // 手动触发今日管理员签到汇总（管理员）
 app.post('/api/admin/send-summary', adminMiddleware, async (req, res) => {
   try {
@@ -2935,6 +2962,25 @@ async function syncMembershipPlans() {
     { packageId: { $in: ['vip', 'svip', 'trial', 'standard', 'value', 'counts', 'times'] } },
     { $set: { active: false, updatedAt: new Date() } }
   );
+}
+
+let autoSignDailyMigrationPromise = null;
+// 一次性迁移：所有订阅改为每天自动签到（含周末），老用户无需重新设置
+function migrateAutoSignDaily() {
+  if (!autoSignDailyMigrationPromise) {
+    autoSignDailyMigrationPromise = (async () => {
+      try {
+        const flag = await SystemConfig.findOne({ key: 'autosign_daily_migrated_v1' });
+        if (flag) return;
+        await Subscription.updateMany({}, {
+          $set: { scheduleType: 'daily', customDays: [0, 1, 2, 3, 4, 5, 6], updatedAt: new Date() }
+        });
+        await SystemConfig.create({ key: 'autosign_daily_migrated_v1', value: true });
+        console.log('🤖 自动签到已迁移为每天（含周末）');
+      } catch (e) { console.error('自动签到每日迁移失败:', e.message); }
+    })();
+  }
+  return autoSignDailyMigrationPromise;
 }
 
 let membershipMigrationPromise = null;
@@ -4374,6 +4420,7 @@ server.listen(PORT, '0.0.0.0', () => {
 
 initSystemConfig()
   .then(() => migrateMembershipV2())
+  .then(() => migrateAutoSignDaily())
   .catch(err => {
     console.error('❌ 系统配置初始化失败:', err.message);
   });
@@ -4381,4 +4428,5 @@ initSystemConfig()
 // 数据库稍后就绪时也补跑一次（迁移内部有幂等标记）
 mongoose.connection.on('connected', () => {
   migrateMembershipV2().catch(err => console.error('会员套餐迁移失败:', err.message));
+  migrateAutoSignDaily().catch(err => console.error('自动签到每日迁移失败:', err.message));
 });
