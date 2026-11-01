@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const cron = require('node-cron');
+const rateLimit = require('express-rate-limit');
 const { spawn } = require('child_process');
 const path = require('path');
 const crypto = require('crypto');
@@ -21,6 +22,43 @@ if (!fs.existsSync(uploadsDir)) {
 const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
+
+// ============ 微信回调限流（公开接口，防恶意刷库 / 微信轰炸）============
+// 按「客户端 IP」限流 + 全局限流兜底；IP 优先取 Cloudflare / 代理头，取不到再退回 socket IP。
+function callbackClientIp(req) {
+  const cf = String(req.headers['cf-connecting-ip'] || '').trim();
+  if (cf) return cf;
+  const xff = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  if (xff) return xff;
+  return req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
+}
+const WX_CALLBACK_PER_IP_LIMIT = Math.max(1, parseInt(process.env.WX_CALLBACK_RATE_LIMIT || '60', 10) || 60);
+const WX_CALLBACK_GLOBAL_LIMIT = Math.max(1, parseInt(process.env.WX_CALLBACK_GLOBAL_LIMIT || '240', 10) || 240);
+function callbackLimitHandler(label) {
+  return (req, res) => {
+    console.warn(`[wxpusher-callback] 触发限流(${label}) ip=${callbackClientIp(req)}`);
+    res.status(429).json({ success: false, message: '请求过于频繁，请稍后再试' });
+  };
+}
+const wxCallbackIpLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: WX_CALLBACK_PER_IP_LIMIT,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  validate: false,
+  keyGenerator: callbackClientIp,
+  handler: callbackLimitHandler('per-ip')
+});
+const wxCallbackGlobalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: WX_CALLBACK_GLOBAL_LIMIT,
+  standardHeaders: false,
+  legacyHeaders: false,
+  validate: false,
+  keyGenerator: () => 'global',
+  handler: callbackLimitHandler('global')
+});
+
 const PlantData = require('./PlantData');//zhiwu
 const ControlCmd = require('./ControlCmd');
 const membership = require('./membership');
@@ -4021,7 +4059,7 @@ app.post('/api/admin/wx-test', adminMiddleware, async (req, res) => {
 // WxPusher 事件回调（公开接口）：
 // - 关注事件：data.extra 是学号 → 绑定 wxpusherUid（原有逻辑）
 // - 上行消息（send_up_cmd）：用户在公众号发 "#145060 内容" → 存 UserFeedback + 通知管理员
-app.post('/api/wxpusher/callback', async (req, res) => {
+app.post('/api/wxpusher/callback', wxCallbackIpLimiter, wxCallbackGlobalLimiter, async (req, res) => {
   try {
     const body = req.body || {};
     const evt = wxpusher.parseCallback(body, WXPUSHER_APP_ID);
