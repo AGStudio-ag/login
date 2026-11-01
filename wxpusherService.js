@@ -4,7 +4,7 @@
  * - 与管理员推送共用同一个 AppToken，但完全独立：任何失败只返回结果/记日志，绝不抛异常给调用方
  * - 接口文档：https://wxpusher.zjiecode.com/docs
  */
-const BASE = 'https://wxpusher.zjiecode.com/api';
+const BASE = process.env.WXPUSHER_API_BASE || 'https://wxpusher.zjiecode.com/api';
 const API_QRCODE = `${BASE}/fun/create/qrcode`;
 const API_USERS = `${BASE}/fun/wxuser/v2`;
 const API_SEND = `${BASE}/send/message`;

@@ -63,6 +63,7 @@ const PlantData = require('./PlantData');//zhiwu
 const ControlCmd = require('./ControlCmd');
 const membership = require('./membership');
 const notifyPrefs = require('./notificationPrefs');
+const replyService = require('./replyService');
 const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
 const AUTO_SIGN_DRY_RUN = process.env.AUTO_SIGN_DRY_RUN === 'true';
 const io = new Server(server, {
@@ -555,7 +556,15 @@ const userFeedbackSchema = new mongoose.Schema({
   studentId: { type: String, default: '', index: true },
   content: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
-  source: { type: String, enum: ['wechat'], default: 'wechat' }
+  source: { type: String, enum: ['wechat'], default: 'wechat' },
+  // 管理端回复 / 延迟自动回复
+  replied: { type: Boolean, default: false },
+  replyContent: { type: String, default: '' },
+  repliedAt: { type: Date, default: null },
+  repliedBy: { type: String, default: '' },
+  autoReplyDueAt: { type: Date, default: null },
+  autoReplied: { type: Boolean, default: false },
+  autoRepliedAt: { type: Date, default: null }
 });
 const UserFeedback = mongoose.models.UserFeedback || mongoose.model('UserFeedback', userFeedbackSchema);
 
@@ -3640,6 +3649,51 @@ async function getWxpusherView() {
   };
 }
 
+// ===== 管理端回复 / 延迟自动回复 配置 =====
+// 优先级：SystemConfig('admin_reply') > 环境变量 > 默认
+async function getReplyConfig() {
+  const cfg = {
+    enabled: process.env.USER_REPLY_ENABLED !== 'false',
+    adminUid: String(process.env.ADMIN_WXPUSHER_UID || '').trim(),
+    autoReplyEnabled: process.env.AUTO_REPLY_ENABLED !== 'false',
+    autoReplyDelayMinutes: replyService.normalizeDelayMinutes(process.env.AUTO_REPLY_DELAY_MINUTES || 10),
+    autoReplyTemplate: process.env.AUTO_REPLY_TEMPLATE || replyService.DEFAULT_AUTO_REPLY_TEMPLATE
+  };
+  try {
+    const doc = await SystemConfig.findOne({ key: 'admin_reply' });
+    const v = doc && doc.value;
+    if (v && typeof v === 'object') {
+      if (v.enabled !== undefined) cfg.enabled = v.enabled !== false;
+      if (v.adminUid !== undefined) cfg.adminUid = String(v.adminUid || '').trim();
+      if (v.autoReplyEnabled !== undefined) cfg.autoReplyEnabled = v.autoReplyEnabled !== false;
+      if (v.autoReplyDelayMinutes !== undefined) cfg.autoReplyDelayMinutes = replyService.normalizeDelayMinutes(v.autoReplyDelayMinutes);
+      if (v.autoReplyTemplate) cfg.autoReplyTemplate = String(v.autoReplyTemplate).slice(0, 1000);
+    }
+  } catch (e) { /* 配置表不可用时用 env */ }
+  // 管理员 UID 兜底：取 admin_wxpusher 里配置的 UID
+  if (!cfg.adminUid) {
+    try {
+      const wx = await getWxpusherConfig();
+      const uids = String(wx.uids || '').split(/[\s,;，]+/).filter(x => x && !/^\d+$/.test(x));
+      if (uids.length) cfg.adminUid = uids[0];
+    } catch (e) {}
+  }
+  return cfg;
+}
+
+function replySettingsView(cfg, wx) {
+  return {
+    enabled: cfg.enabled !== false,
+    autoReplyEnabled: cfg.autoReplyEnabled !== false,
+    delayMinutes: cfg.autoReplyDelayMinutes,
+    template: cfg.autoReplyTemplate,
+    adminUid: maskAlertSecret(cfg.adminUid),
+    adminUidConfigured: !!cfg.adminUid,
+    appTokenConfigured: !!(wx && wx.appToken),
+    sptConfigured: !!(wx && wx.spt)
+  };
+}
+
 // 发送 WxPusher 推送：配了 SPT 用极简推送，否则用 appToken + UID/Topic
 async function pushWxpusher(subject, plainText) {
   const cfg = await getWxpusherConfig();
@@ -4056,6 +4110,204 @@ app.post('/api/admin/wx-test', adminMiddleware, async (req, res) => {
   }
 });
 
+// ===== 延迟自动回复：扫描到期且管理员未回复的消息 =====
+async function runAutoReplies({ limit = 20 } = {}) {
+  const out = { disabled: false, skipped: false, checked: 0, sent: 0, failed: 0, message: '' };
+  try {
+    const cfg = await getReplyConfig();
+    if (cfg.enabled === false || cfg.autoReplyEnabled === false) {
+      out.disabled = true;
+      out.message = '自动回复已关闭';
+      return out;
+    }
+    const wx = await getWxpusherConfig();
+    if (!wx.appToken) {
+      out.skipped = true;
+      out.message = '未配置 WxPusher AppToken，无法自动回复';
+      return out;
+    }
+    const due = await UserFeedback.find({
+      replied: { $ne: true },
+      autoReplied: { $ne: true },
+      autoReplyDueAt: { $ne: null, $lte: new Date() }
+    }).sort({ autoReplyDueAt: 1 }).limit(limit);
+    out.checked = due.length;
+    for (const fb of due) {
+      try {
+        const text = replyService.renderAutoReply(cfg.autoReplyTemplate, fb);
+        const r = await wxpusher.sendToUid(wx.appToken, fb.uid, '反馈跟进', text);
+        if (r.ok) {
+          fb.autoReplied = true;
+          fb.autoRepliedAt = new Date();
+          await fb.save();
+          out.sent++;
+        } else {
+          out.failed++;
+          console.error('自动回复发送失败:', fb.studentId || fb.uid, r.message);
+        }
+      } catch (e) {
+        out.failed++;
+        console.error('自动回复异常:', e.message);
+      }
+    }
+  } catch (e) {
+    out.failed++;
+    console.error('自动回复任务异常:', e.message);
+  }
+  return out;
+}
+
+// ===== 管理端：微信用户消息列表 =====
+app.get('/api/admin/user-feedbacks', adminMiddleware, async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page || '1', 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit || '20', 10) || 20));
+    const status = String(req.query.status || '');
+    const filter = {};
+    if (status === 'pending') filter.replied = { $ne: true };
+    if (status === 'replied') filter.replied = true;
+    const [feedbacks, total, pending, autoCfg] = await Promise.all([
+      UserFeedback.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+      UserFeedback.countDocuments(filter),
+      UserFeedback.countDocuments({ replied: { $ne: true } }),
+      getReplyConfig()
+    ]);
+    res.json({
+      success: true, feedbacks, total, pending, page, limit,
+      autoReply: {
+        enabled: autoCfg.enabled !== false && autoCfg.autoReplyEnabled !== false,
+        delayMinutes: autoCfg.autoReplyDelayMinutes
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ===== 管理端：实时回复某条微信反馈（推送给用户）=====
+app.post('/api/admin/reply-user', adminMiddleware, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const content = replyService.sanitizeReplyContent(body.content);
+    if (!content) return res.status(400).json({ success: false, message: '请输入回复内容' });
+    const cfg = await getReplyConfig();
+    if (cfg.enabled === false) return res.status(503).json({ success: false, message: '管理员回复功能已关闭' });
+    const wx = await getWxpusherConfig();
+    if (!wx.appToken) return res.status(503).json({ success: false, message: '服务端未配置 WxPusher AppToken' });
+
+    let feedback = null;
+    if (body.feedbackId) {
+      feedback = await UserFeedback.findById(body.feedbackId).catch(() => null);
+      if (!feedback) return res.status(404).json({ success: false, message: '消息不存在' });
+    }
+    const targetUid = String((feedback && feedback.uid) || body.uid || '').trim();
+    if (!targetUid) return res.status(400).json({ success: false, message: '缺少用户 UID' });
+
+    const who = feedback && feedback.studentId ? `学号 ${feedback.studentId}` : `UID ${targetUid.slice(0, 10)}…`;
+    const r = await wxpusher.sendToUid(wx.appToken, targetUid, '📬 管理员回复', `📬 管理员回复（${who}）：\n${content}`);
+    if (!r.ok) return res.status(502).json({ success: false, message: r.message || '发送失败' });
+
+    if (feedback) {
+      feedback.replied = true;
+      feedback.replyContent = content;
+      feedback.repliedAt = new Date();
+      feedback.repliedBy = cfg.adminUid || req.user.studentId || 'admin';
+      await feedback.save();
+    }
+    res.json({
+      success: true,
+      message: '已回复并推送到用户微信',
+      sentTo: targetUid.slice(0, 10) + '…',
+      adminUid: maskAlertSecret(cfg.adminUid || req.user.studentId),
+      reply: feedback ? {
+        id: String(feedback._id), content, repliedAt: feedback.repliedAt,
+        repliedBy: maskAlertSecret(feedback.repliedBy)
+      } : null
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ===== 管理端：回复/自动回复配置（开关 + 延迟 + 文案 + 管理员 UID）=====
+app.get('/api/admin/reply-settings', adminMiddleware, async (req, res) => {
+  try {
+    const cfg = await getReplyConfig();
+    const wx = await getWxpusherConfig();
+    res.json({ success: true, settings: replySettingsView(cfg, wx) });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put('/api/admin/reply-settings', adminMiddleware, async (req, res) => {
+  try {
+    const body = req.body || {};
+    let doc = await SystemConfig.findOne({ key: 'admin_reply' });
+    const value = Object.assign({}, doc && doc.value && typeof doc.value === 'object' ? doc.value : {});
+    if (body.enabled !== undefined) value.enabled = !!body.enabled;
+    if (body.autoReplyEnabled !== undefined) value.autoReplyEnabled = !!body.autoReplyEnabled;
+    if (body.delayMinutes !== undefined) value.autoReplyDelayMinutes = replyService.normalizeDelayMinutes(body.delayMinutes);
+    if (body.template !== undefined) {
+      const t = String(body.template || '').trim();
+      if (t.length > 1000) return res.status(400).json({ success: false, message: '文案不能超过 1000 字' });
+      value.autoReplyTemplate = t || replyService.DEFAULT_AUTO_REPLY_TEMPLATE;
+    }
+    if (body.adminUid !== undefined) value.adminUid = String(body.adminUid || '').trim().slice(0, 64);
+    if (!doc) doc = new SystemConfig({ key: 'admin_reply', value });
+    else { doc.value = value; doc.updatedAt = new Date(); }
+    await doc.save();
+    const cfg = await getReplyConfig();
+    const wx = await getWxpusherConfig();
+    res.json({ success: true, settings: replySettingsView(cfg, wx), message: '已保存' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ===== 管理端：手动触发一次延迟自动回复扫描（运维/测试用）=====
+app.post('/api/admin/run-auto-reply', adminMiddleware, async (req, res) => {
+  try {
+    const result = await runAutoReplies({ limit: 50 });
+    res.json({ success: true, result });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ===== 管理端：检查某个 UID 是否在当前 AppToken 的订阅者列表中（排障用）=====
+app.get('/api/admin/wx-user-check', adminMiddleware, async (req, res) => {
+  try {
+    const uid = String(req.query.uid || '').trim();
+    if (!uid) return res.status(400).json({ success: false, message: '缺少 uid' });
+    const cfg = await getWxpusherConfig();
+    if (!cfg.appToken) return res.status(503).json({ success: false, message: '未配置 WxPusher AppToken' });
+    let found = null, total = 0, pages = 0;
+    for (let page = 1; page <= 10; page++) {
+      const r = await wxpusher.listUsers(cfg.appToken, page, 100);
+      if (!r.ok) return res.status(502).json({ success: false, message: r.message || '查询订阅者失败' });
+      pages = page;
+      total = Math.max(total, r.total || 0);
+      const hit = (r.records || []).find(x => String(x.uid || '') === uid);
+      if (hit) { found = hit; break; }
+      if ((r.records || []).length < 100) break;
+    }
+    res.json({
+      success: true,
+      uid: uid.slice(0, 10) + '…',
+      found: !!found,
+      total,
+      pages,
+      record: found ? { uid: String(found.uid || '').slice(0, 10) + '…', createTime: found.createTime || null, nickName: found.nickName || '' } : null,
+      message: found
+        ? '该 UID 在当前应用订阅者列表中（发送应能送达）'
+        : '该 UID 不在当前应用订阅者列表中：可能没关注该应用，或数据库里存的是别的应用的 UID'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // WxPusher 事件回调（公开接口）：
 // - 关注事件：data.extra 是学号 → 绑定 wxpusherUid（原有逻辑）
 // - 上行消息（send_up_cmd）：用户在公众号发 "#145060 内容" → 存 UserFeedback + 通知管理员
@@ -4071,14 +4323,20 @@ app.post('/api/wxpusher/callback', wxCallbackIpLimiter, wxCallbackGlobalLimiter,
       const user = await User.findOne({ wxpusherUid: evt.uid }).catch(() => null);
       const studentId = user ? user.studentId : (evt.extra || '');
       const content = String(evt.content).slice(0, 2000);
-      await UserFeedback.create({ uid: evt.uid, studentId, content, source: 'wechat' });
+      // 延迟自动回复：只有开启时才写 autoReplyDueAt（旧消息不会被补发）
+      let autoReplyDueAt = null;
+      try {
+        const rc = await getReplyConfig();
+        autoReplyDueAt = replyService.buildAutoReplyDue(new Date(), rc.autoReplyDelayMinutes, rc.enabled !== false && rc.autoReplyEnabled !== false);
+      } catch (e) {}
+      await UserFeedback.create({ uid: evt.uid, studentId, content, source: 'wechat', autoReplyDueAt });
       try {
         await notifyAdminWechatFeedback({ uid: evt.uid, studentId, content });
       } catch (e) {
         console.error('[wxpusher-callback] 反馈通知失败（已入库）:', e.message);
       }
-      console.log(`[wxpusher-callback] 上行反馈已入库 ${studentId || 'UID:' + evt.uid.slice(0, 8)}`);
-      return res.json({ success: true, stored: true });
+      console.log(`[wxpusher-callback] 上行反馈已入库 ${studentId || 'UID:' + evt.uid.slice(0, 8)}${autoReplyDueAt ? ' · 自动回复排队 ' + autoReplyDueAt.toISOString() : ''}`);
+      return res.json({ success: true, stored: true, autoReplyScheduled: !!autoReplyDueAt });
     }
 
     // 2) 关注/绑定事件（保持原逻辑）
@@ -5664,6 +5922,15 @@ cron.schedule('* * * * *', () => {
   if (now === AUTO_SIGN_TIME) return;
   executeAutoSign({ targetTime: now }).catch(err => console.error('自定义时间签到失败:', err.message));
 }, { timezone: "Asia/Shanghai" });
+
+// 每分钟扫描：微信反馈的延迟自动回复（到期且管理员未回复才发；可用 AUTO_REPLY_CRON=false 关闭）
+if (String(process.env.AUTO_REPLY_CRON || 'true') !== 'false') {
+  cron.schedule('* * * * *', () => {
+    runAutoReplies().then(r => {
+      if (r.sent || r.failed) console.log('🤖 延迟自动回复:', JSON.stringify(r));
+    }).catch(err => console.error('延迟自动回复任务失败:', err.message));
+  });
+}
 
 // ============ 启动服务 ============
 const PORT = process.env.PORT || 8080;
