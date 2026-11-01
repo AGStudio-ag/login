@@ -135,6 +135,9 @@ const userSchema = new mongoose.Schema({
   vipStartAt: { type: Date, default: null },
   signCredits: { type: Number, default: 0 },
   signCreditsExpireAt: { type: Date, default: null },
+  checkinStreak: { type: Number, default: 0 },
+  lastCheckinDate: { type: String, default: '' },
+  checkinTotal: { type: Number, default: 0 },
   lastRenewalReminderDays: { type: Number, default: 0 },
   lastRenewalReminderAt: { type: Date, default: null },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
@@ -617,6 +620,18 @@ function normalizeSignTime(value) {
   if (!Number.isInteger(hour) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
   return String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
 }
+
+// 北京时间日期键（YYYY-MM-DD），用于每日打卡去重
+function beijingDateKey(d = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(d);
+  const get = (t) => (parts.find(p => p.type === t) || {}).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+// 每日打卡规则
+const SIGN_CREDITS_CAP = 99;
+const CHECKIN_BONUS_EVERY = 7;
+const CHECKIN_BONUS_CREDITS = 2;
 
 function canCustomSignTime(user) {
   return hasActiveVip(user) && membership.tierAllowsCustomTime(user && user.vipTier);
@@ -1759,6 +1774,8 @@ app.post('/api/login', async (req, res) => {
         isVip: user.isVip,
         vipExpireAt: user.vipExpireAt,
         signCredits: user.signCredits || 0,
+        checkinStreak: user.checkinStreak || 0,
+        lastCheckinDate: user.lastCheckinDate || '',
         vipTier: user.vipTier || (user.isVip ? 'YEARLY_PRO' : 'FREE'),
         vipStartAt: user.vipStartAt || null,
         canCustomTime: hasActiveVip(user) && membership.tierAllowsCustomTime(user.vipTier),
@@ -1791,6 +1808,8 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
       isVip: user.isVip,
       vipExpireAt: user.vipExpireAt,
       signCredits: user.signCredits || 0,
+      checkinStreak: user.checkinStreak || 0,
+      lastCheckinDate: user.lastCheckinDate || '',
       vipTier: user.vipTier || (user.isVip ? 'YEARLY_PRO' : 'FREE'),
       vipStartAt: user.vipStartAt || null,
       canCustomTime: hasActiveVip(user) && membership.tierAllowsCustomTime(user.vipTier),
@@ -2235,6 +2254,30 @@ app.post('/api/subscriptions/:id/toggle', authMiddleware, requireSignAccess, asy
 });
 
 // ============ 手动签到 ============
+// 每日打卡：每天一次，获得 1 次手动签到机会（连续 7 天额外 +2，上限 99）
+app.post('/api/checkin', authMiddleware, async (req, res) => {
+  try {
+    const user = req.user;
+    const today = beijingDateKey();
+    if (user.lastCheckinDate === today) {
+      return res.json({ success: true, already: true, credits: Number(user.signCredits || 0), streak: Number(user.checkinStreak || 0), message: '今天已经打过卡啦，明天再来' });
+    }
+    const yesterday = beijingDateKey(new Date(Date.now() - 24 * 3600 * 1000));
+    const streak = user.lastCheckinDate === yesterday ? Number(user.checkinStreak || 0) + 1 : 1;
+    const bonus = streak % CHECKIN_BONUS_EVERY === 0 ? CHECKIN_BONUS_CREDITS : 0;
+    const after = Math.min(SIGN_CREDITS_CAP, Number(user.signCredits || 0) + 1 + bonus);
+    user.signCredits = after;
+    user.checkinStreak = streak;
+    user.lastCheckinDate = today;
+    user.checkinTotal = Number(user.checkinTotal || 0) + 1;
+    await user.save();
+    console.log(`📅 每日打卡: ${user.studentId} 连续${streak}天 +${1 + bonus}次 余额${after}`);
+    res.json({ success: true, already: false, credits: after, streak, bonus, message: `打卡成功：+${1 + bonus} 次签到机会${bonus ? `（连续 ${streak} 天奖励）` : ''}` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 app.post('/api/sign/manual', authMiddleware, async (req, res) => {
   try {
     const { attendancePassword } = req.body;
@@ -2263,8 +2306,23 @@ app.post('/api/sign/manual', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: '未到签到时间，签到时间为每天 21:30–24:00' });
     }
 
+    // 手动签到权限：有效会员免次数；非会员每次消耗 1 次签到机会（每日打卡获得）
+    const isMember = hasActiveVip(user);
+    const creditsValid = Number(user.signCredits || 0) > 0 && (!user.signCreditsExpireAt || new Date(user.signCreditsExpireAt).getTime() > Date.now());
+    if (!isMember && !creditsValid) {
+      return res.status(403).json({
+        success: false,
+        code: 'SIGN_CREDITS_REQUIRED',
+        message: '今天的签到机会用完了：去首页「每日打卡」可免费获得签到次数，或开通会员（每天自动签到）'
+      });
+    }
+
     const signPassword = attendancePassword || user.attendancePassword || 'Ahgydx@920';
     const signTime = new Date();
+    if (!isMember && creditsValid) {
+      user.signCredits = Math.max(0, Number(user.signCredits) - 1);
+      console.log(`🎟️ 手动签到消耗 1 次: ${user.studentId} 剩余 ${user.signCredits}`);
+    }
     
     console.log(`🚀 手动签到: ${user.studentId}`);
     
