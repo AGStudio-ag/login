@@ -24,6 +24,7 @@ const server = http.createServer(app);
 const PlantData = require('./PlantData');//zhiwu
 const ControlCmd = require('./ControlCmd');
 const membership = require('./membership');
+const notifyPrefs = require('./notificationPrefs');
 const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
 const AUTO_SIGN_DRY_RUN = process.env.AUTO_SIGN_DRY_RUN === 'true';
 const io = new Server(server, {
@@ -157,6 +158,11 @@ const userSchema = new mongoose.Schema({
   wxpusherBindTime: { type: Date, default: null },
   // 本次绑定会话的开始时间：扫码后靠它识别「刚刚出现的订阅者」
   wxpusherBindSession: { type: Date, default: null },
+  // 签到结果通知偏好（HANDOFF §16）
+  // notifyChannels 未设置（undefined）= 沿用旧默认；显式数组（含 []）= 用户自己选过
+  notifyChannels: { type: [String], default: undefined, enum: ['wechat', 'email'] },
+  notifyLevel: { type: String, enum: ['failure_only', 'always'], default: 'failure_only' },
+  notifyUpdatedAt: { type: Date, default: null },
   isActive: { type: Boolean, default: true },
   attendancePassword: { type: String, default: 'Ahgydx@920' },
   createdAt: { type: Date, default: Date.now },
@@ -1514,19 +1520,68 @@ function classifySignFailure(reason) {
   };
 }
 
-async function notifyUserWxpusher(user, success, reason) {
+// ============ 单个用户签到结果 → 按用户偏好分发（微信优先，邮件兜底）============
+// 矩阵见 notificationPrefs.buildNotificationPlan：
+//   failure_only + 成功 → 不发；always + 成功 → 按渠道发；失败 → 按渠道发
+// 原则：发送失败只记日志，绝不影响签到主流程
+async function dispatchSignResultNotification(user, success, reason, opts = {}) {
+  const out = { plan: null, description: '', sent: [], skipped: null, dryRun: !!opts.dryRun };
   try {
-    if (!user || !user.wxpusherUid) return;
-    const cfg = await getWxpusherConfig();
-    if (!cfg.appToken) return;
+    if (!user) { out.skipped = 'no_user'; return out; }
+    out.plan = notifyPrefs.buildNotificationPlan(user, success, opts.overrides);
+    out.description = notifyPrefs.describePlan(out.plan);
+    if (!out.plan.send) { out.skipped = out.plan.reason; return out; }
+
+    const label = opts.label || '自动签到';
+    const signTime = opts.signTime || new Date();
     const msg = success
       ? wxpusher.signResultMessage({ studentId: user.studentId, success: true })
       : classifySignFailure(reason);
-    const r = await wxpusher.sendToUid(cfg.appToken, user.wxpusherUid, msg.summary, msg.content);
-    if (!r.ok) console.error(`WxPusher 通知失败 ${user.studentId}: ${r.message}`);
+    out.message = msg;
+
+    if (opts.dryRun) {
+      out.wouldSend = out.plan.channels.map(channel => ({ channel, summary: msg.summary, content: msg.content }));
+      return out;
+    }
+
+    // 1) 微信（有就先用，免费且即时）
+    let wechatOk = false;
+    if (out.plan.channels.includes('wechat')) {
+      try {
+        const cfg = await getWxpusherConfig();
+        if (!cfg.appToken) {
+          out.sent.push({ channel: 'wechat', ok: false, message: '服务端未配置 WxPusher AppToken' });
+        } else {
+          const r = await wxpusher.sendToUid(cfg.appToken, user.wxpusherUid, msg.summary, msg.content);
+          wechatOk = !!r.ok;
+          out.sent.push({ channel: 'wechat', ok: wechatOk, message: r.ok ? 'ok' : (r.message || '发送失败') });
+          if (!r.ok) console.error(`WxPusher 通知失败 ${user.studentId}: ${r.message}`);
+        }
+      } catch (e) {
+        console.error('WxPusher 通知异常:', e.message);
+        out.sent.push({ channel: 'wechat', ok: false, message: e.message });
+      }
+    }
+
+    // 2) 邮件：只在微信没成功（未开微信 / 未配置 / 发送失败）时兜底，省 Resend 额度
+    if (out.plan.channels.includes('email') && !wechatOk) {
+      try {
+        const emailResult = success
+          ? { success: true, message: '签到成功' }
+          : { success: false, message: msg.summary };
+        const ok = await sendSignNotification(user.email, user.studentId, emailResult, label, signTime);
+        out.sent.push({ channel: 'email', ok: !!ok, message: ok ? 'ok' : '邮件未发送（未配置 Resend / 发送失败 / 省额度策略）' });
+        if (!ok) console.error(`邮件通知未送达 ${user.studentId}`);
+      } catch (e) {
+        console.error('邮件通知异常:', e.message);
+        out.sent.push({ channel: 'email', ok: false, message: e.message });
+      }
+    }
   } catch (e) {
-    console.error('WxPusher 通知异常:', e.message);
+    console.error('签到结果通知异常:', e.message);
+    out.skipped = 'dispatch_error';
   }
+  return out;
 }
 
 // ============ 单个用户签到失败 → 立刻推送管理员（带防刷屏保护）============
@@ -1695,40 +1750,23 @@ async function executeAutoSign(options = {}) {
             await log.save();
           }
           
-          // VIP 邮件通知
-          if ((user.isVip || Number(user.signCredits || 0) > 0) && user.emailVerified && user.email) {
-            const now = new Date();
-            const vipValid = user.isVip ? (user.vipExpireAt && user.vipExpireAt > now) : true;
-            
-            if (vipValid) {
-              const shouldNotify = signResult.success ? 
-                subscriptions.some(s => s.notifyOnSuccess) : 
-                subscriptions.some(s => s.notifyOnFailure);
-              
-              if (shouldNotify) {
-                const subscriptionNames = subscriptions.map(s => s.name).join(', ');
-                await sendSignNotification(
-                  user.email, 
-                  user.studentId, 
-                  signResult, 
-                  subscriptionNames,
-                  signTime
-                );
-              }
-            } else {
-              user.isVip = false;
-              await user.save();
-            }
+          // 会员到期自动降级（保留重构前的副作用；通知统一由下面分发）
+          const now = new Date();
+          if ((user.isVip || Number(user.signCredits || 0) > 0) && user.emailVerified && user.email
+              && user.isVip && !(user.vipExpireAt && user.vipExpireAt > now)) {
+            user.isVip = false;
+            await user.save();
           }
           
           console.log(`✅ ${user.studentId}: ${signResult.success ? '成功' : '失败'}`);
           if (!signResult.success) {
             await notifySignFailure(user, signResult.message || '签到接口返回失败', '自动签到');
           }
-          // 微信通知：只发给绑定了 WxPusher 的用户，失败只记日志（不 await，绝不拖慢/拖垮签到）
-          if (user.wxpusherUid) {
-            notifyUserWxpusher(user, signResult.success, signResult.message).catch(() => {});
-          }
+          // 签到结果通知：按用户偏好矩阵分发（微信优先、邮件兜底），不 await，绝不拖慢/拖垮签到
+          dispatchSignResultNotification(user, signResult.success, signResult.message, {
+            label: subscriptions.map(s => s.name).join(', ') || '自动签到',
+            signTime
+          }).catch(() => {});
           
         } catch (error) {
           console.error(`❌ ${data.user.studentId}:`, error.message);
@@ -3180,7 +3218,13 @@ app.get('/api/admin/users', adminMiddleware, async (req, res) => {
     
     const total = await User.countDocuments(query);
     
-    res.json({ success: true, users, total, page: parseInt(page) });
+    // 通知偏好：后台统一看解析后的结果（未设置的老用户走旧默认）
+    res.json({
+      success: true,
+      users: users.map(u => ({ ...u.toObject(), notify: notifyPrefs.resolveNotifySettings(u) })),
+      total,
+      page: parseInt(page)
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -3202,7 +3246,12 @@ app.get('/api/admin/users/:id', adminMiddleware, async (req, res) => {
     const subscriptions = autoSignSetting ? [formatAutoSignSetting(autoSignSetting)] : [];
     const logs = await SignLog.find({ userId: user._id }).sort({ executedAt: -1 }).limit(20);
     
-    res.json({ success: true, user, subscriptions, logs });
+    res.json({
+      success: true,
+      user: { ...user.toObject(), notify: notifyPrefs.resolveNotifySettings(user) },
+      subscriptions,
+      logs
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -3834,39 +3883,110 @@ app.post('/api/user/wxpusher/unbind', authMiddleware, async (req, res) => {
   }
 });
 
+// ===== 签到结果通知偏好（HANDOFF §16：微信/邮件双通道 + 仅失败/总是双时机）=====
+function notifySettingsPayload(user) {
+  const s = notifyPrefs.resolveNotifySettings(user);
+  return {
+    success: true,
+    settings: { channels: s.channels, level: s.level, configured: s.configured, updatedAt: s.updatedAt },
+    available: s.available,
+    email: s.email,
+    emailVerified: s.emailVerified,
+    wxpusherBound: s.wxpusherBound
+  };
+}
+
+app.get('/api/user/notify-settings', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
+    res.json(notifySettingsPayload(user));
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/user/notify-settings', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
+    const body = req.body || {};
+    const check = notifyPrefs.validateSettingsPayload(body, user);
+    if (!check.ok) return res.status(400).json({ success: false, message: check.message });
+    // channels 不传 = 只改时机，保留原渠道（含「未设置」状态）；传了才落库成显式选择
+    if (body.channels !== undefined) user.notifyChannels = check.channels;
+    user.notifyLevel = check.level;
+    user.notifyUpdatedAt = new Date();
+    await user.save();
+    res.json({ ...notifySettingsPayload(user), message: '通知设置已保存' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // 浏览器直接打开回调地址时给个友好提示（WxPusher 实际是 POST 回推）
 app.get('/api/wxpusher/callback', (req, res) => {
   res.json({ success: true, message: 'WxPusher Callback Endpoint Ready' });
 });
 
-// 管理员专用：给指定用户发一条模拟微信通知（用于验证分类文案，不触发真实签到）
-// body: { studentId | userId, category: 'password' | 'school' | 'internal' | 'success' }
+// 管理员专用：按「通知偏好矩阵」发一条模拟通知（验证 渠道 × 时机 的组合）
+// body: { studentId | userId, category: 'password'|'school'|'internal'|'success',
+//         level?: 'failure_only'|'always', channels?: ['wechat','email'], dryRun?: boolean }
+// - level/channels 只覆盖这一次测试，不写回用户偏好
+// - dryRun=true 只返回矩阵判定，不真发（验证用，避免消耗微信/邮件额度）
 app.post('/api/admin/wx-test', adminMiddleware, async (req, res) => {
   try {
-    const { studentId, userId, category = 'internal' } = req.body || {};
-    const cfg = await getWxpusherConfig();
-    if (!cfg.appToken) return res.status(503).json({ success: false, message: '服务端未配置 WxPusher AppToken' });
+    const body = req.body || {};
+    const { studentId, userId, category = 'internal' } = body;
+    const dryRun = body.dryRun === true;
+    if (body.level !== undefined && !notifyPrefs.LEVELS.includes(String(body.level))) {
+      return res.status(400).json({ success: false, message: 'level 只能是 failure_only / always' });
+    }
+    if (body.channels !== undefined && !Array.isArray(body.channels)) {
+      return res.status(400).json({ success: false, message: 'channels 需要数组，例如 ["wechat","email"]' });
+    }
     const user = studentId ? await User.findOne({ studentId: String(studentId) }) : (userId ? await User.findById(userId) : null);
     if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
-    if (!user.wxpusherUid) return res.status(400).json({ success: false, message: `用户 ${user.studentId} 还没绑定微信` });
 
+    const success = category === 'success';
     const samples = {
       password: '模拟：账号或密码不正确',
       school: '模拟：学校系统超时',
       internal: '模拟：内部处理异常'
     };
-    const msg = category === 'success'
-      ? wxpusher.signResultMessage({ studentId: user.studentId, success: true })
-      : classifySignFailure(samples[category] || samples.internal);
-    const r = await wxpusher.sendToUid(cfg.appToken, user.wxpusherUid, msg.summary, msg.content);
+    const reason = success ? '' : (samples[category] || samples.internal);
+    const overrides = {};
+    if (body.level !== undefined) overrides.level = body.level;
+    if (body.channels !== undefined) overrides.channels = body.channels;
+
+    const result = await dispatchSignResultNotification(user, success, reason, {
+      label: '管理员测试', dryRun, overrides
+    });
+    const plan = result.plan || notifyPrefs.buildNotificationPlan(user, success, overrides);
+    const allOk = result.sent.length > 0 && result.sent.every(s => s.ok);
+
     res.json({
-      success: r.ok,
-      message: r.ok ? '已发送测试通知' : (r.message || '发送失败'),
+      success: dryRun ? true : allOk,
+      dryRun,
       category,
       studentId: user.studentId,
-      uidPrefix: String(user.wxpusherUid).slice(0, 10) + '…',
-      summary: msg.summary,
-      content: msg.content
+      simulation: { success, reason },
+      prefs: notifyPrefs.resolveNotifySettings(user),
+      matrix: {
+        level: plan.level,
+        channels: plan.requestedChannels,
+        success,
+        send: plan.send,
+        reason: plan.reason,
+        deliverTo: plan.channels,
+        emailFallback: plan.emailFallback,
+        description: notifyPrefs.describePlan(plan)
+      },
+      message: dryRun ? '预演完成（未真实发送）' : (allOk ? '已发送测试通知' : '没有发出任何通知'),
+      sent: result.sent,
+      wouldSend: result.wouldSend || [],
+      summary: result.message ? result.message.summary : '',
+      content: result.message ? result.message.content : ''
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
