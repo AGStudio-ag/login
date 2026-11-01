@@ -3808,6 +3808,11 @@ app.post('/api/user/wxpusher/unbind', authMiddleware, async (req, res) => {
   }
 });
 
+// 浏览器直接打开回调地址时给个友好提示（WxPusher 实际是 POST 回推）
+app.get('/api/wxpusher/callback', (req, res) => {
+  res.json({ success: true, message: 'WxPusher 回调地址已就绪（仅接受 POST），可把本地址填入 WxPusher 控制台的回调设置' });
+});
+
 // WxPusher 扫码回调（公开接口）：用户关注后 WxPusher 会 POST 过来，data.extra 就是学号
 app.post('/api/wxpusher/callback', async (req, res) => {
   try {
