@@ -495,31 +495,16 @@
         </div>
 
         <div class="content-card">
-          <div class="card-header"><h3><i class="fas fa-bell"></i> 管理员实时提醒</h3></div>
-          <p style="color:#666;font-size:13px;margin:0 0 12px;">新留言会即时发邮件到管理员邮箱，也可以推送到微信/钉钉（企业微信群机器人 / 钉钉群机器人 / PushPlus）。填写后立即生效。</p>
-          <div class="form-row">
-            <div class="form-group">
-              <label>推送方式</label>
-              <select id="alertType">
-                <option value="">关闭 Webhook 推送（仅邮件）</option>
-                <option value="wecom">企业微信群机器人</option>
-                <option value="dingtalk">钉钉群机器人</option>
-                <option value="pushplus">PushPlus（微信）</option>
-                <option value="generic">通用 Webhook</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Webhook 地址</label>
-              <input type="text" id="alertUrl" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...">
-            </div>
+          <div class="card-header"><h3><i class="fas fa-bell"></i> 管理员实时提醒（多渠道推送）</h3></div>
+          <p style="color:#666;font-size:13px;margin:0 0 12px;">签到汇总、签到失败、补签结果、新留言、赞助订单都会<b>同时</b>发邮件到管理员邮箱，并按下面<b>勾选并填好</b>的渠道推送到微信/钉钉。填完点"保存提醒渠道"，再点"发送测试提醒"验证。</p>
+          <div id="alertChannelsList" style="display:flex;flex-direction:column;gap:10px;"></div>
+          <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <button class="btn btn-primary" onclick="saveAlertChannels()"><i class="fas fa-save"></i> 保存提醒渠道</button>
+            <button class="btn" style="background:#f0f2f6;color:#334155;border:1px solid #e2e8f0;" onclick="testAlertChannels()"><i class="fas fa-paper-plane"></i> 发送测试提醒</button>
+            <button class="btn" style="background:#f0f2f6;color:#334155;border:1px solid #e2e8f0;" onclick="enableBrowserNotify()"><i class="fas fa-desktop"></i> 开启浏览器通知</button>
+            <span id="alertSaveResult" style="color:#666;font-size:13px;"></span>
           </div>
-          <div class="form-group">
-            <label>PushPlus Token（仅 PushPlus 需要）</label>
-            <input type="text" id="alertToken" placeholder="留空则不使用">
-          </div>
-          <button class="btn btn-primary" onclick="saveAlertWebhook()"><i class="fas fa-save"></i> 保存提醒设置</button>
-          <button class="btn" style="margin-left:8px;background:#f0f2f6;color:#334155;border:1px solid #e2e8f0;" onclick="enableBrowserNotify()"><i class="fas fa-desktop"></i> 开启浏览器通知</button>
-          <span id="alertSaveResult" style="margin-left:10px;color:#666;"></span>
+          <div id="alertTestResult" style="margin-top:10px;font-size:13px;line-height:1.9;"></div>
         </div>
 
         <!-- ===== 🆕 赞助者专属通知卡片 ===== -->
@@ -1643,12 +1628,7 @@
             document.getElementById('noticeStyle').value = notice.style || 'info';
           }
           if (data.configs.invite_reward_days) document.getElementById('inviteRewardDays').value = data.configs.invite_reward_days;
-          if (data.configs.admin_alert_webhook) {
-            const w = data.configs.admin_alert_webhook || {};
-            const t = document.getElementById('alertType'); if (t) t.value = w.type || '';
-            const u = document.getElementById('alertUrl'); if (u) u.value = w.url || '';
-            const k = document.getElementById('alertToken'); if (k) k.value = w.token || '';
-          }
+          loadAlertChannels();
         }
       } catch (e) {}
     }
@@ -1879,22 +1859,82 @@
       if (btn) btn.disabled = false;
     }
 
-    async function saveAlertWebhook() {
-      const value = {
-        type: (document.getElementById('alertType') || {}).value || '',
-        url: ((document.getElementById('alertUrl') || {}).value || '').trim(),
-        token: ((document.getElementById('alertToken') || {}).value || '').trim()
-      };
+    let alertChannelCache = [];
+    function escapeAttr(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    async function loadAlertChannels() {
       try {
-        const res = await fetch(`${API_BASE}/admin/config/admin_alert_webhook`, {
-          method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ value })
+        const res = await fetch(`${API_BASE}/admin/alert-channels`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (!data.success) return;
+        alertChannelCache = data.channels || [];
+        renderAlertChannels(alertChannelCache);
+        const hint = document.getElementById('alertSaveResult');
+        if (hint && data.email) hint.textContent = `邮件通道：${data.email.to}${data.email.enabled ? '' : '（未配置 Resend）'}`;
+      } catch (e) {}
+    }
+    function renderAlertChannels(list) {
+      const box = document.getElementById('alertChannelsList');
+      if (!box) return;
+      box.innerHTML = list.map(ch => `
+        <div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;background:#fbfcfe;">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:600;color:#173b36;cursor:pointer;">
+            <input type="checkbox" data-alert-channel="${ch.key}" ${ch.enabled ? 'checked' : ''} style="width:16px;height:16px;">
+            ${ch.name}
+            ${ch.configured ? '<span style="color:#16a34a;font-size:12px;font-weight:400;">已配置</span>' : '<span style="color:#94a3b8;font-size:12px;font-weight:400;">未配置</span>'}
+          </label>
+          <div style="color:#94a3b8;font-size:12px;margin:2px 0 0 24px;">${ch.desc}</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:8px;">
+            ${ch.fields.map(f => `<input type="text" data-alert-field="${ch.key}.${f.key}" value="${escapeAttr(ch.values[f.key] || '')}" placeholder="${f.label}（留空=不修改）" style="padding:7px 9px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;">`).join('')}
+          </div>
+        </div>`).join('');
+    }
+    async function saveAlertChannels() {
+      if (!alertChannelCache.length) await loadAlertChannels();
+      const channels = {};
+      for (const ch of alertChannelCache) {
+        const box = document.querySelector(`input[data-alert-channel="${ch.key}"]`);
+        const values = {};
+        ch.fields.forEach(f => {
+          const el = document.querySelector(`input[data-alert-field="${ch.key}.${f.key}"]`);
+          if (el) values[f.key] = el.value.trim();
+        });
+        channels[ch.key] = Object.assign({ enabled: !!(box && box.checked) }, values);
+      }
+      const out = document.getElementById('alertSaveResult');
+      try {
+        const res = await fetch(`${API_BASE}/admin/alert-channels`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channels })
         });
         const data = await res.json();
-        const out = document.getElementById('alertSaveResult');
-        if (out) out.textContent = data.success ? '✅ 已保存，实时提醒已生效' : '❌ ' + (data.message || '保存失败');
-        if (data.success) showToast('提醒设置已保存', 'success');
+        if (data.success) {
+          alertChannelCache = data.channels || alertChannelCache;
+          renderAlertChannels(alertChannelCache);
+          if (out) out.textContent = '✅ 已保存，实时提醒已生效';
+          showToast('提醒渠道已保存', 'success');
+        } else {
+          if (out) out.textContent = '❌ ' + (data.message || '保存失败');
+          showToast('保存失败', 'error');
+        }
       } catch (e) { showToast('保存失败：' + e.message, 'error'); }
+    }
+    async function testAlertChannels() {
+      const out = document.getElementById('alertTestResult');
+      if (out) out.innerHTML = '<span style="color:#94a3b8;">⏳ 正在发送测试消息…</span>';
+      try {
+        const res = await fetch(`${API_BASE}/admin/alert-test`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (!data.success) { if (out) out.innerHTML = '❌ ' + escapeAttr(data.message || '发送失败'); return; }
+        const rows = (data.channels || []).map(c => `<div>${c.ok ? '✅' : '❌'} ${c.name}${c.ok ? '' : '：' + escapeAttr(c.message || '失败')}</div>`).join('');
+        if (out) out.innerHTML = `<div>📧 邮件：${data.email === null ? '未配置' : (data.email ? '已发送' : '发送失败')}</div>${rows || '<div style="color:#94a3b8;">未启用任何推送渠道（先去上面勾选并填写）</div>'}`;
+      } catch (e) { if (out) out.innerHTML = '❌ ' + escapeAttr(e.message); }
     }
 
     function enableBrowserNotify() {
@@ -1925,6 +1965,7 @@
     checkAdmin();
     loadDashboardStats();
     loadReportBadge();
+    loadAlertChannels();
   </script>
 </body>
 </html>

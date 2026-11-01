@@ -1256,6 +1256,20 @@ async function sendAdminSignSummary(day = new Date()) {
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:20px;background:#f4f6f8;font-family:'Microsoft YaHei',Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;"><div style="background:linear-gradient(135deg,#173b36,#245a52);padding:24px;color:#fff;"><h1 style="margin:0;font-size:20px;">${dateText} 今日签到汇总</h1><p style="margin:6px 0 0;opacity:.85;font-size:13px;">AG 智能考勤 · 管理员汇总</p></div><div style="padding:24px;color:#334155;font-size:14px;line-height:2;"><p style="margin:0;">自动签到用户：<strong>${autoUsers}</strong></p><p style="margin:0;">今日签到次数：<strong>${autoTotal}</strong></p><p style="margin:0;">成功：<strong style="color:#166534;">${success}</strong>　失败：<strong style="color:#b42318;">${failed}</strong></p><p style="margin:12px 0 0;color:#64748b;font-size:13px;">用户总数：<strong>${totalUsers}</strong>　今日新增：<strong>${newUsers}</strong>　付费用户：<strong>${vipUsers}</strong></p></div><div style="padding:16px 24px;border-top:1px solid #e2e8f0;"><h3 style="margin:0 0 8px;font-size:14px;color:#173b36;">今日赞助订单（${orders.length} 笔）</h3>${orderRows}</div><div style="padding:16px 24px;border-top:1px solid #e2e8f0;"><h3 style="margin:0 0 8px;font-size:14px;color:#173b36;">近 7 天趋势</h3>${trendRows}</div><div style="padding:16px 24px;border-top:1px solid #e2e8f0;"><h3 style="margin:0 0 8px;font-size:14px;color:#173b36;">签到失败明细</h3>${failRows || '<p style="margin:0;color:#64748b;font-size:13px;">无失败记录</p>'}</div></div></body></html>`;
     const res = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'AG工作室 <noreply@agai.online>', to: ADMIN_EMAIL, subject: `📊 ${dateText} 今日签到汇总 · 成功 ${success} / 失败 ${failed}`, html }) });
     console.log(`📊 管理员汇总邮件: ${res.ok ? '已发送' : '发送失败'} (成功 ${success} / 失败 ${failed})`);
+    // 同步推送到微信/Webhook 渠道（邮件已单独发送，这里不再重复发邮件）
+    try {
+      const topFails = failedLogs.slice(0, 8).map(f => `· ${(f.userId && f.userId.studentId) || ''} ${(f.userId && f.userId.name) || ''}：${(f.message || '').slice(0, 60)}`).join('\n');
+      const plain = [
+        `${dateText} 签到汇总`,
+        `自动签到用户：${autoUsers} 人`,
+        `签到次数：${autoTotal} 次（成功 ${success} / 失败 ${failed}）`,
+        `用户总数：${totalUsers}（今日新增 ${newUsers}，付费 ${vipUsers}）`,
+        `赞助订单：${orders.length} 笔`,
+        failed ? `失败明细：\n${topFails}` : '失败明细：无'
+      ].join('\n');
+      await notifyAdmin(`📊 ${dateText} 签到汇总 · 成功 ${success} / 失败 ${failed}`,
+        html, plain, { email: false }).catch(() => {});
+    } catch (e) { console.error('汇总推送失败:', e.message); }
     return res.ok === true;
   } catch (e) { console.error('管理员汇总邮件失败:', e.message); return false; }
 }
@@ -2679,6 +2693,67 @@ app.post('/api/admin/send-summary', adminMiddleware, async (req, res) => {
   }
 });
 
+// ===== 管理员提醒渠道配置（多渠道推送）=====
+app.get('/api/admin/alert-channels', adminMiddleware, async (req, res) => {
+  try {
+    const channels = await getAlertChannels();
+    const list = ALERT_CHANNEL_TYPES.map(t => alertChannelView(t.key, channels[t.key]));
+    res.json({ success: true, channels: list, email: { to: ADMIN_EMAIL, enabled: !!RESEND_API_KEY } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put('/api/admin/alert-channels', adminMiddleware, async (req, res) => {
+  try {
+    const incoming = (req.body && req.body.channels) || {};
+    const current = await getAlertChannels();
+    for (const key of Object.keys(incoming)) {
+      if (!ALERT_CHANNEL_KEYS.includes(key)) continue;
+      const type = ALERT_CHANNEL_TYPES.find(t => t.key === key);
+      const prev = Object.assign({}, current[key] || {});
+      const src = incoming[key] || {};
+      const next = Object.assign({}, prev);
+      if (typeof src.enabled === 'boolean') next.enabled = src.enabled;
+      for (const f of (type ? type.fields : [])) {
+        if (!(f in src)) continue;
+        const val = String(src[f] == null ? '' : src[f]).trim();
+        if (val.includes('•')) continue; // 前端回显的掩码值，保持原样
+        next[f] = val;                    // 空字符串 = 清除
+      }
+      current[key] = next;
+    }
+    await SystemConfig.findOneAndUpdate(
+      { key: 'admin_alert_channels' },
+      { key: 'admin_alert_channels', value: current, updatedAt: new Date() },
+      { upsert: true, new: true }
+    );
+    const list = ALERT_CHANNEL_TYPES.map(t => alertChannelView(t.key, current[t.key]));
+    res.json({ success: true, message: '提醒渠道已保存', channels: list });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/admin/alert-test', adminMiddleware, async (req, res) => {
+  try {
+    const nowText = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+    const plain = `这是一条测试消息，收到即说明该渠道正常。\n发送时间：${nowText}`;
+    const out = await notifyAdmin('【测试提醒】AG 智能考勤通知链路测试',
+      `<div style="font-family:sans-serif;line-height:1.9;color:#334155"><p>这是一条<strong>测试提醒</strong>，收到即说明邮件通道正常。</p><p>发送时间：${nowText}</p></div>`,
+      plain, { email: req.body && req.body.email === false ? false : true });
+    const okCount = out.channels.filter(c => c.ok).length;
+    res.json({
+      success: true,
+      email: out.email,
+      channels: out.channels,
+      message: `邮件：${out.email === null ? '未配置' : (out.email ? '已发送' : '失败')}；推送渠道成功 ${okCount}/${out.channels.length}`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // 获取系统配置
 app.get('/api/admin/config', adminMiddleware, async (req, res) => {
   try {
@@ -3087,34 +3162,227 @@ async function sendTierEmail(user, subject, opts) {
   }
 }
 
-// ============ 管理员即时提醒（邮件 + 可选 Webhook：企业微信/钉钉/PushPlus） ============
-async function getAdminAlertConfig() {
-  try {
-    const cfg = await SystemConfig.findOne({ key: 'admin_alert_webhook' });
-    return (cfg && cfg.value) || null;
-  } catch { return null; }
+// ============ 管理员即时提醒（多渠道推送中心）============
+// 渠道：WxPusher（SPT / appToken）、Server酱、PushPlus、企业微信群机器人、钉钉机器人、go-wxpush、自定义 Webhook（Notifyx 等）
+const ALERT_CHANNEL_TYPES = [
+  { key: 'wxpusher', name: 'WxPusher', desc: '微信 / App 实时推送（免费）。SPT 与 appToken 二选一，填 SPT 最省事', fields: ['spt', 'appToken', 'uids', 'topicIds'] },
+  { key: 'serverchan', name: 'Server酱', desc: '微信服务号推送（SCT 版本 SendKey）', fields: ['sendKey'] },
+  { key: 'pushplus', name: 'PushPlus', desc: '微信公众号推送', fields: ['token'] },
+  { key: 'wecom', name: '企业微信机器人', desc: '群机器人 Webhook（个人可自建群）', fields: ['url'] },
+  { key: 'dingtalk', name: '钉钉机器人', desc: '群机器人 Webhook（未加签模式）', fields: ['url'] },
+  { key: 'gowxpush', name: 'go-wxpush', desc: '微信模板消息（自建实例或公共实例）', fields: ['url', 'appid', 'secret', 'userid', 'templateId'] },
+  { key: 'generic', name: '自定义 Webhook', desc: 'Notifyx 等任意接收 {title, content} 的服务', fields: ['url', 'token'] }
+];
+const ALERT_CHANNEL_KEYS = ALERT_CHANNEL_TYPES.map(t => t.key);
+const ALERT_FIELD_LABELS = {
+  spt: 'SPT 令牌', appToken: 'appToken', uids: 'UID（逗号分隔）', topicIds: 'Topic ID（逗号分隔）',
+  sendKey: 'SendKey', token: 'Token / 密钥', url: 'Webhook 地址',
+  appid: 'appid', secret: 'appsecret', userid: 'userid', templateId: 'template_id'
+};
+const ALERT_SECRET_FIELDS = ['spt', 'appToken', 'uids', 'topicIds', 'sendKey', 'token', 'url', 'secret', 'userid'];
+
+const ALERT_ENV_DEFAULTS = {
+  wxpusher: { enabled: !!(process.env.WXPUSHER_SPT || process.env.WXPUSHER_APP_TOKEN), spt: process.env.WXPUSHER_SPT || '', appToken: process.env.WXPUSHER_APP_TOKEN || '', uids: process.env.WXPUSHER_UIDS || '', topicIds: process.env.WXPUSHER_TOPIC_IDS || '' },
+  serverchan: { enabled: !!process.env.SERVERCHAN_SENDKEY, sendKey: process.env.SERVERCHAN_SENDKEY || '' },
+  pushplus: { enabled: !!process.env.PUSHPLUS_TOKEN, token: process.env.PUSHPLUS_TOKEN || '' },
+  wecom: { enabled: !!process.env.WECOM_WEBHOOK, url: process.env.WECOM_WEBHOOK || '' },
+  dingtalk: { enabled: !!process.env.DINGTALK_WEBHOOK, url: process.env.DINGTALK_WEBHOOK || '' },
+  gowxpush: { enabled: !!process.env.GOWXPUSH_URL, url: process.env.GOWXPUSH_URL || '', appid: process.env.GOWXPUSH_APPID || '', secret: process.env.GOWXPUSH_SECRET || '', userid: process.env.GOWXPUSH_USERID || '', templateId: process.env.GOWXPUSH_TEMPLATE_ID || '' },
+  generic: { enabled: !!process.env.GENERIC_WEBHOOK, url: process.env.GENERIC_WEBHOOK || '', token: process.env.GENERIC_TOKEN || '' }
+};
+
+function alertChannelConfigured(key, ch) {
+  if (!ch) return false;
+  if (key === 'wxpusher') return !!(ch.spt || ch.appToken);
+  if (key === 'serverchan') return !!ch.sendKey;
+  if (key === 'pushplus') return !!ch.token;
+  if (key === 'wecom' || key === 'dingtalk') return !!ch.url;
+  if (key === 'gowxpush') return !!ch.url;
+  if (key === 'generic') return !!ch.url;
+  return false;
 }
 
-async function notifyAdmin(subject, html, plainText) {
-  if (RESEND_API_KEY) {
+async function getAlertChannels() {
+  let stored = {};
+  try {
+    const cfg = await SystemConfig.findOne({ key: 'admin_alert_channels' });
+    stored = (cfg && cfg.value) || {};
+  } catch (e) { stored = {}; }
+  // 兼容旧版单条 admin_alert_webhook 配置
+  if (!stored || !Object.keys(stored).length) {
     try {
-      await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: 'AG工作室 <noreply@agai.online>', to: ADMIN_EMAIL, subject, html })
-      });
-    } catch (e) { console.error('管理员提醒邮件失败:', e.message); }
+      const legacy = await SystemConfig.findOne({ key: 'admin_alert_webhook' });
+      const v = legacy && legacy.value;
+      if (v && (v.url || v.token)) {
+        if (v.type === 'pushplus') stored = { pushplus: { enabled: true, token: v.token || '' } };
+        else if (v.type === 'wecom') stored = { wecom: { enabled: true, url: v.url || '' } };
+        else if (v.type === 'dingtalk') stored = { dingtalk: { enabled: true, url: v.url || '' } };
+        else if (v.url) stored = { generic: { enabled: true, url: v.url || '', token: v.token || '' } };
+      }
+    } catch (e) {}
   }
-  const cfg = await getAdminAlertConfig();
-  if (cfg && cfg.url) {
-    try {
-      let body;
-      if (cfg.type === 'pushplus') body = { token: cfg.token, title: subject, content: plainText || subject };
-      else if (cfg.type === 'wecom' || cfg.type === 'dingtalk') body = { msgtype: 'text', text: { content: subject + '\n' + (plainText || '') } };
-      else body = { title: subject, content: plainText || subject };
-      await fetch(cfg.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    } catch (e) { console.error('管理员 Webhook 提醒失败:', e.message); }
+  const out = {};
+  for (const t of ALERT_CHANNEL_TYPES) {
+    if (!t) continue;
+    out[t.key] = Object.assign({ enabled: false }, ALERT_ENV_DEFAULTS[t.key] || {}, (stored && stored[t.key]) || {});
   }
+  return out;
+}
+
+function maskAlertValue(v) {
+  const s = String(v == null ? '' : v);
+  if (!s) return '';
+  if (s.length <= 8) return '••••';
+  return s.slice(0, 4) + '••••••' + s.slice(-4);
+}
+
+function alertChannelView(key, ch) {
+  const type = ALERT_CHANNEL_TYPES.find(t => t.key === key) || { key, name: key, desc: '', fields: [] };
+  const values = {};
+  for (const f of type.fields) values[f] = ALERT_SECRET_FIELDS.includes(f) ? maskAlertValue(ch[f]) : String(ch[f] || '');
+  return {
+    key,
+    name: type.name,
+    desc: type.desc,
+    fields: type.fields.map(f => ({ key: f, label: ALERT_FIELD_LABELS[f] || f })),
+    enabled: ch.enabled !== false,
+    configured: alertChannelConfigured(key, ch),
+    values
+  };
+}
+
+async function httpPostJson(url, body, headers = {}, timeoutMs = 8000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
+      body: JSON.stringify(body),
+      signal: ctrl.signal
+    });
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch (e) {}
+    return { httpOk: res.ok, status: res.status, data, text: String(text || '').slice(0, 300) };
+  } finally { clearTimeout(timer); }
+}
+
+function alertRespOk(r) {
+  if (!r || !r.httpOk) return false;
+  const d = r.data;
+  if (!d || typeof d !== 'object') return true;
+  if (d.errcode !== undefined) return Number(d.errcode) === 0;
+  if (d.code !== undefined) return [0, 200, 1000].includes(Number(d.code));
+  if (d.success !== undefined) return !!d.success;
+  if (d.status !== undefined) return [0, 200].includes(Number(d.status));
+  return true;
+}
+
+function alertRespMsg(r) {
+  if (!r) return '无响应';
+  const d = r.data || {};
+  return String(d.msg || d.message || d.errmsg || d.info || r.text || ('HTTP ' + r.status)).slice(0, 160);
+}
+
+async function sendAlertChannel(key, ch, subject, plainText) {
+  const content = (subject + '\n' + (plainText || '')).trim();
+  const shortContent = content.slice(0, 1500);
+  if (key === 'wxpusher') {
+    if (!ch.spt && !ch.appToken) return { ok: false, message: '未配置 SPT / appToken' };
+    let url;
+    const body = { content: shortContent, summary: String(subject).slice(0, 40), contentType: 1 };
+    if (ch.spt) {
+      body.spt = String(ch.spt).trim();
+      url = 'https://wxpusher.zjiecode.com/api/send/message/simple-push';
+    } else {
+      url = 'https://wxpusher.zjiecode.com/api/send/message';
+      body.appToken = String(ch.appToken).trim();
+      const uids = String(ch.uids || '').split(/[\s,;，]+/).filter(Boolean);
+      const topicIds = String(ch.topicIds || '').split(/[\s,;，]+/).filter(Boolean).map(Number).filter(n => !Number.isNaN(n));
+      if (uids.length) body.uids = uids;
+      if (topicIds.length) body.topicIds = topicIds;
+      if (!uids.length && !topicIds.length) return { ok: false, message: '缺少 UID 或 Topic ID' };
+    }
+    const r = await httpPostJson(url, body);
+    return { ok: alertRespOk(r), message: alertRespMsg(r) };
+  }
+  if (key === 'serverchan') {
+    if (!ch.sendKey) return { ok: false, message: '未配置 SendKey' };
+    const r = await httpPostJson(`https://sctapi.ftqq.com/${encodeURIComponent(String(ch.sendKey).trim())}.send`, { title: String(subject).slice(0, 32), desp: shortContent });
+    return { ok: alertRespOk(r), message: alertRespMsg(r) };
+  }
+  if (key === 'pushplus') {
+    if (!ch.token) return { ok: false, message: '未配置 token' };
+    const r = await httpPostJson('https://www.pushplus.plus/send', { token: String(ch.token).trim(), title: String(subject).slice(0, 100), content: shortContent, template: 'txt' });
+    return { ok: alertRespOk(r), message: alertRespMsg(r) };
+  }
+  if (key === 'wecom' || key === 'dingtalk') {
+    if (!ch.url) return { ok: false, message: '未配置 Webhook 地址' };
+    const r = await httpPostJson(ch.url, { msgtype: 'text', text: { content: shortContent } });
+    return { ok: alertRespOk(r), message: alertRespMsg(r) };
+  }
+  if (key === 'gowxpush') {
+    if (!ch.url) return { ok: false, message: '未配置服务地址' };
+    let base = String(ch.url).trim().replace(/\/+$/, '');
+    if (!/\/wxsend$/i.test(base)) base += '/wxsend';
+    const body = { title: String(subject).slice(0, 60), content: shortContent };
+    if (ch.appid) body.appid = ch.appid;
+    if (ch.secret) body.secret = ch.secret;
+    if (ch.userid) body.userid = ch.userid;
+    if (ch.templateId) body.template_id = ch.templateId;
+    const r = await httpPostJson(base, body);
+    return { ok: alertRespOk(r), message: alertRespMsg(r) };
+  }
+  // generic（Notifyx / 自建服务等）
+  if (!ch.url) return { ok: false, message: '未配置地址' };
+  const headers = ch.token ? { 'Authorization': String(ch.token) } : {};
+  const r = await httpPostJson(ch.url, { title: String(subject).slice(0, 100), content: shortContent, text: shortContent, subject, token: ch.token || undefined }, headers);
+  return { ok: alertRespOk(r), message: alertRespMsg(r) };
+}
+
+// 统一管理员提醒：邮件 + 所有已启用渠道；永不抛错
+async function notifyAdmin(subject, html, plainText, opts = {}) {
+  const out = { email: null, channels: [] };
+  try {
+    if (opts.email !== false && RESEND_API_KEY) {
+      try {
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: 'AG工作室 <noreply@agai.online>', to: ADMIN_EMAIL, subject, html: html || subject })
+        });
+        out.email = res.ok === true;
+        if (!res.ok) console.error('管理员提醒邮件失败:', (await res.text()).slice(0, 200));
+      } catch (e) { out.email = false; console.error('管理员提醒邮件失败:', e.message); }
+    }
+    if (opts.push === false) return out;
+    const channels = (opts.channels && typeof opts.channels === 'object') ? opts.channels : await getAlertChannels();
+    const jobs = [];
+    for (const t of ALERT_CHANNEL_TYPES) {
+      if (!t) continue;
+      const ch = channels[t.key];
+      if (!ch || ch.enabled === false) continue;
+      if (!alertChannelConfigured(t.key, ch)) continue;
+      jobs.push((async () => {
+        let r;
+        try { r = await sendAlertChannel(t.key, ch, subject, plainText); }
+        catch (e) { r = { ok: false, message: e.message }; }
+        if (!r || !r.ok) {
+          await new Promise(done => setTimeout(done, 700));
+          try { r = await sendAlertChannel(t.key, ch, subject, plainText); }
+          catch (e) { r = { ok: false, message: e.message }; }
+        }
+        const item = { key: t.key, name: t.name, ok: !!(r && r.ok), message: (r && r.message) || '' };
+        out.channels.push(item);
+        if (!item.ok) console.error(`⚠️ 提醒渠道 ${t.name} 推送失败: ${item.message}`);
+        else console.log(`📣 提醒渠道 ${t.name} 推送成功`);
+      })());
+    }
+    await Promise.all(jobs);
+    if (!jobs.length) console.log('ℹ️ 未启用微信/Webhook 推送渠道，本次仅邮件提醒');
+  } catch (e) { console.error('notifyAdmin 异常:', e.message); }
+  return out;
 }
 
 async function sendSponsorMail(user, order, kind) {
