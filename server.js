@@ -2448,6 +2448,23 @@ app.post('/api/notices/clear', authMiddleware, async (req, res) => {
   }
 });
 
+// 管理员：给指定用户（或自己）发一条站内通知，用于测试弹窗
+app.post('/api/admin/notice-test', adminMiddleware, async (req, res) => {
+  try {
+    const studentId = String((req.body && req.body.studentId) || req.user.studentId).trim();
+    const target = studentId === req.user.studentId ? req.user : await User.findOne({ studentId });
+    if (!target) return res.status(404).json({ success: false, message: '用户不存在' });
+    queueUserNotice(target,
+      (req.body && req.body.title) || '测试通知',
+      (req.body && req.body.content) || '这是一条测试弹窗：管理员发的站内通知会在这个用户下次打开仪表盘时弹出，不消耗邮件额度。',
+      'info');
+    await target.save();
+    res.json({ success: true, message: `已给 ${studentId} 留了一条站内通知，下次打开仪表盘会弹窗` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // ============ 手动签到 ============
 // 每日打卡：每天一次，获得 1 次手动签到机会（连续 7 天额外 +2，上限 99）
 app.post('/api/checkin', authMiddleware, async (req, res) => {
