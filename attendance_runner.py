@@ -45,7 +45,23 @@ UA_LIST = [
     "Mozilla/5.0 (iPhone; CPU iPhone OS 19_0) AppleWebKit/605.1.15 Mobile MicroMessenger/8.0.61"
 ]
 
-SIGN_IN_LOCK = asyncio.Lock()
+class RateLimiter:
+    """固定间隔限速器：保证两次请求之间至少间隔 1/rate 秒（无全局锁，对齐新版 main.py）"""
+    def __init__(self, rate: float):
+        self.interval = 1.0 / rate
+        self._lock = asyncio.Lock()
+        self._next_time = time.monotonic()
+
+    async def acquire(self):
+        async with self._lock:
+            now = time.monotonic()
+            if now < self._next_time:
+                await asyncio.sleep(self._next_time - now)
+            self._next_time = max(self._next_time, time.monotonic()) + self.interval
+
+
+SIGN_IN_RATE = 3  # 每秒最多提交签到请求数（沿用新版 main.py，无全局锁）
+SIGN_IN_LIMITER = RateLimiter(SIGN_IN_RATE)
 
 
 # ================= User 类 =================
@@ -331,27 +347,27 @@ async def get_location(user: User) -> dict:
 
 
 async def do_sign(user: User) -> dict:
-    async with SIGN_IN_LOCK:
-        await asyncio.sleep(random.uniform(4, 10))
-        async with user.session.post(
-            url=WEB_DICT["sign_in_api"],
-            json=generate_data(user),
-            headers=generate_header(user, WEB_DICT['sign_in_api'])
-        ) as resp:
-            text = await resp.text()
-            try:
-                result = json.loads(text)
-            except Exception:
-                return {"success": False, "msg": f"签到返回非JSON: {text[:200]}"}
+    # 只在这里限速，限速点紧贴请求，中间不塞任何 sleep（对齐新版 main.py）
+    await SIGN_IN_LIMITER.acquire()
+    async with user.session.post(
+        url=WEB_DICT["sign_in_api"],
+        json=generate_data(user),
+        headers=generate_header(user, WEB_DICT['sign_in_api'])
+    ) as resp:
+        text = await resp.text()
+        try:
+            result = json.loads(text)
+        except Exception:
+            return {"success": False, "msg": f"签到返回非JSON: {text[:200]}"}
 
-        if result.get('code') == 200 or '您今天已完成签到' in result.get('msg', ''):
-            return {"success": True, "msg": result.get('msg', '签到成功')}
-        if "请求未授权" in str(result):
-            user.token = ''
-            return {"success": False, "msg": "token失效", "need_relogin": True}
-        if '未到签到时间' in result.get('msg', ''):
-            return {"success": False, "msg": result.get('msg'), "fatal": True}
-        return {"success": False, "msg": result.get('msg', '签到失败')}
+    if result.get('code') == 200 or '您今天已完成签到' in result.get('msg', ''):
+        return {"success": True, "msg": result.get('msg', '签到成功')}
+    if "请求未授权" in str(result):
+        user.token = ''
+        return {"success": False, "msg": "token失效", "need_relogin": True}
+    if '未到签到时间' in result.get('msg', ''):
+        return {"success": False, "msg": result.get('msg'), "fatal": True}
+    return {"success": False, "msg": result.get('msg', '签到失败')}
 
 
 # ================= 完整签到流程 =================
