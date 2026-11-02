@@ -90,6 +90,10 @@ function validateSettingsPayload(body, user) {
     return { ok: false, message: '通知时机只能是 failure_only / always' };
   }
   const avail = availableChannels(user);
+  // 一个可用渠道都没有时，保存任何「通知时机」都是空配置，直接拒绝
+  if (!avail.wechat && !avail.email) {
+    return { ok: false, message: '请先绑定微信或验证邮箱，才能开启签到通知' };
+  }
   if (channels.includes('wechat') && !avail.wechat) {
     return { ok: false, message: '请先绑定微信，再开启微信通知' };
   }

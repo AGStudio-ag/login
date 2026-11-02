@@ -125,7 +125,7 @@ test('矩阵覆盖参数（后台 wx-test 用）：只影响本次判定，不�
   assert.deepEqual(base.requestedChannels, ['wechat']);
 });
 
-test('保存校验：渠道白名单 / 微信未绑 / 邮箱未验证 / 允许空数组', () => {
+test('保存校验：渠道白名单 / 微信未绑 / 邮箱未验证 / 无渠道拒绝 / 有渠道允许空数组关停', () => {
   const user = { wxpusherUid: '', emailVerified: false, email: '' };
   assert.equal(P.validateSettingsPayload({ channels: ['sms'], level: 'always' }, user).ok, false);
   assert.equal(P.validateSettingsPayload({ channels: 'wechat' }, user).ok, false);
@@ -133,15 +133,20 @@ test('保存校验：渠道白名单 / 微信未绑 / 邮箱未验证 / 允许�
   assert.equal(P.validateSettingsPayload({ channels: ['email'] }, user).ok, false);
   assert.equal(P.validateSettingsPayload({ level: 'sometimes' }, user).ok, false);
 
+  // 无任何可用渠道时，即使空数组 / 只改时机也要拒绝
   const okEmpty = P.validateSettingsPayload({ channels: [], level: 'always' }, user);
-  assert.equal(okEmpty.ok, true);
-  assert.deepEqual(okEmpty.channels, []);
-  assert.equal(okEmpty.level, 'always');
+  assert.equal(okEmpty.ok, false);
+  assert.match(okEmpty.message, /请先绑定微信或验证邮箱/);
 
   const bound = { wxpusherUid: 'UID_1', emailVerified: true, email: 'a@b.c' };
   const okBoth = P.validateSettingsPayload({ channels: ['email', 'wechat'] }, bound);
   assert.equal(okBoth.ok, true);
   assert.deepEqual(okBoth.channels, ['wechat', 'email']);
+
+  // 有渠道的用户可以主动全关（空数组）
+  const okOff = P.validateSettingsPayload({ channels: [], level: 'failure_only' }, bound);
+  assert.equal(okOff.ok, true);
+  assert.deepEqual(okOff.channels, []);
 });
 
 test('describePlan 给出人话说明（后台测试结果直接展示）', () => {
