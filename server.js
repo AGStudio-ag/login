@@ -3340,7 +3340,9 @@ app.get('/api/admin/users/:id', adminMiddleware, async (req, res) => {
 // 更新用户（管理员）
 app.put('/api/admin/users/:id', adminMiddleware, async (req, res) => {
   try {
-    const { name, email, attendancePassword, isVip, vipExpireAt, vipStartAt, vipTier, role, isActive } = req.body;
+    const { name, email, emailVerified, attendancePassword, isVip, vipExpireAt, vipStartAt, vipTier, role, isActive } = req.body;
+    // silent: 管理员修正资料时静默保存，不发「会员到账」邮件（用于恢复被误删用户等场景）
+    const silent = req.body.silent === true;
 
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -3352,7 +3354,14 @@ app.put('/api/admin/users/:id', adminMiddleware, async (req, res) => {
     const oldVipExpireAt = user.vipExpireAt ? new Date(user.vipExpireAt) : null;
 
     if (name !== undefined) user.name = name;
-    if (email !== undefined) user.email = email;
+    if (email !== undefined) {
+      // 管理员在后台填写邮箱 = 代为绑定：直接视为已验证，否则用户主页会一直显示「未绑定」。
+      // 清空邮箱时同步取消验证状态。
+      const nextEmail = String(email || '').trim();
+      user.email = nextEmail;
+      user.emailVerified = !!nextEmail;
+    }
+    if (emailVerified !== undefined) user.emailVerified = !!emailVerified;
     if (attendancePassword !== undefined) user.attendancePassword = attendancePassword;
     if (isVip !== undefined) user.isVip = isVip;
     if (vipExpireAt) { user.vipExpireAt = new Date(vipExpireAt); user.lastRenewalReminderDays = 0; user.lastRenewalReminderAt = null; }
@@ -3393,8 +3402,8 @@ app.put('/api/admin/users/:id', adminMiddleware, async (req, res) => {
       }
     }
 
-    // 异步发送邮件，不阻塞响应
-    if (shouldSendEmail && addedDays > 0) {
+    // 异步发送邮件，不阻塞响应（silent 用于管理员静默修正资料）
+    if (shouldSendEmail && addedDays > 0 && !silent) {
       sendVipGrantEmail(user, addedDays, user.vipExpireAt)
         .catch(err => console.error('发送 VIP 邮件失败:', err));
     }
