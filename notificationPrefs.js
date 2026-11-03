@@ -3,17 +3,17 @@
  * 签到结果通知偏好（HANDOFF §16）——纯逻辑，不依赖 mongoose / express，方便单测。
  *
  * 约定：
- * - `notifyChannels` 未设置（undefined / null）=> 沿用重构前的默认行为，configured=false：
- *     绑了微信 → ['wechat']；同时是「已验证邮箱的会员 / 有次数卡」→ 再加 'email'
- *   （重构前：微信推给所有绑定者，邮件只发给 emailVerified 的会员/次数卡用户）
+ * - `notifyChannels` 未设置（undefined / null）=> 沿用默认行为，configured=false：
+ *     绑了微信 → ['wechat']；邮箱已验证 → 再加 'email'
+ *   （不再要求会员/次数卡）
  * - `notifyChannels` 是数组（含空数组 []）=> 用户自己选过，[] 表示「全部关闭」
- * - `notifyLevel`: 'failure_only'（默认，仅失败时发）/ 'always'（成功失败都发）
+ * - `notifyLevel`: 'always'（默认，成功失败都发）/ 'failure_only'（用户自己选的仅失败时发）
  * - 渠道顺序固定：先微信，微信失败/不可用时才用邮件兜底（省 Resend 额度）
  */
 
 const CHANNELS = Object.freeze(['wechat', 'email']);
 const LEVELS = Object.freeze(['failure_only', 'always']);
-const DEFAULT_LEVEL = 'failure_only';
+const DEFAULT_LEVEL = 'always';
 const CHANNEL_LABELS = Object.freeze({ wechat: '微信', email: '邮件' });
 
 function normalizeChannels(input) {
@@ -51,9 +51,9 @@ function legacyChannels(user) {
   const avail = availableChannels(u);
   const out = [];
   if (avail.wechat) out.push('wechat');
-  // 老逻辑：邮件只发给「会员或次数卡」且邮箱已验证的用户
-  const paid = !!u.isVip || Number(u.signCredits || 0) > 0;
-  if (avail.email && paid) out.push('email');
+  // 默认给所有验证过邮箱的用户开邮件通知（不再要求会员/次数卡）。
+  // 用户显式设过 notifyChannels 时不会走到这里。
+  if (avail.email) out.push('email');
   return out;
 }
 

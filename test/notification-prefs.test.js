@@ -29,25 +29,29 @@ test('normalizeChannels：只认 wechat/email，去重并按「先微信后邮�
   assert.deepEqual(P.normalizeChannels('wechat'), []);
 });
 
-test('normalizeLevel：非法值回落 failure_only', () => {
+test('normalizeLevel：非法值回落默认 always', () => {
   assert.equal(P.normalizeLevel('always'), 'always');
   assert.equal(P.normalizeLevel('ALWAYS'), 'always');
   assert.equal(P.normalizeLevel('failure_only'), 'failure_only');
-  assert.equal(P.normalizeLevel('sometimes'), 'failure_only');
-  assert.equal(P.normalizeLevel(undefined), 'failure_only');
+  assert.equal(P.normalizeLevel('sometimes'), 'always');
+  assert.equal(P.normalizeLevel(undefined), 'always');
 });
 
-test('旧默认：已绑微信默认微信；已验证邮箱的会员再默认邮件', () => {
+test('旧默认：已绑微信默认微信；已验证邮箱即默认邮件（不再要求会员）', () => {
   const wxOnly = P.resolveNotifySettings({ wxpusherUid: 'UID_1' });
   assert.equal(wxOnly.configured, false);
   assert.deepEqual(wxOnly.channels, ['wechat']);
-  assert.equal(wxOnly.level, 'failure_only');
+  assert.equal(wxOnly.level, 'always');
 
   const wxAndMail = P.resolveNotifySettings({ wxpusherUid: 'UID_1', emailVerified: true, email: 'a@b.c', isVip: true });
   assert.deepEqual(wxAndMail.channels, ['wechat', 'email']);
 
   const mailOnly = P.resolveNotifySettings({ emailVerified: true, email: 'a@b.c', signCredits: 3 });
   assert.deepEqual(mailOnly.channels, ['email']);
+
+  // 新默认：只要邮箱已验证就默认发邮件，非会员也一样
+  const freeMail = P.resolveNotifySettings({ emailVerified: true, email: 'free@b.c' });
+  assert.deepEqual(freeMail.channels, ['email']);
 
   const none = P.resolveNotifySettings({});
   assert.deepEqual(none.channels, []);

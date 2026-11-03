@@ -202,7 +202,7 @@ const userSchema = new mongoose.Schema({
   // 签到结果通知偏好（HANDOFF §16）
   // notifyChannels 未设置（undefined）= 沿用旧默认；显式数组（含 []）= 用户自己选过
   notifyChannels: { type: [String], default: undefined, enum: ['wechat', 'email'] },
-  notifyLevel: { type: String, enum: ['failure_only', 'always'], default: 'failure_only' },
+  notifyLevel: { type: String, enum: ['failure_only', 'always'], default: 'always' },
   notifyUpdatedAt: { type: Date, default: null },
   isActive: { type: Boolean, default: true },
   attendancePassword: { type: String, default: 'Ahgydx@920' },
@@ -589,6 +589,10 @@ const UserFeedback = mongoose.models.UserFeedback || mongoose.model('UserFeedbac
 const AUTO_SIGN_NAME = '自动签到';
 const AUTO_SIGN_TIME = '21:35';
 const AUTO_SIGN_CRON = '35 21 * * *';
+// 学校晚寝签到开放时间：21:20–22:50（北京时间）。手动签到、补签、自定义时间都受这个窗口约束。
+const SIGN_WINDOW_START_MIN = 21 * 60 + 20; // 1280
+const SIGN_WINDOW_END_MIN = 22 * 60 + 50;   // 1370
+const SIGN_WINDOW_LABEL = '21:20–22:50';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'ag985211ag@qq.com';
 const WXPUSHER_APP_ID = String(process.env.WXPUSHER_APP_ID || '145060').trim();
 const DEFAULT_AUTO_SIGN_DAYS = [0, 1, 2, 3, 4, 5, 6];
@@ -792,14 +796,16 @@ function isWithinSignWindow(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(date);
   const hour = Number((parts.find(p => p.type === 'hour') || {}).value);
   const minute = Number((parts.find(p => p.type === 'minute') || {}).value);
-  return hour * 60 + minute >= 21 * 60 + 30;
+  const mins = hour * 60 + minute;
+  return mins >= SIGN_WINDOW_START_MIN && mins <= SIGN_WINDOW_END_MIN;
 }
 
 function isSignTimeInWindow(value) {
   const t = normalizeSignTime(value);
   if (!t) return false;
   const [hour, minute] = t.split(':').map(Number);
-  return hour * 60 + minute >= 21 * 60 + 30;
+  const mins = hour * 60 + minute;
+  return mins >= SIGN_WINDOW_START_MIN && mins <= SIGN_WINDOW_END_MIN;
 }
 
 function normalizeSignTime(value) {
@@ -1558,7 +1564,12 @@ async function maybeSendAdminSignSummary(day = new Date(), opts = {}) {
     const start = new Date(day); start.setHours(0, 0, 0, 0);
     const end = new Date(day); end.setHours(23, 59, 59, 999);
     const subs = await Subscription.find({ enabled: true }).select('userId').lean();
-    const uniqueIds = [...new Set(subs.map(s => String(s.userId)))];
+    // 优先用「本轮实际派发签到」的用户集合：只要这些人都已执行过（成功或失败都算），就立刻发汇总。
+    // 未传时退回订阅表口径（兼容手动接口、23:59 兜底）。
+    const expectIds = Array.isArray(opts && opts.expectUserIds) && opts.expectUserIds.length
+      ? [...new Set(opts.expectUserIds.map(String))]
+      : null;
+    const uniqueIds = expectIds || [...new Set(subs.map(s => String(s.userId)))];
     if (!uniqueIds.length) return;
     const logs = await SignLog.find({
       userId: { $in: uniqueIds.map(id => new mongoose.Types.ObjectId(id)) },
@@ -1573,7 +1584,7 @@ async function maybeSendAdminSignSummary(day = new Date(), opts = {}) {
     if (!cfg) cfg = new SystemConfig({ key: 'admin_summary_sent_date', value: dayKey });
     else { cfg.value = dayKey; cfg.updatedAt = new Date(); }
     await cfg.save();
-    console.log('📊 管理员汇总已发送（所有人已完成）: ' + dayKey);
+    console.log(`📊 管理员汇总已发送（${force ? '强制' : '所有人已执行'}，${uniqueIds.length} 人）: ` + dayKey);
   } catch (e) { console.error('管理员汇总判断失败:', e.message); }
 }
 // ============ 单个用户签到结果 → 微信通知（仅绑定了 WxPusher 的用户）============
@@ -1713,6 +1724,7 @@ async function executeAutoSign(options = {}) {
 async function runAutoSignBatch({ targetTime, planTime }) {
   console.log('⏰ 自动签到任务开始:', getBeijingTime());
   resetSignFailPush();
+  let userArray = [];
   
   if (!MONGODB_URI) {
     console.log('⚠️ 数据库未连接');
@@ -1764,7 +1776,7 @@ async function runAutoSignBatch({ targetTime, planTime }) {
     if (skippedNonVip > 0) {
       console.log(`⏭️ 跳过 ${skippedNonVip} 个非有效VIP用户`);
     }
-    const userArray = Array.from(userMap.entries());
+    userArray = Array.from(userMap.entries());
     console.log(`📊 今天需要签到: ${userArray.length} 个用户`);
 
     if (AUTO_SIGN_DRY_RUN) {
@@ -1887,7 +1899,12 @@ async function runAutoSignBatch({ targetTime, planTime }) {
   } catch (error) {
     console.error('❌ 定时任务错误:', error);
   }
-  await maybeSendAdminSignSummary();
+  // 汇总邮件只由 21:35 默认批次触发：自定义时间批次只覆盖个别人，
+  // 若也用 expectUserIds，会在 21:20 就把当天汇总标记为已发送。
+  if (planTime === AUTO_SIGN_TIME) {
+    await maybeSendAdminSignSummary(new Date(), { expectUserIds: userArray.map(([id]) => id) });
+  }
+  return { dispatched: userArray.length, targetTime: planTime };
 }
 
 // ============ 自动签到失败兜底：自动补签 + 原因分类 + 通知 ============
@@ -1901,7 +1918,7 @@ function beijingMinutesNow() {
 async function retryMissingSigns(label = '补签') {
   const result = { label, checked: 0, recovered: 0, failed: 0, passwordIssues: [], details: [], skipped: null };
   try {
-    if (!isWithinSignWindow()) { result.skipped = '不在签到窗口内（21:30–24:00）'; return result; }
+    if (!isWithinSignWindow()) { result.skipped = `不在签到窗口内（${SIGN_WINDOW_LABEL}）`; return result; }
     resetSignFailPush();
     const nowMin = beijingMinutesNow();
     const start = new Date(); start.setHours(0, 0, 0, 0);
@@ -2853,7 +2870,7 @@ app.post('/api/sign/manual', authMiddleware, async (req, res) => {
 
     
     if (!isWithinSignWindow()) {
-      return res.status(400).json({ success: false, message: '未到签到时间，签到时间为每天 21:30–24:00' });
+      return res.status(400).json({ success: false, message: `未到签到时间，签到时间为每天 ${SIGN_WINDOW_LABEL}` });
     }
 
     // 手动签到权限：有效会员免次数；非会员每次消耗 1 次签到机会（每日打卡获得）
@@ -3988,6 +4005,45 @@ async function ensureSponsorPackages() {
   if (count === 0) {
     await SponsorPackage.insertMany(SPONSOR_PACKAGES.map(p => ({ ...p, active: true })));
   }
+}
+
+// 一次性迁移：通知默认值改为「邮件全开 + 成功失败都发」
+// 只处理从未自定义过的用户（notifyUpdatedAt 为空、notifyChannels 未显式设置），
+// 已选「仅失败时通知」的用户保持原样。
+let notifyDefaultsMigrationPromise = null;
+function migrateNotifyDefaults() {
+  if (!notifyDefaultsMigrationPromise) {
+    notifyDefaultsMigrationPromise = (async () => {
+      try {
+        const flag = await SystemConfig.findOne({ key: 'notify_defaults_always_v1' });
+        if (flag) return;
+        // 时机对所有未自定义用户生效（未验证邮箱的用户以后验证了也按新默认走）
+        const untouched = {
+          notifyUpdatedAt: null,
+          notifyChannels: { $exists: false }
+        };
+        const levelRes = await User.updateMany(untouched, { $set: { notifyLevel: 'always' } });
+        // 渠道只给已验证邮箱的用户落库；未验证的保持未设置，等验证后按默认自动获得邮件
+        const chanRes = await User.updateMany(
+          { ...untouched, emailVerified: true, email: { $nin: [null, ''] } },
+          { $set: { notifyChannels: ['email'] } }
+        );
+        // 绑了微信的，默认同时保留微信（发送时仍是微信优先、邮件兜底）。
+        // 限定 notifyUpdatedAt:null，避免覆盖用户显式选过的「只发邮件」。
+        await User.updateMany(
+          { notifyUpdatedAt: null, notifyChannels: ['email'], wxpusherUid: { $nin: [null, ''] } },
+          { $set: { notifyChannels: ['wechat', 'email'] } }
+        );
+        await SystemConfig.updateOne(
+          { key: 'notify_defaults_always_v1' },
+          { $setOnInsert: { value: true, updatedAt: new Date() } },
+          { upsert: true }
+        );
+        console.log(`🔔 通知默认值迁移完成：时机 ${levelRes.modifiedCount}，渠道 ${chanRes.modifiedCount}`);
+      } catch (e) { console.error('通知默认值迁移失败:', e.message); }
+    })();
+  }
+  return notifyDefaultsMigrationPromise;
 }
 
 // 把七套餐写入数据库（只在迁移时执行一次，避免覆盖后台手工修改）
@@ -5295,7 +5351,7 @@ app.post('/api/admin/announcement', adminMiddleware, async (req, res) => {
 app.post('/api/admin/trigger-sign', adminMiddleware, async (req, res) => {
   try {
     console.log(`🔔 管理员 ${req.user.studentId} 手动触发全员签到`);
-    
+
     // 已有任务在跑时不重复派发（防止重复提交 / 重复累计次数）
     if (autoSignLock.current) {
       const runningFor = Math.round((Date.now() - autoSignLock.current.startedAt) / 1000);
@@ -5308,7 +5364,7 @@ app.post('/api/admin/trigger-sign', adminMiddleware, async (req, res) => {
 
     // 立即执行一次自动签到任务（异步，不阻塞响应）
     executeAutoSign().catch(err => console.error('手动签到任务错误:', err));
-    
+
     res.json({
       success: true,
       message: '已触发全员签到任务，请查看日志了解执行情况'
@@ -6217,9 +6273,10 @@ cron.schedule('0 10 * * *', () => { checkRenewalReminders().catch(err => console
 // 每天 23:59 汇总当天（保证当天必发；已发过则跳过）
 cron.schedule('59 23 * * *', () => { maybeSendAdminSignSummary(new Date(), { force: true }).catch(err => console.error('管理员汇总（当天 23:59）失败:', err.message)); }, { timezone: "Asia/Shanghai" });
 
-// 自动签到失败兜底：22:00 与 23:30 各补签一次（只补当天该签未签成功的）
+// 自动签到失败兜底：22:00 与 22:40 各补签一次（只补当天该签未签成功的）
 cron.schedule('0 22 * * *', () => { retryMissingSigns('22:00').catch(err => console.error('补签任务失败:', err.message)); }, { timezone: "Asia/Shanghai" });
-cron.schedule('30 23 * * *', () => { retryMissingSigns('23:30').catch(err => console.error('补签任务失败:', err.message)); }, { timezone: "Asia/Shanghai" });
+// 第二趟补签必须在学校窗口内（22:50 关闭），原来的 23:30 会被"不在窗口内"直接跳过、形同虚设
+cron.schedule('40 22 * * *', () => { retryMissingSigns('22:40').catch(err => console.error('补签任务失败:', err.message)); }, { timezone: "Asia/Shanghai" });
 
 // 每天 00:05 兜底汇总前一天（若 23:59 因故失败）
 cron.schedule('5 0 * * *', () => { const d = new Date(); d.setDate(d.getDate() - 1); maybeSendAdminSignSummary(d, { force: true }).catch(err => console.error('管理员汇总兜底失败:', err.message)); }, { timezone: "Asia/Shanghai" });
@@ -6257,6 +6314,7 @@ server.listen(PORT, '0.0.0.0', () => {
 initSystemConfig()
   .then(() => migrateMembershipV2())
   .then(() => migrateAutoSignDaily())
+  .then(() => migrateNotifyDefaults())
   .then(() => ensureCouponsSeeded())
   .catch(err => {
     console.error('❌ 系统配置初始化失败:', err.message);
@@ -6266,5 +6324,6 @@ initSystemConfig()
 mongoose.connection.on('connected', () => {
   migrateMembershipV2().catch(err => console.error('会员套餐迁移失败:', err.message));
   migrateAutoSignDaily().catch(err => console.error('自动签到每日迁移失败:', err.message));
+  migrateNotifyDefaults().catch(err => console.error('通知默认值迁移失败:', err.message));
   ensureCouponsSeeded().catch(err => console.error('优惠码初始化失败:', err.message));
 });

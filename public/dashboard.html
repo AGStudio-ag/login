@@ -864,7 +864,7 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
           <div class="field" style="margin-top:16px">
             <label>签到时间</label>
             <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-              <input type="time" id="autoSignTime" value="21:35" style="max-width:140px; box-shadow:none;">
+              <input type="time" id="autoSignTime" value="21:35" min="21:20" max="22:50" style="max-width:140px; box-shadow:none;">
               <span id="signTimeHint" style="font-size:12px;color:var(--text-tertiary);"></span>
             </div>
           </div>
@@ -1691,9 +1691,9 @@ async function quickSign() {
   // ========== 前端签到时间检测 ==========
   const now = new Date();
   const currentMins = now.getHours() * 60 + now.getMinutes();
-  // 官方时间：21:20 开始，22:50 结束。我们放宽到 23:00 (1380分钟)
+  // 学校晚寝签到窗口：21:20 开始，22:50 结束（与服务端 SIGN_WINDOW 保持一致）
   const startMins = 21 * 60 + 20; // 21:20 (1280分钟)
-  const endMins = 23 * 60;        // 23:00 (1380分钟)
+  const endMins = 22 * 60 + 50;   // 22:50 (1370分钟)
 
   const isSignTime = currentMins >= startMins && currentMins <= endMins;
 
@@ -1702,8 +1702,8 @@ async function quickSign() {
     if (btnIcon) btnIcon.innerHTML = '<use href="#i-times"/>';
     if (btnLabel) btnLabel.textContent = '不在时段';
     if (status) { status.textContent = '❌ 未到签到时间'; status.style.color = 'var(--red)'; }
-    if (result) result.innerHTML = '<span style="color:var(--red);font-weight:600;">❌ 当前不在签到时间范围内（每天 21:20 - 23:00）</span>';
-    showToast('当前不在签到时间（21:20 - 23:00）', 'error');
+    if (result) result.innerHTML = '<span style="color:var(--red);font-weight:600;">❌ 当前不在签到时间范围内（每天 21:20 - 22:50）</span>';
+    showToast('当前不在签到时间（21:20 - 22:50）', 'error');
 
     setTimeout(() => {
       btn.classList.remove('is-error');
@@ -1817,9 +1817,9 @@ function updateSignTimeUI(setting) {
   const custom = canCustomSignTime();
   const time = (setting && setting.signTime) || '21:35';
 
-  if (input) { input.value = time; input.disabled = !custom; }
+  if (input) { input.value = time; input.disabled = !custom; input.min = '21:20'; input.max = '22:50'; }
   if (hint) hint.textContent = custom
-    ? `当前套餐：${currentPlanName()} · 可自定义签到时间`
+    ? `当前套餐：${currentPlanName()} · 可自定义签到时间（21:20–22:50）`
     : '当前套餐不支持自定义签到时间，固定 21:35';
   if (display) display.textContent = time;
   if (label) label.textContent = custom ? '自定义时间' : '统一时间';
