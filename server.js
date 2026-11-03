@@ -65,6 +65,7 @@ const membership = require('./membership');
 const notifyPrefs = require('./notificationPrefs');
 const replyService = require('./replyService');
 const { isSubscriptionDueToday } = require('./autoSignSchedule');
+const { batchTimeoutMs, createRunLock } = require('./autoSignRuntime');
 const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
 const AUTO_SIGN_DRY_RUN = process.env.AUTO_SIGN_DRY_RUN === 'true';
 const io = new Server(server, {
@@ -1396,10 +1397,13 @@ const USE_SIGN_BATCH = process.env.SIGN_USE_BATCH !== 'false';
 async function realSignBatch(users, maxRetries = 3) {
   return new Promise((resolve) => {
     const pythonScript = path.join(__dirname, 'attendance_runner.py');
+    // 超时按人数放大：定死 115s 时，一批 5 人只要有 1 人重试就会整批被误判失败。
+    // 30s 固定开销 + 每人 20s 预算（单用户最坏情况约 60s，正常 3~5s），最低 90s。
+    const budgetMs = batchTimeoutMs(users.length);
     const pythonProcess = spawn(PYTHON_BIN, [pythonScript], {
       cwd: __dirname,
       env: { ...process.env, PYTHONUNBUFFERED: '1', PYTHONIOENCODING: 'utf-8' },
-      timeout: 120000
+      timeout: budgetMs + 5000
     });
     let output = '';
     let errorOutput = '';
@@ -1410,7 +1414,7 @@ async function realSignBatch(users, maxRetries = 3) {
         try { pythonProcess.kill(); } catch (e) {}
         resolve(users.map(u => ({ success: false, message: '批量签到脚本执行超时', studentId: u.studentId })));
       }
-    }, 115000);
+    }, budgetMs);
     pythonProcess.stdout.on('data', (data) => { output += data.toString(); });
     pythonProcess.stderr.on('data', (data) => { errorOutput += data.toString(); });
     pythonProcess.on('close', (code) => {
@@ -1684,11 +1688,29 @@ async function notifySignFailure(user, reason, label = '自动签到') {
   } catch (e) { console.error('签到失败推送异常:', e.message); }
 }
 
+// 运行级互斥：21:35 主批次、管理员「一键全员签到」、补签、每分钟自定义时间批次都可能同时触发。
+// 并发跑会重复提交、重复写日志、把 totalSignCount 多算，还会互相 reset 失败推送计数器。
+const autoSignLock = createRunLock();
+
 async function executeAutoSign(options = {}) {
   const paused = await SystemConfig.findOne({ key: 'auto_sign_paused' });
   if (paused && paused.value === true) { console.log('⏸️ 假期暂停自动签到'); return; }
   const targetTime = normalizeSignTime(options.targetTime);
   const planTime = targetTime || AUTO_SIGN_TIME;
+
+  const started = autoSignLock.tryStart(targetTime);
+  if (!started.ok) {
+    console.log(`⏭️ 已有签到任务在执行（targetTime=${started.current.targetTime || '全部'}，已运行 ${started.runningFor}s），本次跳过`);
+    return { skipped: 'already_running', runningFor: started.runningFor, targetTime: planTime };
+  }
+  try {
+    return await runAutoSignBatch({ targetTime, planTime });
+  } finally {
+    autoSignLock.finish();
+  }
+}
+
+async function runAutoSignBatch({ targetTime, planTime }) {
   console.log('⏰ 自动签到任务开始:', getBeijingTime());
   resetSignFailPush();
   
@@ -5274,6 +5296,16 @@ app.post('/api/admin/trigger-sign', adminMiddleware, async (req, res) => {
   try {
     console.log(`🔔 管理员 ${req.user.studentId} 手动触发全员签到`);
     
+    // 已有任务在跑时不重复派发（防止重复提交 / 重复累计次数）
+    if (autoSignLock.current) {
+      const runningFor = Math.round((Date.now() - autoSignLock.current.startedAt) / 1000);
+      return res.json({
+        success: false,
+        alreadyRunning: true,
+        message: `已有签到任务在执行（已运行 ${runningFor} 秒），请稍后再试`
+      });
+    }
+
     // 立即执行一次自动签到任务（异步，不阻塞响应）
     executeAutoSign().catch(err => console.error('手动签到任务错误:', err));
     
