@@ -95,16 +95,19 @@ test('年级与入学年份推算', () => {
 });
 
 test('权益判断：会员有效 + 等级支持才允许自定义时间', () => {
-  const active = { isVip: true, vipTier: 'YEARLY_PRO', vipExpireAt: new Date(NOW.getTime() + M.DAY_MS) };
+  // 用真实当前时间构造，避免固定日期随时间推移过期（测试时间炸弹）
+  const realNow = Date.now();
+  const active = { isVip: true, vipTier: 'YEARLY_PRO', vipExpireAt: new Date(realNow + M.DAY_MS) };
   assert.equal(M.canCustomizeTime(active), true);
   assert.equal(M.canCustomizeTime({ ...active, isVip: false }), false);
-  assert.equal(M.canCustomizeTime({ ...active, vipExpireAt: new Date(NOW.getTime() - M.DAY_MS) }), false);
+  assert.equal(M.canCustomizeTime({ ...active, vipExpireAt: new Date(realNow - M.DAY_MS) }), false);
   assert.equal(M.canCustomizeTime({ ...active, vipTier: 'YEARLY' }), false);
   assert.equal(M.canCustomizeTime({ ...active, vipTier: 'VIP' }), true);
 });
 
 test('会员视图输出前端需要的字段', () => {
-  const view = M.membershipView({ isVip: true, vipTier: 'VIP', vipExpireAt: new Date(NOW.getTime() + M.DAY_MS) }, NOW);
+  const realNow = Date.now();
+  const view = M.membershipView({ isVip: true, vipTier: 'VIP', vipExpireAt: new Date(realNow + M.DAY_MS) }, new Date(realNow));
   assert.equal(view.tier, 'YEARLY_PRO');
   assert.equal(view.planName, '学年卡 Pro');
   assert.equal(view.canCustomTime, true);

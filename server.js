@@ -64,6 +64,7 @@ const ControlCmd = require('./ControlCmd');
 const membership = require('./membership');
 const notifyPrefs = require('./notificationPrefs');
 const replyService = require('./replyService');
+const { isSubscriptionDueToday } = require('./autoSignSchedule');
 const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
 const AUTO_SIGN_DRY_RUN = process.env.AUTO_SIGN_DRY_RUN === 'true';
 const io = new Server(server, {
@@ -1702,17 +1703,22 @@ async function executeAutoSign(options = {}) {
     
     const subscriptions = await Subscription.find({ enabled: true }).populate('userId');
     
+    // 区分「默认 21:35 批次」和「自定义时间批次」：
+    // 旧的 targetTime 判断会把无自定义时间权限的月卡/学期卡/学年卡/LEGACY 全部排除，
+    // 导致 21:35 主批次只剩 Pro/年级卡用户（2026-11-03 的 43→3 事故）。
+    const isCustomTimeRun = !!targetTime && targetTime !== AUTO_SIGN_TIME;
     // 筛选今天需要签到的订阅
     const todaySubscriptions = subscriptions.filter(sub => {
       const subTime = normalizeSignTime(sub.signTime) || AUTO_SIGN_TIME;
-      if (subTime !== planTime) return false;
-      if (targetTime && !canCustomSignTime(sub.userId)) return false;
-      if (sub.scheduleType === 'daily') return true;
-      if (sub.scheduleType === 'weekdays') return dayOfWeek >= 1 && dayOfWeek <= 5;
-      if (sub.scheduleType === 'custom') {
-        return sub.customDays && sub.customDays.includes(dayOfWeek);
-      }
-      return false;
+      return isSubscriptionDueToday({
+        subTime,
+        planTime,
+        scheduleType: sub.scheduleType,
+        customDays: sub.customDays,
+        dayOfWeek,
+        isCustomTimeRun,
+        canCustomTime: isCustomTimeRun ? canCustomSignTime(sub.userId) : true
+      });
     });
     
     // 按用户分组
