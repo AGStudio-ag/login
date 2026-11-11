@@ -308,19 +308,69 @@ body.dark .hero{ background: #111; border-color: #333; }
 .stat-label{ font-size: 12px; font-weight: 500; color: var(--text-secondary); }
 
 /* ============================================================
-   Onboarding
+   Tour · 新手漫游引导
    ============================================================ */
-.onboard-progress{ height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin: var(--s-3) 0 var(--s-2); }
-.onboard-bar{ height: 100%; width: 0; background: var(--blue); transition: width .4s ease; }
-.onboard-meta{ font-size: 12px; color: var(--text-tertiary); margin-bottom: var(--s-4); font-family: var(--mono);}
-.onboard-step{ display: flex; align-items: center; gap: 16px; padding: var(--s-3) 0; border-bottom: 1px solid var(--border); }
-.onboard-step:last-child{border-bottom:0;padding-bottom:0}
-.step-dot{ width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
-.onboard-step.done .step-dot{ background: var(--green); border-color: var(--green); color: #fff; }
-.step-body{flex:1;min-width:0}
-.step-body strong{ display: block; font-size: 14px; font-weight: 600; }
-.step-body p{ font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
-.step-done-text{ font-size: 12px; font-weight: 500; color: var(--green); font-family: var(--mono); }
+.tour-root{ position:fixed; inset:0; z-index:10020; display:none; }
+.tour-root.is-open{ display:block; }
+.tour-mask{ position:absolute; inset:0; background:transparent; }
+.tour-root.is-centered .tour-mask{ background:rgba(9,9,11,.55); }
+body.dark .tour-root.is-centered .tour-mask{ background:rgba(0,0,0,.72); }
+.tour-spot{
+  position:absolute; left:0; top:0; width:0; height:0; pointer-events:none;
+  border:2px solid var(--blue); border-radius:12px;
+  box-shadow:0 0 0 9999px rgba(9,9,11,.58), 0 0 0 4px rgba(37,99,235,.18);
+  transition:left .28s cubic-bezier(.22,1,.36,1), top .28s cubic-bezier(.22,1,.36,1),
+             width .28s cubic-bezier(.22,1,.36,1), height .28s cubic-bezier(.22,1,.36,1), opacity .2s;
+}
+body.dark .tour-spot{ box-shadow:0 0 0 9999px rgba(0,0,0,.7), 0 0 0 4px rgba(96,165,250,.2); }
+.tour-spot.is-hidden{ opacity:0; }
+.tour-pop{
+  position:absolute; left:0; top:0; width:min(320px, calc(100vw - 24px));
+  background:var(--surface); color:var(--text-primary);
+  border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:18px 18px 14px; box-shadow:0 16px 48px -12px rgba(0,0,0,.4);
+  transition:left .28s cubic-bezier(.22,1,.36,1), top .28s cubic-bezier(.22,1,.36,1);
+}
+body.dark .tour-pop{ box-shadow:0 16px 48px -12px rgba(0,0,0,.85); }
+.tour-root.is-centered .tour-pop{ left:50%; top:50%; transform:translate(-50%,-50%); transition:none; }
+.tour-pop__head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.tour-pop__step{ font-family:var(--mono); font-size:11px; color:var(--text-tertiary); letter-spacing:.04em; }
+.tour-pop__close{
+  width:24px; height:24px; border:none; border-radius:50%; background:var(--bg);
+  color:var(--text-secondary); font-size:18px; line-height:1; display:flex; align-items:center; justify-content:center;
+}
+.tour-pop__close:hover{ background:var(--surface-hover); color:var(--text-primary); }
+.tour-pop h3{ font-size:16px; font-weight:600; letter-spacing:-.01em; margin-bottom:6px; }
+.tour-pop p{ font-size:13px; line-height:1.7; color:var(--text-secondary); }
+.tour-dots{ display:flex; align-items:center; gap:6px; margin:14px 0; }
+.tour-dot{ width:6px; height:6px; border-radius:99px; background:var(--border-dark); transition:all .2s; }
+.tour-dot.is-active{ width:18px; background:var(--blue); }
+.tour-pop__foot{ display:flex; align-items:center; justify-content:space-between; gap:8px; border-top:1px solid var(--border); padding-top:12px; }
+.tour-pop__foot .btn{ min-width:64px; }
+.tour-pop__foot .btn:focus-visible, .tour-pop__close:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; }
+@media (prefers-reduced-motion: reduce){
+  .tour-spot, .tour-pop, .tour-dot{ transition:none; }
+}
+
+/* 悬浮反馈按钮 */
+.feedback-fab{
+  position:fixed; right:18px; bottom:26px; z-index:70;
+  width:54px; height:54px; border-radius:50%; border:none;
+  background:var(--blue); color:#fff; font-size:11px; line-height:1.15;
+  box-shadow:0 8px 22px rgba(15,23,42,.28); cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  opacity:.95; transition:transform .15s, opacity .15s;
+}
+.feedback-fab:hover{ transform:translateY(-2px); opacity:1; }
+.feedback-fab .ico{ font-size:18px; }
+.feedback-fab span{ font-weight:600; }
+
+.qq-tile{
+  width:36px; height:36px; border-radius:var(--radius-sm); flex:none;
+  background:var(--blue-subtle); color:var(--blue);
+  display:flex; align-items:center; justify-content:center; font-size:18px;
+}
+body.dark .qq-tile, body.dark .qq-ico{ color:#7dd3fc; }
 
 /* ============================================================
    Alert
@@ -527,6 +577,9 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
 .qr-modal-card h3{ font-size:16px; font-weight: 600; margin-bottom:8px; }
 .qr-modal-card img{ width:min(260px,70vw); aspect-ratio: 1; object-fit:contain; border-radius:var(--radius-sm); border:1px solid var(--border); margin:16px auto; display:block; }
 
+/* 桌面端不显示底部导航（只在 <=820px 由下方媒体查询开启） */
+.tabbar{ display:none; }
+
 /* ============================================================
    Mobile
    ============================================================ */
@@ -572,22 +625,29 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
   .tab-item.tab-sponsor.active .tab-sponsor-icon{ transform: translateY(-2px); }
 
   /* 手机上悬浮"反馈"按钮要浮在底部导航之上，否则被 tabbar 盖住看不见 */
-  #feedbackFab{
-    right: 14px !important;
-    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 14px) !important;
-    width: 60px !important; height: 60px !important;
-    font-size: 12px !important;
-    z-index: 950 !important;
-    background: linear-gradient(135deg,#3b6df0,#5b8cff) !important;
-    box-shadow: 0 10px 26px rgba(59,109,240,.45) !important;
-    animation: fabPulse 2.6s ease-in-out infinite;
+  .feedback-fab{
+    right:14px;
+    bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 14px);
+    width:60px; height:60px; font-size:12px; z-index:950;
+    background:linear-gradient(135deg,#3b6df0,#5b8cff);
+    box-shadow:0 10px 26px rgba(59,109,240,.45);
+    animation:fabPulse 2.6s ease-in-out infinite;
   }
-  #feedbackFab span{ font-weight: 600; }
   @keyframes fabPulse{
     0%,100%{ box-shadow: 0 10px 26px rgba(59,109,240,.45); }
     50%{ box-shadow: 0 10px 26px rgba(59,109,240,.45), 0 0 0 10px rgba(59,109,240,.16); }
   }
 }
+.feedback-help { background: var(--surface-hover); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 18px; overflow-wrap: break-word; font-size: 13px; line-height: 1.8; color: var(--text-secondary); }
+.feedback-help__title { margin: 0 0 6px; font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.feedback-help__intro { margin: 0 0 10px; }
+.feedback-help__block { margin: 0 0 10px; }
+.feedback-help__block:last-child { margin-bottom: 0; }
+.feedback-help__label { margin: 0 0 4px; font-weight: 600; color: var(--text-primary); }
+.feedback-help__steps, .feedback-help__notes { margin: 0 0 8px; padding-left: 20px; }
+.feedback-help__steps li, .feedback-help__notes li { margin: 0 0 4px; }
+.feedback-help__notes { list-style: none; padding-left: 14px; }
+.feedback-help__block--warn .feedback-help__warn { margin: 0; font-size: 12px; color: var(--text-tertiary); }
 </style>
 </head>
 <body>
@@ -699,16 +759,6 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
     </header>
 
     <div class="content">
-      <!-- 全局邮箱绑定提示（推广绑定邮箱） -->
-      <div id="globalEmailBanner" class="alert alert-warning" style="display:none;margin-bottom:14px;align-items:flex-start;gap:10px;">
-        <svg class="ico" style="color:var(--amber);flex:none;margin-top:2px;"><use href="#i-mail"/></svg>
-        <div style="flex:1;min-width:0;">
-          <strong>还没绑定邮箱</strong>
-          <p style="margin:2px 0 0;">绑定邮箱后可以收到每次签到结果通知和会员到期提醒；不绑定将收不到任何邮件通知（后续可能限制未绑定用户使用部分功能）。</p>
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="goPage('email')" style="flex:none;">立即绑定</button>
-        <button class="btn btn-ghost btn-sm" onclick="dismissEmailBanner()" title="今天不再提示" style="flex:none;">×</button>
-      </div>
       <!-- 公告区（置顶） -->
       <div id="noticeCard" class="card hidden" style="margin-bottom:14px;border-left:4px solid var(--blue);">
         <h2 class="card-heading" id="noticeTitle"></h2>
@@ -716,16 +766,6 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
       </div>
       <!-- ================= 首页 ================= -->
       <div id="page-dashboard" class="page active">
-        <div class="card" id="onboardingCard">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <h2 class="card-heading" style="margin-bottom:0"><svg class="ico" style="color:var(--amber);"><use href="#i-star"/></svg> 新手上手</h2>
-            <button class="btn btn-ghost btn-sm" onclick="dismissOnboarding()">跳过</button>
-          </div>
-          <div class="onboard-progress"><div class="onboard-bar" id="onboardingBar"></div></div>
-          <p class="onboard-meta" id="onboardingCount">0 / 4 已完成</p>
-          <div id="onboardingSteps"></div>
-        </div>
-
         <div id="vipNoticeBanner"></div>
 
         <div class="hero">
@@ -757,7 +797,7 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
           </div>
         </div>
 
-        <div class="card" style="padding:18px 20px;">
+        <div class="card" id="checkinCard" style="padding:18px 20px;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
             <div style="min-width:0;">
               <h2 class="card-heading" style="margin-bottom:4px"><svg class="ico" style="color:var(--green);"><use href="#i-calendar"/></svg> 每日打卡</h2>
@@ -799,7 +839,7 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
         </div>
 
         <a class="card" href="https://pd.qq.com/s/9fkh0w8xw" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:16px;padding:16px;text-decoration:none;transition:all .15s;">
-          <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:#e0f2fe;color:#0ea5e9;display:flex;align-items:center;justify-content:center;font-size:18px;">
+          <div class="qq-tile">
             <svg class="ico" style="stroke-width:2;"><use href="#i-qq"/></svg>
           </div>
           <div style="flex:1;min-width:0">
@@ -882,38 +922,44 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
             </div>
           </div>
 
-          <div class="setting-row">
-            <div class="setting-copy">
-              <strong>成功后邮件通知</strong>
-              <p>签到成功时发一封邮件。</p>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="notifyOnSuccess">
-              <span class="toggle-track"></span>
-            </label>
-          </div>
-
-          <div class="setting-row">
-            <div class="setting-copy">
-              <strong>失败后邮件提醒</strong>
-              <p>自动签到失败时第一时间提醒。</p>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="notifyOnFailure">
-              <span class="toggle-track"></span>
-            </label>
-          </div>
+          <p style="font-size:12px;color:var(--text-tertiary);margin:16px 0 0;">
+            签到这个结果要不要通知你、走微信还是邮件，统一在下面「签到结果通知设置」里选。
+          </p>
 
           <button class="btn btn-primary btn-block" onclick="saveAutoSignSetting()" style="margin-top:24px">
             <svg class="ico"><use href="#i-check"/></svg> 保存设置
           </button>
+        </div>
+
+        <!-- ================= 签到结果通知设置（微信/邮件 × 仅失败/总是）================= -->
+        <div class="card" style="margin-top:16px;">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--blue);"><use href="#i-calendar"/></svg> 签到结果通知设置</h2>
+          <p style="font-size:13px;color:var(--text-secondary);margin:0 0 14px;">
+            微信已暂停下发通知：绑定后请安装 WxPusher APP 接收消息；不想装 APP 可以把邮件渠道打开作为兜底。
+          </p>
+          <div id="notifySettingsBox">加载中…</div>
+          <div id="notifySaveRow" class="hidden" style="margin-top:18px;">
+            <button class="btn btn-primary btn-block" onclick="saveNotifySettings()">
+              <svg class="ico"><use href="#i-check"/></svg> 保存通知设置
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="wxQrModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:16px;padding:22px;max-width:340px;width:92%;text-align:center;">
+          <h3 style="margin:0 0 10px;font-size:16px;">微信扫码绑定</h3>
+          <p style="margin:0 0 12px;font-size:13px;color:#64748b;">请使用微信扫一扫，关注后请安装 <a href="https://wxpusher.zjiecode.com/download/" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600;">WxPusher APP</a>（微信已暂停下发）；iPhone 如提示选择应用，请选「AGbot」</p>
+          <div id="wxQrImgBox" style="min-height:220px;display:flex;align-items:center;justify-content:center;"></div>
+          <p id="wxQrTip" style="margin:12px 0 0;font-size:12px;color:#94a3b8;">正在生成二维码…</p>
+          <button class="btn btn-outline" style="margin-top:14px;width:100%;" onclick="closeWxQr()">关闭</button>
         </div>
       </div>
 
       <!-- ================= 邮箱 ================= -->
       <div id="page-email" class="page">
         <h1 class="page-title">邮箱</h1>
-        <p class="page-sub">绑定后签到成功或失败都会收到提醒。</p>
+        <p class="page-sub">绑定并验证后，可在「签到结果通知设置」里选择用邮件接收签到结果。</p>
 
         <div class="card">
           <h2 class="card-heading"><svg class="ico" style="color:var(--blue);"><use href="#i-mail"/></svg> 邮箱绑定</h2>
@@ -973,6 +1019,11 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
             <span>次数卡 <strong id="memberCredits" style="color:#fff">0 次</strong></span>
             <span>邀请码 <strong id="memberInvite" style="color:#fff">--</strong></span>
           </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--blue);"><use href="#i-user"/></svg> 账号与通知</h2>
+          <div id="profileAccountBox"><p class="loading">加载中…</p></div>
         </div>
 
         <div class="card">
@@ -1041,11 +1092,17 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
               <small>校园闲置交易</small>
             </a>
             <a class="more-item" href="https://pd.qq.com/s/9fkh0w8xw" target="_blank" rel="noopener">
-              <svg class="ico" style="color:#0ea5e9;"><use href="#i-qq"/></svg>
+              <svg class="ico qq-ico" style="color:var(--blue);"><use href="#i-qq"/></svg>
               <span>QQ 频道</span>
               <small>交流与提醒</small>
             </a>
           </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h2 class="card-heading"><svg class="ico" style="color:var(--text-secondary);"><use href="#i-info"/></svg> 帮助</h2>
+          <p style="font-size:13px;color:var(--text-secondary);margin:0 0 12px;">第一次使用？跟着引导快速认识签到、打卡和自动签到的入口。</p>
+          <button class="btn btn-secondary btn-sm" onclick="startTourReplay()">重新查看新手引导</button>
         </div>
       </div>
 
@@ -1090,6 +1147,29 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
 
         <div class="card">
           <h2 class="card-heading"><svg class="ico" style="color:var(--green);"><use href="#i-pen"/></svg> 提交反馈</h2>
+
+          <!-- 反馈渠道提示：站内留言 + 微信上行消息 + QQ 群（不单独做卡片，避免冗余） -->
+          <section id="feedbackHelp" class="feedback-help" aria-labelledby="feedbackHelpTitle">
+            <p class="feedback-help__title" id="feedbackHelpTitle"><span aria-hidden="true">💡</span> 遇到问题需要反馈？</p>
+            <p class="feedback-help__intro">可以直接在下方留言，或者通过以下方式联系：</p>
+            <div class="feedback-help__block">
+              <p class="feedback-help__label"><span aria-hidden="true">📱</span> 微信直达</p>
+              <ol class="feedback-help__steps">
+                <li>在「自动签到」页点击「绑定微信」，用微信扫码关注服务号 <strong>WxPusher</strong>。</li>
+                <li>打开 WxPusher 服务号的对话框，直接发送你的问题，管理员会<strong>实时收到</strong>。</li>
+              </ol>
+              <ul class="feedback-help__notes">
+                <li>安卓：直接发送即可。</li>
+                <li>苹果：若弹出应用选择，请选「<strong>AGbot</strong>」，不要选「官方极简」。</li>
+              </ul>
+            </div>
+            <div class="feedback-help__block feedback-help__block--warn">
+              <p class="feedback-help__label"><span aria-hidden="true">⚠️</span> 想实时收到管理员回复？</p>
+              <p class="feedback-help__warn">微信已暂停下发消息，请下载 <strong>WxPusher APP</strong> 并登录绑定，才能收到回复通知。</p>
+            </div>
+            <div class="feedback-help__block"><span aria-hidden="true">👥</span> <strong>QQ 群求助</strong>：扫描下方二维码加入官方交流群，获取人工帮助。<img src="./qq_group_qr.png" alt="QQ 群二维码" loading="lazy" style="display:block;width:100%;max-width:150px;height:auto;margin-top:10px;border-radius:10px;border:1px solid var(--border);"></div>
+          </section>
+
           <div class="field">
             <label>类型</label>
             <select id="feedbackType">
@@ -1200,7 +1280,9 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
 </nav>
 
 <!-- 悬浮反馈按钮 -->
-<button id="feedbackFab" onclick="goPage('feedback')" title="意见反馈" style="position:fixed;right:18px;bottom:26px;z-index:70;width:54px;height:54px;border-radius:50%;border:none;background:#3b6df0;color:#fff;font-size:11px;line-height:1.15;box-shadow:0 8px 22px rgba(15,23,42,.28);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;opacity:.95;">💬<span>反馈</span></button>
+<button id="feedbackFab" class="feedback-fab" onclick="goPage('feedback')" title="意见反馈" aria-label="意见反馈">
+  <svg class="ico"><use href="#i-message"/></svg><span>反馈</span>
+</button>
 
 <!-- ================= Sponsor Modal ================= -->
 <div class="modal-mask" id="sponsorModal">
@@ -1255,6 +1337,28 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- ================= Tour · 新手漫游引导 ================= -->
+<div class="tour-root" id="tourRoot" aria-hidden="true">
+  <div class="tour-mask" id="tourMask"></div>
+  <div class="tour-spot" id="tourSpot"></div>
+  <div class="tour-pop" id="tourPop" role="dialog" aria-modal="true" aria-labelledby="tourTitle" aria-describedby="tourDesc">
+    <div class="tour-pop__head">
+      <span class="tour-pop__step" id="tourStepLabel"></span>
+      <button type="button" class="tour-pop__close" id="tourClose" aria-label="关闭引导">&times;</button>
+    </div>
+    <h3 id="tourTitle"></h3>
+    <p id="tourDesc"></p>
+    <div class="tour-dots" id="tourDots" aria-hidden="true"></div>
+    <div class="tour-pop__foot">
+      <button type="button" class="btn btn-ghost btn-sm" id="tourSkip">跳过</button>
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn btn-secondary btn-sm" id="tourPrev">上一步</button>
+        <button type="button" class="btn btn-primary btn-sm" id="tourNext">下一步</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ============================================================
@@ -1315,6 +1419,13 @@ function currentPlanName() {
   return TIER_NAMES[currentUser.vipTier] || (currentUser.isVip ? '会员' : '免费');
 }
 
+// 1970-01-01（epoch 0）表示「从未开通会员」：一律视为无到期时间，避免显示 1970/1/1
+function parseVipExpire(v) {
+  if (!v) return null;
+  const d = new Date(v);
+  return (isNaN(d.getTime()) || d.getTime() <= 0) ? null : d;
+}
+
 function currentCanCustomTime() {
   if (!currentUser) return false;
   if (typeof currentUser.canCustomTime === 'boolean') return currentUser.canCustomTime && !!currentUser.isVip;
@@ -1327,7 +1438,7 @@ let pollingCount = 0;
 const POLLING_MAX = 60;
 let qrViewed = false;
 let themeSwitching = false;
-let autoSignState = { enabled: false, customDays: [], signTime: '21:35', notifyOnSuccess: false, notifyOnFailure: false };
+let autoSignState = { enabled: false, customDays: [], signTime: '21:35' };
 let statsState = { todaySigns: 0, todaySuccess: 0, autoSignEnabled: false };
 let appliedCoupon = null;
 
@@ -1361,7 +1472,7 @@ function escapeAttr(s) {
 async function api(url, opts) {
   opts = opts || {};
   opts.headers = opts.headers || {};
-  opts.headers['Authorization'] = 'Bearer ' + token;
+  opts.headers['Authorization'] = 'Bearer ' + (localStorage.getItem('token') || '');
   if (opts.body && typeof opts.body === 'object') {
     opts.body = JSON.stringify(opts.body);
     opts.headers['Content-Type'] = 'application/json';
@@ -1388,7 +1499,10 @@ async function api(url, opts) {
 }
 
 function logout() {
-  localStorage.clear();
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('attendancePassword');
+  localStorage.removeItem('pendingInviteCode');
   location.replace('/');
 }
 
@@ -1470,16 +1584,21 @@ if (document.startViewTransition) { document.documentElement.classList.add('has-
 applyTheme(localStorage.getItem('dashboardTheme') || 'light');
 
 /* ============================================================
-   Onboarding
+   Tour · 新手漫游引导
    ============================================================ */
-function dismissOnboarding() {
-  localStorage.setItem('onboardingDismissed', '1');
-  const card = document.getElementById('onboardingCard');
-  if (card) card.classList.add('hidden');
-  markOnboardingDone();
-}
+const TOUR_DISMISSED_KEY = 'onboardingDismissed';
 
-// 记住"引导已处理"在账号上，换手机/清缓存也不会反复出现
+let tourSteps = [];
+let tourIndex = 0;
+let tourActive = false;
+let tourReplay = false;        // 手动重看不写"已完成"
+let tourAutoScheduled = false;
+let tourReturnPage = 'dashboard';
+let tourLastFocus = null;
+let tourRaf = 0;
+let tourDeferred = [];
+
+// 沿用原有的账号标记：换设备 / 清缓存也不会反复弹出
 let onboardingMarking = false;
 async function markOnboardingDone() {
   if (onboardingMarking) return;
@@ -1493,61 +1612,215 @@ async function markOnboardingDone() {
       cached.onboardingDone = true;
       localStorage.setItem('user', JSON.stringify(cached));
     } catch (e) {}
-    localStorage.setItem('onboardingDismissed', '1');
+    localStorage.setItem(TOUR_DISMISSED_KEY, '1');
   } catch (e) { onboardingMarking = false; }
 }
 
-function renderOnboarding() {
-  const card = document.getElementById('onboardingCard');
-  if (!card) return;
-  if ((currentUser && currentUser.onboardingDone) || localStorage.getItem('onboardingDismissed') === '1') {
-    card.classList.add('hidden');
-    return;
-  }
+function dismissOnboarding() { closeTour(); }
 
-  // 密码在登录时已经验证过，不再单列一步
-  const steps = [
-    { title: '绑定邮箱', desc: '签到成功或失败都会发邮件提醒', done: !!currentUser.emailVerified, label: '去绑定', action: () => goPage('email') },
-    { title: '手动签到一次', desc: '免费，不需要会员', done: (statsState.todaySigns || 0) > 0, label: '立即签到', action: () => { goPage('dashboard'); setTimeout(quickSign, 260); } }
+function tourBuildSteps() {
+  return [
+    { title: '欢迎使用 AG 智能考勤',
+      desc: '花半分钟认识一下控制面板：签到、打卡、自动签到都在哪儿。随时可以跳过。' },
+    { title: '手动签到',
+      desc: '点这里立刻签到一次，免费、不需要会员，结果会记录到「记录」页。',
+      page: 'dashboard', targets: ['#quickSignBtn'] },
+    { title: '每日打卡攒次数',
+      desc: '每天打卡 +1 次手动签到机会，连续 7 天再送 2 次；会员无需次数也能签到。',
+      page: 'dashboard', targets: ['#checkinCard'] },
+    { title: '自动签到',
+      desc: '会员在这里选好日期和时间，系统每天自动签到（默认 21:35）。',
+      page: 'dashboard', targets: ['.side-item[data-nav="subscriptions"]', '.tab-item[data-tab="subscriptions"]'] },
+    { title: '绑定邮箱',
+      desc: '签到成功或失败都能收到邮件提醒，会员到期也会提前通知。',
+      page: 'more', targets: ['.side-item[data-nav="email"]', '.more-item[data-nav="email"]'] },
+    { title: '开始使用吧',
+      desc: '引导不会再来打扰；想重看随时到「更多 → 重新查看新手引导」。' }
   ];
-  // 只有有效会员才需要"开启自动签到"这一步，免费用户做完前两步就自动收起
-  if (isMemberActive()) {
-    steps.push({ title: '开启自动签到', desc: '每天自动签到，会员专享', done: !!autoSignState.enabled, label: '去开启', action: () => goPage('subscriptions') });
-  }
+}
 
-  const doneCount = steps.filter(s => s.done).length;
-  const total = steps.length;
-  if (doneCount === total) {
-    card.classList.add('hidden');
-    markOnboardingDone();
+function tourPickTarget(step) {
+  if (!step || !step.targets) return null;
+  for (const sel of step.targets) {
+    const el = document.querySelector(sel);
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    if (r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none') return el;
+  }
+  return null;
+}
+
+function tourPosition() {
+  if (!tourActive) return;
+  const root = document.getElementById('tourRoot');
+  const spot = document.getElementById('tourSpot');
+  const pop = document.getElementById('tourPop');
+  if (!root || !spot || !pop) return;
+
+  const target = tourPickTarget(tourSteps[tourIndex]);
+  const centered = !target;
+  root.classList.toggle('is-centered', centered);
+  spot.classList.toggle('is-hidden', centered);
+  if (centered) {
+    pop.style.left = '';
+    pop.style.top = '';
     return;
   }
-  card.classList.remove('hidden');
 
-  const bar = document.getElementById('onboardingBar');
-  const count = document.getElementById('onboardingCount');
-  if (bar) bar.style.width = (doneCount / total * 100) + '%';
-  if (count) count.textContent = doneCount + ' / ' + total + ' 已完成';
+  const r = target.getBoundingClientRect();
+  // 目标不在可视区时先滚进来，scroll 事件会再次触发定位
+  if (r.top < 72 || r.bottom > window.innerHeight - 80) {
+    target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
 
-  const box = document.getElementById('onboardingSteps');
-  if (!box) return;
+  const pad = 6;
+  const left = Math.max(4, r.left - pad);
+  const top = Math.max(4, r.top - pad);
+  const width = Math.max(0, Math.min(window.innerWidth - left - 4, r.width + pad * 2));
+  const height = Math.max(0, Math.min(window.innerHeight - top - 4, r.height + pad * 2));
+  spot.style.left = left + 'px';
+  spot.style.top = top + 'px';
+  spot.style.width = width + 'px';
+  spot.style.height = height + 'px';
 
-  box.innerHTML = steps.map((s, i) => {
-    const action = s.done ? '<span class="step-done-text">已完成</span>' : `<button class="btn btn-secondary btn-sm" data-step="${i}">${escapeHTML(s.label)}</button>`;
-    return `<div class="onboard-step ${s.done ? 'done' : ''}">
-      <div class="step-dot">${s.done ? '<svg class="ico" style="width:14px;height:14px;stroke-width:2;"><use href="#i-check"/></svg>' : (i + 1)}</div>
-      <div class="step-body"><strong>${escapeHTML(s.title)}</strong><p>${escapeHTML(s.desc)}</p></div>
-      ${action}
-    </div>`;
-  }).join('');
-
-  box.querySelectorAll('[data-step]').forEach(btn => {
-    btn.onclick = () => {
-      const step = steps[Number(btn.dataset.step)];
-      if (step && typeof step.action === 'function') step.action();
-    };
-  });
+  const pw = pop.offsetWidth;
+  const ph = pop.offsetHeight;
+  const gap = 14;
+  let popTop;
+  if (top + height + gap + ph <= window.innerHeight - 8) popTop = top + height + gap;
+  else if (top - gap - ph >= 8) popTop = top - gap - ph;
+  else popTop = Math.max(8, Math.min(window.innerHeight - ph - 8, top + height / 2 - ph / 2));
+  const popLeft = Math.max(12, Math.min(window.innerWidth - pw - 12, r.left + r.width / 2 - pw / 2));
+  pop.style.left = popLeft + 'px';
+  pop.style.top = popTop + 'px';
 }
+
+function tourRender() {
+  const step = tourSteps[tourIndex];
+  if (!step) return;
+  if (step.page) goPage(step.page);
+
+  const root = document.getElementById('tourRoot');
+  if (root) root.classList.toggle('is-centered', !step.targets);
+
+  const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  setText('tourTitle', step.title);
+  setText('tourDesc', step.desc);
+  setText('tourStepLabel', (tourIndex + 1) + ' / ' + tourSteps.length);
+  setText('tourNext', tourIndex === tourSteps.length - 1 ? '完成' : '下一步');
+
+  const dots = document.getElementById('tourDots');
+  if (dots) dots.innerHTML = tourSteps.map((_, i) =>
+    `<span class="tour-dot${i === tourIndex ? ' is-active' : ''}"></span>`).join('');
+  const prev = document.getElementById('tourPrev');
+  if (prev) prev.style.visibility = tourIndex === 0 ? 'hidden' : 'visible';
+
+  requestAnimationFrame(tourPosition);
+}
+
+function nextTourStep() {
+  if (!tourActive) return;
+  if (tourIndex >= tourSteps.length - 1) { closeTour(); return; }
+  tourIndex++;
+  tourRender();
+}
+
+function prevTourStep() {
+  if (!tourActive || tourIndex === 0) return;
+  tourIndex--;
+  tourRender();
+}
+
+function openTour(opts) {
+  opts = opts || {};
+  if (tourActive) return;
+  const root = document.getElementById('tourRoot');
+  if (!root) return;
+  tourReplay = !!opts.replay;
+  const activePage = document.querySelector('.page.active');
+  tourReturnPage = activePage ? activePage.id.replace(/^page-/, '') : 'dashboard';
+  tourSteps = tourBuildSteps();
+  tourIndex = 0;
+  tourActive = true;
+  tourLastFocus = document.activeElement;
+  root.classList.add('is-open');
+  root.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  tourRender();
+  setTimeout(() => {
+    if (!tourActive) return;
+    const btn = document.getElementById('tourNext');
+    if (btn) btn.focus();
+  }, 80);
+}
+
+function closeTour() {
+  if (!tourActive) return;
+  tourActive = false;
+  const root = document.getElementById('tourRoot');
+  if (root) { root.classList.remove('is-open'); root.setAttribute('aria-hidden', 'true'); }
+  document.body.style.overflow = '';
+  if (!tourReplay) {
+    localStorage.setItem(TOUR_DISMISSED_KEY, '1');
+    markOnboardingDone();
+  }
+  if (tourLastFocus && typeof tourLastFocus.focus === 'function') tourLastFocus.focus();
+  if (tourReturnPage) goPage(tourReturnPage);
+  tourFlushDeferred();
+}
+
+function startTourReplay() { openTour({ replay: true }); }
+
+// 引导进行中先压住赞助弹窗 / 站内通知，关掉后再补发
+function tourDefer(fn) { tourDeferred.push(fn); }
+function tourFlushDeferred() {
+  const list = tourDeferred.splice(0);
+  list.forEach(fn => setTimeout(() => { try { fn(); } catch (e) {} }, 450));
+}
+
+function renderOnboarding() {
+  if (tourActive || tourAutoScheduled) return;
+  if ((currentUser && currentUser.onboardingDone) || localStorage.getItem(TOUR_DISMISSED_KEY) === '1') return;
+  const active = document.querySelector('.page.active');
+  if (active && active.id !== 'page-dashboard') return;
+  tourAutoScheduled = true;
+  setTimeout(() => {
+    if (currentUser && currentUser.onboardingDone) { tourAutoScheduled = false; return; }
+    openTour();
+  }, 900);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (!tourActive) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeTour(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); nextTourStep(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); prevTourStep(); }
+  else if (e.key === 'Enter' && e.target && e.target.tagName !== 'BUTTON') { e.preventDefault(); nextTourStep(); }
+  else if (e.key === 'Tab') {
+    const items = Array.prototype.filter.call(
+      document.querySelectorAll('#tourPop button'),
+      b => b.offsetParent !== null && b.style.visibility !== 'hidden'
+    );
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+
+window.addEventListener('scroll', () => {
+  if (!tourActive) return;
+  cancelAnimationFrame(tourRaf);
+  tourRaf = requestAnimationFrame(tourPosition);
+}, true);
+window.addEventListener('resize', () => { if (tourActive) tourPosition(); });
+
+[['tourNext', nextTourStep], ['tourPrev', prevTourStep], ['tourSkip', closeTour], ['tourClose', closeTour]]
+  .forEach(([id, handler]) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.addEventListener('click', handler);
+  });
 
 /* ============================================================
    User
@@ -1567,7 +1840,7 @@ async function loadUserInfo() {
 
     const tierKey = currentUser.vipTier || 'FREE';
     const tierDisplay = currentPlanName();
-    const expireDate = currentUser.vipExpireAt ? new Date(currentUser.vipExpireAt) : null;
+    const expireDate = parseVipExpire(currentUser.vipExpireAt);
     const isPermanent = !!currentUser.isVip && !expireDate;
 
     const daysLeft = expireDate ? Math.max(0, Math.ceil((expireDate.getTime() - Date.now()) / 86400000)) : 0;
@@ -1660,18 +1933,15 @@ async function loadActiveSubs() {
     autoSignState = {
       enabled: !!s.enabled,
       customDays: Array.isArray(s.customDays) ? s.customDays.map(Number) : [],
-      signTime: s.signTime || '21:35',
-      notifyOnSuccess: s.notifyOnSuccess !== false,
-      notifyOnFailure: s.notifyOnFailure !== false
+      signTime: s.signTime || '21:35'
     };
 
     if (!s.enabled) {
       box.innerHTML = '<p class="empty" style="text-align:left;padding:0;">自动签到未开启。请前往「自动签到」页面选择日期并保存。</p>';
     } else {
       const dayText = autoSignState.customDays.length ? autoSignState.customDays.map(d => DAY_NAMES[d]).join('、') : '未选择';
-      const mailText = (s.notifyOnSuccess || s.notifyOnFailure) ? '邮件提醒已开启' : '未开启邮件提醒';
       box.innerHTML = `<div class="row">
-        <div><div class="row-title">自动签到已开启</div><p class="row-sub"><svg class="ico" style="color:var(--blue);"><use href="#i-clock"/></svg> ${escapeHTML(autoSignState.signTime)} · 每周 ${escapeHTML(dayText)} · ${mailText}</p></div>
+        <div><div class="row-title">自动签到已开启</div><p class="row-sub"><svg class="ico" style="color:var(--blue);"><use href="#i-clock"/></svg> ${escapeHTML(autoSignState.signTime)} · 每周 ${escapeHTML(dayText)}</p></div>
         <span class="badge badge-success">运行中</span>
       </div>`;
     }
@@ -1836,20 +2106,8 @@ function renderEmailWarning() {
       <div><strong>未绑定邮箱</strong><p>绑定后签到状态和会员到期提醒都会通过邮件通知。 <button class="btn btn-ghost btn-sm" style="text-decoration:underline;height:auto;padding:0;color:var(--amber);font-weight:600;" onclick="goPage('email')">去绑定</button></p></div>
     </div>`;
   }
-  renderEmailBanner();
   renderSponsorCard();
   renderCheckinCard();
-  ['notifyOnSuccess', 'notifyOnFailure'].forEach(id => {
-    const cb = document.getElementById(id);
-    if (!cb) return;
-    cb.onchange = function () {
-      if (this.checked && !currentUser.emailVerified) {
-        this.checked = false;
-        showToast('请先绑定邮箱', 'warning');
-        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    };
-  });
 }
 
 function todayKeyBeijing() {
@@ -1896,7 +2154,7 @@ function renderSponsorCard() {
   if (!title || !desc || !btn) return;
   const isVip = !!currentUser.isVip;
   const tierName = (typeof currentPlanName === 'function') ? currentPlanName() : '';
-  const exp = currentUser.vipExpireAt ? new Date(currentUser.vipExpireAt) : null;
+  const exp = parseVipExpire(currentUser.vipExpireAt);
   if (isVip) {
     const expText = exp ? exp.toLocaleDateString('zh-CN') : '长期';
     title.textContent = (tierName ? tierName + ' · ' : '') + '有效期至 ' + expText;
@@ -1909,20 +2167,6 @@ function renderSponsorCard() {
   }
 }
 
-function renderEmailBanner() {
-  const el = document.getElementById('globalEmailBanner');
-  if (!el) return;
-  const dismissed = localStorage.getItem('emailBannerDismissed') === new Date().toDateString();
-  const needBind = currentUser && !currentUser.emailVerified;
-  el.style.display = needBind && !dismissed ? 'flex' : 'none';
-}
-
-function dismissEmailBanner() {
-  localStorage.setItem('emailBannerDismissed', new Date().toDateString());
-  const el = document.getElementById('globalEmailBanner');
-  if (el) el.style.display = 'none';
-}
-
 async function loadAutoSignSetting() {
   try {
     await loadUserInfo();
@@ -1933,14 +2177,10 @@ async function loadAutoSignSetting() {
     autoSignState = {
       enabled: !!setting.enabled,
       customDays: Array.isArray(setting.customDays) ? setting.customDays.map(Number) : [],
-      signTime: setting.signTime || '21:35',
-      notifyOnSuccess: setting.notifyOnSuccess !== false,
-      notifyOnFailure: setting.notifyOnFailure !== false
+      signTime: setting.signTime || '21:35'
     };
 
     document.getElementById('autoSignEnabled').checked = !!setting.enabled;
-    document.getElementById('notifyOnSuccess').checked = setting.notifyOnSuccess !== false;
-    document.getElementById('notifyOnFailure').checked = setting.notifyOnFailure !== false;
 
     setAutoSignDays(setting.customDays);
     updateSignTimeUI(setting);
@@ -1960,18 +2200,12 @@ async function saveAutoSignSetting() {
   if (selectedDays.length === 0) { showToast('请至少选择一天', 'error'); return; }
 
   const timeInput = document.getElementById('autoSignTime');
-  const emailVerified = !!currentUser.emailVerified;
-  const wantSuccess = document.getElementById('notifyOnSuccess').checked;
-  const wantFailure = document.getElementById('notifyOnFailure').checked;
 
-  if (!emailVerified && (wantSuccess || wantFailure)) { showToast('请先绑定邮箱', 'warning'); return; }
-
+  // 通知渠道/时机由下方「签到结果通知设置」统一管理，这里只管签到计划
   const body = {
     enabled: document.getElementById('autoSignEnabled').checked,
     customDays: selectedDays,
-    signTime: canCustomSignTime() && timeInput ? timeInput.value : '21:35',
-    notifyOnSuccess: emailVerified && wantSuccess,
-    notifyOnFailure: emailVerified && wantFailure
+    signTime: canCustomSignTime() && timeInput ? timeInput.value : '21:35'
   };
 
   try {
@@ -1982,9 +2216,7 @@ async function saveAutoSignSetting() {
       autoSignState = {
         enabled: !!next.enabled,
         customDays: Array.isArray(next.customDays) ? next.customDays.map(Number) : selectedDays,
-        signTime: next.signTime || body.signTime,
-        notifyOnSuccess: !!next.notifyOnSuccess,
-        notifyOnFailure: !!next.notifyOnFailure
+        signTime: next.signTime || body.signTime
       };
       renderAutoSignStatus(autoSignState);
       renderOnboarding(); loadStats(); loadActiveSubs();
@@ -1995,6 +2227,144 @@ async function saveAutoSignSetting() {
 /* ============================================================
    Email
    ============================================================ */
+// ===== 签到结果通知设置（微信/邮件 × 仅失败/总是，HANDOFF §16）=====
+let wxPollTimer = null;
+let notifyAvailable = { wechat: false, email: false };
+
+async function loadNotifySettings() {
+  const box = document.getElementById('notifySettingsBox');
+  if (!box) return;
+  try {
+    const d = await api('/user/notify-settings'); // api() 已返回解析后的 JSON，不要再 .json()
+    if (!d.success) { box.innerHTML = '<p class="empty">' + escapeHTML(d.message || '状态读取失败') + '</p>'; return; }
+    renderNotifySettings(d);
+  } catch (e) {
+    box.innerHTML = '<p class="empty">状态读取失败：' + escapeHTML(e.message || '') +
+      ' <button class="btn btn-outline btn-sm" onclick="loadNotifySettings()">重试</button></p>';
+  }
+}
+
+function renderNotifySettings(d) {
+  const box = document.getElementById('notifySettingsBox');
+  if (!box) return;
+  const s = d.settings || {};
+  const ch = Array.isArray(s.channels) ? s.channels : [];
+  const avail = d.available || {};
+  notifyAvailable = avail;
+  const hasAnyChannel = !!(avail.wechat || avail.email);
+  const level = s.level || 'failure_only';
+  const wxOn = avail.wechat && ch.indexOf('wechat') >= 0;
+  const mailOn = avail.email && ch.indexOf('email') >= 0;
+  const emailText = d.emailVerified
+    ? '发到 ' + escapeHTML(d.email || '') + '（微信没发出去时才兜底）'
+    : '未绑定邮箱，先到「邮箱」页绑定并验证';
+
+  const wxRow = d.wxpusherBound
+    ? '<div class="setting-row"><div class="setting-copy"><strong>微信 / WxPusher APP</strong><p>✅ 已绑定 · 通知发到 WxPusher APP（微信已暂停下发） · <a href="https://wxpusher.zjiecode.com/download/" target="_blank" rel="noopener" style="color:var(--blue);font-weight:600;">下载 APP</a></p></div>' +
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+      '<label class="toggle"><input type="checkbox" id="ncWechat" ' + (wxOn ? 'checked' : '') + '><span class="toggle-track"></span></label>' +
+      '<button class="btn btn-outline btn-sm" onclick="unbindWx()">解绑</button></div></div>'
+    : '<div class="setting-row"><div class="setting-copy"><strong>微信 / WxPusher APP</strong><p>未绑定 · 绑定后需安装 WxPusher APP 才能收到通知</p></div>' +
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+      '<label class="toggle"><input type="checkbox" id="ncWechat" disabled><span class="toggle-track"></span></label>' +
+      '<button class="btn btn-primary btn-sm" onclick="startWxBind()">绑定微信</button></div></div>';
+
+  box.innerHTML = wxRow +
+    '<div class="setting-row"><div class="setting-copy"><strong>邮件</strong><p>' + emailText + '</p></div>' +
+    '<label class="toggle"><input type="checkbox" id="ncEmail" ' + (mailOn ? 'checked' : '') + (avail.email ? '' : ' disabled') + '><span class="toggle-track"></span></label></div>' +
+    '<div style="margin-top:18px;">' +
+      '<strong style="font-size:14px;">什么时候通知</strong>' +
+      '<p style="font-size:12px;color:var(--text-tertiary);margin:4px 0 10px;">默认成功和失败都通知；想少打扰可以改成「仅失败时通知」。</p>' +
+      '<label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:8px;cursor:pointer;"><input type="radio" name="notifyLevel" value="failure_only" ' + (level === 'failure_only' ? 'checked' : '') + (!hasAnyChannel ? ' disabled' : '') + '> 仅失败时通知</label>' +
+      '<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;"><input type="radio" name="notifyLevel" value="always" ' + (level === 'always' ? 'checked' : '') + (!hasAnyChannel ? ' disabled' : '') + '> 成功和失败都通知</label>' +
+      (hasAnyChannel ? '' : '<p style="font-size:12px;color:var(--amber);margin-top:10px;">请先绑定微信或验证邮箱，才能开启签到通知。</p>') +
+    '</div>' +
+    (s.configured ? '' : '<p style="font-size:12px;color:var(--text-tertiary);margin-top:12px;">当前沿用默认设置；保存后会记住你的选择。</p>');
+
+  const saveRow = document.getElementById('notifySaveRow');
+  if (saveRow) saveRow.classList.remove('hidden');
+}
+
+async function saveNotifySettings() {
+  if (!(notifyAvailable.wechat || notifyAvailable.email)) {
+    showToast('请先绑定微信或验证邮箱，才能开启签到通知', 'error');
+    return;
+  }
+  const channels = [];
+  const wx = document.getElementById('ncWechat');
+  const mail = document.getElementById('ncEmail');
+  if (wx && wx.checked) channels.push('wechat');
+  if (mail && mail.checked) channels.push('email');
+  const levelEl = document.querySelector('input[name="notifyLevel"]:checked');
+  const level = levelEl ? levelEl.value : 'failure_only';
+  try {
+    const d = await api('/user/notify-settings', { method: 'POST', body: { channels, level } });
+    if (d.success) {
+      showToast('通知设置已保存', 'success');
+      renderNotifySettings(d);
+    } else { showToast(d.message || '保存失败', 'error'); }
+  } catch (e) { showToast((e && e.message) || '网络错误', 'error'); }
+}
+
+async function startWxBind() {
+  const modal = document.getElementById('wxQrModal');
+  const imgBox = document.getElementById('wxQrImgBox');
+  const tip = document.getElementById('wxQrTip');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  imgBox.innerHTML = '';
+  tip.textContent = '正在生成二维码…';
+  try {
+    const d = await api('/user/wxpusher/qrcode');
+    if (!d.success) { tip.textContent = d.message || '二维码生成失败'; return; }
+    imgBox.innerHTML = '<img src="' + d.url + '" alt="微信绑定二维码" style="width:220px;height:220px;border-radius:10px;" />';
+    tip.textContent = '请使用微信扫一扫，关注后安装 WxPusher APP 才能收到通知（iPhone 如提示选择应用，请选「AGbot」；二维码 10 分钟内有效）';    if (wxPollTimer) clearInterval(wxPollTimer);
+    wxPollTimer = setInterval(pollWxBind, 2000);
+  } catch (e) {
+    tip.textContent = '二维码生成失败：' + e.message;
+  }
+}
+
+async function pollWxBind() {
+  try {
+    const d = await api('/user/wxpusher/status');
+    if (d.bound) {
+      closeWxQr();
+      alert('✅ 微信绑定成功，之后签到结果会按你的通知偏好推送');
+      loadNotifySettings();
+      if (document.getElementById('profileAccountBox')) loadProfileAccount();
+      return;
+    }
+    if (d.expired) {
+      const tip = document.getElementById('wxQrTip');
+      if (tip) tip.textContent = d.message || '二维码已过期，请关闭后重新获取';
+      if (wxPollTimer) { clearInterval(wxPollTimer); wxPollTimer = null; }
+      return;
+    }
+    if (d.message && d.waiting) {
+      const tip = document.getElementById('wxQrTip');
+      if (tip) tip.textContent = '请使用微信扫一扫，关注后即可接收通知…' + (String(d.message).includes('其他用户') ? '（' + d.message + '）' : '');
+    }
+  } catch (e) { /* 轮询失败静默，下一次继续 */ }
+}
+
+function closeWxQr() {
+  const modal = document.getElementById('wxQrModal');
+  if (modal) modal.style.display = 'none';
+  if (wxPollTimer) { clearInterval(wxPollTimer); wxPollTimer = null; }
+}
+
+async function unbindWx() {
+  if (!confirm('确定解除微信绑定？解除后将不再收到微信通知。')) return;
+  try {
+    await api('/user/wxpusher/unbind', { method: 'POST' });
+    loadNotifySettings();
+    if (document.getElementById('profileAccountBox')) loadProfileAccount();
+  } catch (e) { alert('解绑失败：' + e.message); }
+}
+
+document.addEventListener('DOMContentLoaded', loadNotifySettings);
+
 async function loadEmailStatus() {
   await loadUserInfo();
   const container = document.getElementById('emailStatus');
@@ -2089,7 +2459,7 @@ async function loadProfile() {
   const tierName = currentPlanName();
 
   let vipText = '未开通会员';
-  const expireDate = currentUser.vipExpireAt ? new Date(currentUser.vipExpireAt) : null;
+  const expireDate = parseVipExpire(currentUser.vipExpireAt);
   const isPermanent = !!currentUser.isVip && !expireDate;
 
   if (currentUser.isVip) {
@@ -2133,6 +2503,82 @@ async function loadProfile() {
 
   const inviteEl = document.getElementById('memberInvite');
   if (inviteEl) inviteEl.textContent = currentUser.inviteCode || '--';
+
+  loadProfileAccount();
+}
+
+// 「我的」页信息聚合：微信/邮箱/通知偏好 + 账号数据，一处查看和修改
+async function loadProfileAccount() {
+  const box = document.getElementById('profileAccountBox');
+  if (!box) return;
+  box.innerHTML = '<p class="loading">加载中…</p>';
+  let wx = null, notify = null;
+  try {
+    const results = await Promise.all([
+      api('/user/wxpusher/status').catch(e => ({ success: false, message: e.message })),
+      api('/user/notify-settings').catch(e => ({ success: false, message: e.message }))
+    ]);
+    wx = results[0];
+    notify = results[1];
+  } catch (e) { /* 下面按缺省渲染 */ }
+  renderProfileAccount(wx, notify);
+}
+
+function profileRow(label, value, actionHtml) {
+  return '<div class="setting-row" style="gap:12px;align-items:flex-start;">' +
+    '<div class="setting-copy" style="min-width:0;">' +
+      '<strong>' + label + '</strong>' +
+      '<p style="overflow-wrap:anywhere;">' + value + '</p>' +
+    '</div>' +
+    (actionHtml ? '<div style="flex:none;">' + actionHtml + '</div>' : '') +
+  '</div>';
+}
+
+function profileStat(label, value) {
+  return '<div><div style="font-size:12px;color:var(--text-tertiary);">' + label + '</div>' +
+    '<div style="font-weight:600;margin-top:2px;">' + value + '</div></div>';
+}
+
+function renderProfileAccount(wx, notify) {
+  const box = document.getElementById('profileAccountBox');
+  if (!box) return;
+  wx = wx || {};
+  notify = notify || {};
+  const s = notify.settings || {};
+  const ch = Array.isArray(s.channels) ? s.channels : [];
+  const avail = notify.available || {};
+  const channels = [];
+  if (ch.indexOf('wechat') >= 0 && avail.wechat !== false) channels.push('微信');
+  if (ch.indexOf('email') >= 0 && avail.email !== false) channels.push('邮件');
+  const levelText = s.level === 'always' ? '成功和失败都通知' : '仅失败时通知';
+  const notifyText = channels.length ? channels.join(' + ') + ' · ' + levelText : '未开启（签到结果不推送）';
+
+  const wxValue = wx.bound
+    ? '✅ 已绑定' + (wx.bindTime ? ' · ' + new Date(wx.bindTime).toLocaleDateString('zh-CN') : '') + ' · 通知发到 WxPusher APP'
+    : '未绑定，绑定后需安装 WxPusher APP';
+  const wxAction = wx.bound
+    ? '<button class="btn btn-outline btn-sm" onclick="unbindWx()">解除绑定</button>'
+    : '<button class="btn btn-primary btn-sm" onclick="startWxBind()">绑定微信</button>';
+
+  const mailValue = currentUser.emailVerified
+    ? escapeHTML(currentUser.email || '') + ' · 已验证'
+    : (currentUser.email ? escapeHTML(currentUser.email) + ' · 未验证' : '未绑定邮箱');
+  const mailAction = '<button class="btn btn-outline btn-sm" onclick="goPage(\'email\')">' +
+    (currentUser.emailVerified ? '换绑' : '去绑定') + '</button>';
+
+  const created = currentUser.createdAt ? new Date(currentUser.createdAt).toLocaleDateString('zh-CN') : '--';
+  const stats = (Number(currentUser.successSignCount) || 0) + ' 成功 / ' + (Number(currentUser.totalSignCount) || 0) + ' 次';
+
+  box.innerHTML =
+    profileRow('微信', wxValue, wxAction) +
+    profileRow('邮箱', mailValue, mailAction) +
+    profileRow('通知偏好', notifyText, '<button class="btn btn-outline btn-sm" onclick="goPage(\'subscriptions\')">修改</button>') +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);font-size:13px;">' +
+      profileStat('注册时间', created) +
+      profileStat('累计签到', stats) +
+      profileStat('连续打卡', (Number(currentUser.checkinStreak) || 0) + ' 天') +
+      profileStat('邀请人数', (Number(currentUser.inviteCount) || 0) + ' 人') +
+    '</div>';
 }
 
 async function updateProfile() {
@@ -2586,6 +3032,7 @@ function copyShareLink() {
 }
 
 function showSponsorModal() {
+  if (tourActive) { tourDefer(showSponsorModal); return; }
   if (currentUser && currentUser.isVip) return;
   if (localStorage.getItem('semesterServiceNoticeClosed_v1')) return;
   const modal = document.getElementById('sponsorModal');
@@ -2610,7 +3057,6 @@ function goToSponsor() {
 function init() {
   bindWeekdayButtons();
   loadUserInfo(); loadStats(); loadActiveSubs(); loadNotice();
-  renderEmailBanner();
   renderSponsorCard();
   renderCheckinCard();
   setTimeout(loadVipNotice, 500);
@@ -2623,7 +3069,7 @@ function init() {
 let noticeQueue = [];
 async function loadUserNotices() {
   try {
-    const res = await fetch(`${API_BASE}/notices`, { headers: { 'Authorization': `Bearer ${token}` } });
+    const res = await fetch(`${API_BASE}/notices`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
     const data = await res.json();
     if (!data.success || !Array.isArray(data.notices) || !data.notices.length) return;
     noticeQueue = data.notices.slice();
@@ -2634,13 +3080,14 @@ function escapeNoticeText(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
 }
 function showNextNotice() {
+  if (tourActive) { tourDefer(showNextNotice); return; }
   if (!noticeQueue.length) return;
   const n = noticeQueue.shift();
   const mask = document.getElementById('noticeModal');
   const title = document.getElementById('noticeModalTitle');
   const body = document.getElementById('noticeModalBody');
   if (title) title.textContent = n.title || '系统通知';
-  if (body) body.innerHTML = `<p style="line-height:1.9;margin:0;">${escapeNoticeText(n.content)}</p><p style="margin:10px 0 0;font-size:12px;color:#94a3b8;">${new Date(n.createdAt || Date.now()).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</p>`;
+  if (body) body.innerHTML = `<p style="line-height:1.9;margin:0;">${escapeNoticeText(n.content)}</p><p style="margin:10px 0 0;font-size:12px;color:var(--text-tertiary);">${new Date(n.createdAt || Date.now()).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</p>`;
   if (mask) mask.classList.add('show');
   document.body.style.overflow = 'hidden';
   if (window.Notification && Notification.permission === 'granted') {
@@ -2652,7 +3099,7 @@ function closeNoticeModal() {
   if (mask) mask.classList.remove('show');
   document.body.style.overflow = '';
   if (noticeQueue.length) { setTimeout(showNextNotice, 200); return; }
-  fetch(`${API_BASE}/notices/clear`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } }).catch(() => { });
+  fetch(`${API_BASE}/notices/clear`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } }).catch(() => { });
 }
 
 window.addEventListener('pagehide', () => { if (pollingTimer) { clearInterval(pollingTimer); pollingTimer = null; } });
