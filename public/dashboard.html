@@ -1586,7 +1586,12 @@ applyTheme(localStorage.getItem('dashboardTheme') || 'light');
 /* ============================================================
    Tour · 新手漫游引导
    ============================================================ */
+// 按学号隔离：同一浏览器换账号时，旧账号的"已跳过"不能挡住新账号
 const TOUR_DISMISSED_KEY = 'onboardingDismissed';
+function tourDismissKey() {
+  const sid = (currentUser && currentUser.studentId) || '';
+  return sid ? TOUR_DISMISSED_KEY + '_' + sid : TOUR_DISMISSED_KEY;
+}
 
 let tourSteps = [];
 let tourIndex = 0;
@@ -1612,7 +1617,7 @@ async function markOnboardingDone() {
       cached.onboardingDone = true;
       localStorage.setItem('user', JSON.stringify(cached));
     } catch (e) {}
-    localStorage.setItem(TOUR_DISMISSED_KEY, '1');
+    localStorage.setItem(tourDismissKey(), '1');
   } catch (e) { onboardingMarking = false; }
 }
 
@@ -1762,7 +1767,7 @@ function closeTour() {
   if (root) { root.classList.remove('is-open'); root.setAttribute('aria-hidden', 'true'); }
   document.body.style.overflow = '';
   if (!tourReplay) {
-    localStorage.setItem(TOUR_DISMISSED_KEY, '1');
+    localStorage.setItem(tourDismissKey(), '1');
     markOnboardingDone();
   }
   if (tourLastFocus && typeof tourLastFocus.focus === 'function') tourLastFocus.focus();
@@ -1781,7 +1786,7 @@ function tourFlushDeferred() {
 
 function renderOnboarding() {
   if (tourActive || tourAutoScheduled) return;
-  if ((currentUser && currentUser.onboardingDone) || localStorage.getItem(TOUR_DISMISSED_KEY) === '1') return;
+  if ((currentUser && currentUser.onboardingDone) || localStorage.getItem(tourDismissKey()) === '1') return;
   const active = document.querySelector('.page.active');
   if (active && active.id !== 'page-dashboard') return;
   tourAutoScheduled = true;
