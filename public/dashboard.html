@@ -811,6 +811,16 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
           </div>
         </div>
 
+        <div class="card" id="kaoyanCard" style="padding:18px 20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+            <div style="min-width:0;">
+              <h2 class="card-heading" style="margin-bottom:4px"><svg class="ico" style="color:var(--purple);"><use href="#i-star"/></svg> 考研意向预约</h2>
+              <p style="font-size:13px;color:var(--text-secondary);margin:0;">正在筹备考研项目。有意向的同学点一下预约，我们上线时会第一时间通知你。</p>
+            </div>
+            <button class="btn btn-primary" id="kaoyanBtn" onclick="reserveKaoyan()">我要考研</button>
+          </div>
+        </div>
+
         <div class="card" style="padding:18px 20px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
             <div style="min-width:0;">
@@ -1584,6 +1594,54 @@ if (document.startViewTransition) { document.documentElement.classList.add('has-
 applyTheme(localStorage.getItem('dashboardTheme') || 'light');
 
 /* ============================================================
+   考研意向预约
+   ============================================================ */
+function renderKaoyan() {
+  const btn = document.getElementById('kaoyanBtn');
+  if (!btn) return;
+  const done = !!(currentUser && currentUser.kaoyanIntent);
+  btn.textContent = done ? '✓ 已预约' : '我要考研';
+  btn.disabled = done;
+  btn.classList.toggle('btn-secondary', done);
+  btn.classList.toggle('btn-primary', !done);
+  const card = document.getElementById('kaoyanCard');
+  if (card) {
+    const p = card.querySelector('p');
+    if (p) p.textContent = done
+      ? '已预约成功！考研项目上线后会第一时间通知你，感谢支持。'
+      : '正在筹备考研项目。有意向的同学点一下预约，我们上线时会第一时间通知你。';
+  }
+}
+
+async function reserveKaoyan() {
+  const btn = document.getElementById('kaoyanBtn');
+  if (!btn || btn.disabled) return;
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '预约中…';
+  try {
+    const data = await api('/user/kaoyan-intent', { method: 'POST', body: {} });
+    if (!data.success) throw new Error(data.message || '预约失败');
+    if (currentUser) {
+      currentUser.kaoyanIntent = true;
+      currentUser.kaoyanIntentAt = data.kaoyanIntentAt || new Date().toISOString();
+      try {
+        const cached = JSON.parse(localStorage.getItem('user') || '{}') || {};
+        cached.kaoyanIntent = true;
+        cached.kaoyanIntentAt = currentUser.kaoyanIntentAt;
+        localStorage.setItem('user', JSON.stringify(cached));
+      } catch (e) {}
+    }
+    renderKaoyan();
+    showToast('预约成功，考研项目上线会通知你', 'success');
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = old;
+    showToast(e.message || '预约失败，请重试', 'error');
+  }
+}
+
+/* ============================================================
    Tour · 新手漫游引导
    ============================================================ */
 // 按学号隔离：同一浏览器换账号时，旧账号的"已跳过"不能挡住新账号
@@ -1871,6 +1929,7 @@ async function loadUserInfo() {
     if (welcomeName) welcomeName.textContent = currentUser.name || currentUser.studentId || '同学';
 
     loadShareCard();
+    renderKaoyan();
     renderOnboarding();
   } catch (e) { console.warn('[AG] loadUserInfo 失败:', e); }
 }
@@ -3064,6 +3123,7 @@ function init() {
   loadUserInfo(); loadStats(); loadActiveSubs(); loadNotice();
   renderSponsorCard();
   renderCheckinCard();
+  renderKaoyan();
   setTimeout(loadVipNotice, 500);
   setTimeout(loadUserNotices, 1200);
   renderOnboarding();

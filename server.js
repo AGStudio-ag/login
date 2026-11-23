@@ -184,6 +184,9 @@ const userSchema = new mongoose.Schema({
   // 新手引导是否已完成/跳过（存在账号上，换设备也不会反复弹）
   onboardingDone: { type: Boolean, default: false },
   onboardingDoneAt: { type: Date, default: null },
+  // 考研意向预约（用于后续考研项目统计）
+  kaoyanIntent: { type: Boolean, default: false },
+  kaoyanIntentAt: { type: Date, default: null },
   lastRenewalReminderDays: { type: Number, default: 0 },
   lastRenewalReminderAt: { type: Date, default: null },
   // 管理员留下的站内通知：用户下次登录/打开仪表盘时弹一次（不消耗邮件额度）
@@ -2299,6 +2302,8 @@ app.post('/api/login', async (req, res) => {
         totalSignCount: user.totalSignCount,
 
         onboardingDone: !!user.onboardingDone,
+        kaoyanIntent: !!user.kaoyanIntent,
+        kaoyanIntentAt: user.kaoyanIntentAt || null,
         successSignCount: user.successSignCount
       }
     });
@@ -2335,6 +2340,8 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
       totalSignCount: user.totalSignCount,
 
       onboardingDone: !!user.onboardingDone,
+      kaoyanIntent: !!user.kaoyanIntent,
+      kaoyanIntentAt: user.kaoyanIntentAt || null,
       successSignCount: user.successSignCount,
       createdAt: user.createdAt,
       payQR: user.payQR || { wechat: '', alipay: '' }
@@ -2364,6 +2371,21 @@ app.post('/api/user/onboarding', authMiddleware, async (req, res) => {
     user.onboardingDoneAt = new Date();
     await user.save();
     res.json({ success: true, onboardingDone: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 考研意向预约：幂等，重复点只会保留第一次的时间
+app.post('/api/user/kaoyan-intent', authMiddleware, async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user.kaoyanIntent) {
+      user.kaoyanIntent = true;
+      user.kaoyanIntentAt = new Date();
+      await user.save();
+    }
+    res.json({ success: true, kaoyanIntent: true, kaoyanIntentAt: user.kaoyanIntentAt });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -3098,7 +3120,8 @@ app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
         signs: { total: totalSigns, today: todaySigns, success: successSigns, successRate },
         subscriptions: { active: activeAutoSignUsers },
         autoSign: { users: activeAutoSignUsers },
-        invites: { total: totalInvites }
+        invites: { total: totalInvites },
+        kaoyan: { intent: await User.countDocuments({ kaoyanIntent: true }) }
       }
     });
   } catch (error) {

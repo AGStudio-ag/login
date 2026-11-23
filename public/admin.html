@@ -174,6 +174,9 @@
         <div class="menu-item" data-page="packages">
           <i class="fas fa-tags"></i> 套餐管理
         </div>
+        <div class="menu-item" data-page="coupons">
+          <i class="fas fa-percent"></i> 优惠码
+        </div>
         <div class="menu-item" data-page="sponsor-orders">
           <i class="fas fa-hand-holding-heart"></i> 赞助订单
         </div>
@@ -216,6 +219,7 @@
           <div class="stat-card"><div class="stat-value" id="statVipUsers">0</div><div class="stat-label">会员用户</div></div>
           <div class="stat-card"><div class="stat-value" id="statTodaySigns">0</div><div class="stat-label">今日签到</div></div>
           <div class="stat-card"><div class="stat-value" id="statMarketUsers">0</div><div class="stat-label">交易用户</div></div>
+          <div class="stat-card"><div class="stat-value" id="statKaoyanIntent">0</div><div class="stat-label">考研预约</div></div>
         </div>
         <div class="content-card">
           <div class="card-header"><h3><i class="fas fa-chart-line"></i> 系统概览</h3></div>
@@ -246,6 +250,11 @@
           </div>
           <div class="search-box">
             <input type="text" id="userSearch" placeholder="搜索学号、姓名、邮箱..." onkeypress="if(event.key==='Enter')searchUsers()">
+          <select id="userWxFilter" onchange="searchUsers()" style="padding:10px;border-radius:8px;margin-left:8px;">
+            <option value="">微信绑定：全部</option>
+            <option value="bound">已绑定微信</option>
+            <option value="unbound">未绑定微信（可定向提醒）</option>
+          </select>
             <button class="btn btn-primary" onclick="searchUsers()"><i class="fas fa-search"></i> 搜索</button>
             <button class="btn btn-outline" onclick="loadUsers()"><i class="fas fa-sync-alt"></i> 刷新</button>
           </div>
@@ -384,6 +393,39 @@
           <div id="adminPackagesTable">加载中...</div>
         </div>
       </div>
+
+      <!-- ===== 优惠码管理 ===== -->
+      <div id="page-coupons" class="hidden">
+        <div class="content-card">
+          <div class="card-header">
+            <h3><i class="fas fa-percent"></i> 优惠码管理</h3>
+            <button class="btn btn-outline" onclick="loadCoupons()"><i class="fas fa-sync-alt"></i> 刷新</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+            <div class="form-group"><label>优惠码</label><input id="couponCodeInput" placeholder="例如 aggzsnb" autocomplete="off"></div>
+            <div class="form-group"><label>立减金额（元）</label><input id="couponDiscountInput" type="number" step="0.01" min="0.01" placeholder="5.88"></div>
+            <div class="form-group"><label>生效时间（可空）</label><input id="couponFromInput" type="datetime-local"></div>
+            <div class="form-group"><label>失效时间（可空）</label><input id="couponUntilInput" type="datetime-local"></div>
+            <div class="form-group"><label>最多可用次数（0=不限）</label><input id="couponMaxUsesInput" type="number" min="0" placeholder="0"></div>
+            <div class="form-group"><label>每人限用（0=不限）</label><input id="couponPerUserInput" type="number" min="0" placeholder="0"></div>
+            <div class="form-group"><label>备注</label><input id="couponNoteInput" placeholder="可选" autocomplete="off"></div>
+            <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-bottom:10px;">
+              <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer;white-space:nowrap;"><input type="checkbox" id="couponActiveInput" checked> 启用</label>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+            <input type="hidden" id="couponEditId">
+            <button class="btn btn-primary" onclick="saveCoupon()"><i class="fas fa-save"></i> <span id="couponSaveLabel">保存优惠码</span></button>
+            <button class="btn btn-outline" onclick="resetCouponForm()">取消编辑</button>
+          </div>
+          <p id="couponFormHint" style="font-size:12px;color:#94a3b8;margin:8px 0 0;">新增时填优惠码；编辑时编码可改。时间留空表示长期有效。</p>
+        </div>
+        <div class="content-card">
+          <div class="card-header"><h3><i class="fas fa-list"></i> 优惠码列表</h3></div>
+          <div id="couponsTable">加载中...</div>
+        </div>
+      </div>
+
       <!-- ===== 商品管理 ===== -->
       <div id="page-market-items" class="hidden">
         <div class="content-card">
@@ -412,10 +454,32 @@
           </div>
         </div>
         <div class="content-card">
-          <div class="card-header"><h3><i class="fas fa-comments"></i> 留言列表</h3></div>
+          <div class="card-header">
+            <h3><i class="fas fa-comments"></i> 留言列表</h3>
+          </div>
           <div id="feedbackStats" style="margin-bottom:20px;"></div>
           <div id="feedbacksTable">加载中...</div>
           <div class="pagination" id="feedbackPagination"></div>
+        </div>
+
+        <div class="content-card">
+          <div class="card-header">
+            <h3><i class="fas fa-weixin" style="color:#22c55e;"></i> 微信用户消息 <span class="badge badge-warning" id="userFeedbackPending">0</span></h3>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+                <input type="checkbox" id="autoReplyEnabled" onchange="saveAutoReplyToggle()"> 延迟自动回复
+              </label>
+              <button class="btn btn-outline btn-sm" onclick="editAutoReplyTemplate()"><i class="fas fa-edit"></i> 文案</button>
+              <button class="btn btn-outline btn-sm" onclick="runAutoReplyNow()"><i class="fas fa-bolt"></i> 立即扫描</button>
+              <button class="btn btn-outline btn-sm" onclick="showWxSubscribers()"><i class="fas fa-users"></i> 订阅者</button>
+              <button class="btn btn-outline btn-sm" onclick="loadUserFeedbacks()"><i class="fas fa-sync-alt"></i> 刷新</button>
+            </div>
+          </div>
+          <p style="font-size:12px;color:#94a3b8;margin:0 0 12px;">
+            用户在公众号发送「#145060 内容」会实时推送到管理员微信；这里可逐条回复。若 <span id="autoReplyDelayText">10</span> 分钟内管理员未回复，且自动回复开启，会向用户发送引导文案。
+          </p>
+          <div id="userFeedbacksTable">加载中...</div>
+          <div class="pagination" id="userFeedbackPagination"></div>
         </div>
       </div>
 
@@ -598,8 +662,8 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
         <div class="form-group"><label>套餐 ID *</label><input type="text" id="pkgId" placeholder="例如 monthly"></div>
         <div class="form-group"><label>套餐名称 *</label><input type="text" id="pkgName" placeholder="例如 月卡"></div>
-        <div class="form-group"><label>价格（元）*</label><input type="number" id="pkgPrice" step="0.01" min="0" placeholder="6.66"></div>
-        <div class="form-group"><label>折合每年（元，可空）</label><input type="number" id="pkgPricePerYear" step="0.01" min="0" placeholder="15.01"></div>
+        <div class="form-group"><label>价格（元）*</label><input type="number" id="pkgPrice" step="0.01" min="0" placeholder="按实际定价填写"></div>
+        <div class="form-group"><label>折合每年（元，可空）</label><input type="number" id="pkgPricePerYear" step="0.01" min="0" placeholder="可留空"></div>
         <div class="form-group"><label>分组</label>
           <select id="pkgGroup"><option value="basic">基础套餐</option><option value="pro">Pro 套餐</option><option value="grade">年级专属</option></select>
         </div>
@@ -661,23 +725,83 @@
     let marketItemsPage = 1;
     let marketUsersPage = 1;
 
-    // ===== 会员套餐（与后端 membership.js 保持一致） =====
-    const TIER_LABELS = {
-      FREE: '免费', MONTHLY: '月卡', TERM: '学期卡', YEARLY: '学年卡',
-      YEARLY_PRO: '学年卡 Pro',
-      FRESHMAN: '大一学年卡（启航卡）',
-      SOPHOMORE: '大二学年卡（续航卡）',
-      JUNIOR: '大三学年卡（冲刺卡）',
-      VIP: '学年卡 Pro', SVIP: '长期会员（至毕业）', LEGACY: '元老会员'
-    };
-    const CUSTOM_TIME_TIERS = ['YEARLY_PRO', 'FRESHMAN', 'SOPHOMORE', 'JUNIOR', 'VIP', 'SVIP', 'LEGACY'];
-    function tierLabel(tier) { return TIER_LABELS[tier] || tier || '免费'; }
+    // ===== 会员等级元数据：唯一真相在后端 membership.js，前端不再硬编码 =====
+    // 失败策略：报错 + 禁用相关区域，绝不静默回退硬编码
+    let TIER_META = null;        // { tierLabels, customTimeTiers, legacyTiers, tierOrder, planPrices }
+    let TIER_META_ERROR = null;
+    let tierMetaPromise = null;
+    const TIER_META_FAIL_TEXT = '等级配置加载失败，请刷新';
+
+    function ensureTierMeta() {
+      if (!tierMetaPromise) tierMetaPromise = loadTierMeta();
+      return tierMetaPromise;
+    }
+
+    async function loadTierMeta() {
+      const res = await fetch(`${API_BASE}/admin/tier-meta`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+      });
+      let data = {};
+      try { data = await res.json(); } catch (e) { data = {}; }
+      if (!res.ok || !data.success) {
+        TIER_META = null;
+        TIER_META_ERROR = data.message || ('HTTP ' + res.status);
+        throw new Error(TIER_META_ERROR);
+      }
+      TIER_META = {
+        tierLabels: data.tierLabels || {},
+        customTimeTiers: Array.isArray(data.customTimeTiers) ? data.customTimeTiers : [],
+        legacyTiers: Array.isArray(data.legacyTiers) ? data.legacyTiers : [],
+        tierOrder: (Array.isArray(data.tierOrder) && data.tierOrder.length) ? data.tierOrder : Object.keys(data.tierLabels || {}),
+        // 套餐价目：来自后端 membership.planMetaList()，赞助订单改套餐时不再硬编码价格（TD-2）
+        planPrices: Array.isArray(data.planPrices) ? data.planPrices : []
+      };
+      TIER_META_ERROR = null;
+      return TIER_META;
+    }
+
+    function tierMetaErrorBlock(detail) {
+      const reason = detail ? `<div style="color:#991b1b;margin-top:4px;">原因：${String(detail).replace(/</g, '&lt;')}</div>` : '';
+      return `<div style="padding:18px;border:1px solid #fecaca;background:#fef2f2;color:#b42318;border-radius:10px;font-size:13px;line-height:1.8;">
+        <strong>${TIER_META_FAIL_TEXT}</strong>${reason}
+        <div style="margin-top:8px;"><button class="btn btn-outline btn-sm" onclick="location.reload()">刷新页面</button></div>
+      </div>`;
+    }
+
+    function showTierMetaBanner() {
+      if (document.getElementById('tierMetaBanner')) return;
+      const el = document.createElement('div');
+      el.id = 'tierMetaBanner';
+      el.style.cssText = 'position:sticky;top:0;z-index:9999;background:#fef2f2;color:#b42318;border-bottom:1px solid #fecaca;padding:10px 16px;font-size:13px;display:flex;gap:10px;align-items:center;justify-content:space-between;';
+      el.innerHTML = `<span><i class="fas fa-triangle-exclamation"></i> ${TIER_META_FAIL_TEXT}（用户列表、套餐、赞助订单、用户详情已停用）</span><button class="btn btn-outline btn-sm" onclick="location.reload()">刷新</button>`;
+      document.body.prepend(el);
+    }
+
+    /** 依赖等级元数据的区域统一入口：未就绪则把该区域置为失败态并返回 false */
+    async function requireTierMeta(containerId) {
+      try { await ensureTierMeta(); } catch (e) { /* 状态已记录，下面统一处理 */ }
+      if (TIER_META) return true;
+      showTierMetaBanner();
+      const el = containerId ? document.getElementById(containerId) : null;
+      if (el) el.innerHTML = tierMetaErrorBlock(TIER_META_ERROR);
+      return false;
+    }
+
+    // 元数据未就绪时返回原始 tier key / '-'，绝不返回 undefined
+    function tierLabel(tier) {
+      if (!TIER_META) return tier || '-';
+      if (!tier) return TIER_META.tierLabels.FREE || '-';
+      return TIER_META.tierLabels[tier] || tier;
+    }
     function memberLabel(u) {
       const span = (u && u.vipExpireAt && u.vipStartAt) ? (new Date(u.vipExpireAt).getTime() - new Date(u.vipStartAt).getTime()) : 0;
       if (span >= 2 * 86400000 && span <= 4 * 86400000) return '3天体验会员';
       return tierLabel(u && u.vipTier);
     }
-    function tierSupportsCustom(tier) { return CUSTOM_TIME_TIERS.includes(tier); }
+    function tierSupportsCustom(tier) {
+      if (!TIER_META) return false;
+      return TIER_META.customTimeTiers.includes(tier);
+    }
     function fmtDate(value) {
       if (!value) return '—';
       const d = new Date(value);
@@ -692,16 +816,31 @@
       return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
     }
     function tierOptions(selected) {
-      const order = ['FREE', 'MONTHLY', 'TERM', 'YEARLY', 'YEARLY_PRO', 'FRESHMAN', 'SOPHOMORE', 'JUNIOR', 'VIP', 'SVIP', 'LEGACY'];
-      return order.map(t => `<option value="${t}" ${t === selected ? 'selected' : ''}>${tierLabel(t)}${['VIP', 'SVIP', 'LEGACY'].includes(t) ? '（历史等级）' : ''}</option>`).join('');
+      if (!TIER_META) return `<option value="">${TIER_META_FAIL_TEXT}</option>`;
+      return TIER_META.tierOrder.map(t => `<option value="${t}" ${t === selected ? 'selected' : ''}>${tierLabel(t)}${TIER_META.legacyTiers.includes(t) ? '（历史等级）' : ''}</option>`).join('');
     }
     function updateTierHint() {
       const el = document.getElementById('editTierHint');
-      const tier = (document.getElementById('editVipTier') || {}).value || 'FREE';
       if (!el) return;
+      if (!TIER_META) { el.textContent = TIER_META_FAIL_TEXT; return; }
+      const tier = (document.getElementById('editVipTier') || {}).value || 'FREE';
       el.textContent = tierSupportsCustom(tier)
         ? '该套餐支持自定义时间：可手动调整开始时间和到期时间，用户可自定义签到时间。'
         : '该套餐不支持自定义时间：用户签到时间固定 21:35；管理员仍可在此手动调整日期。';
+    }
+
+    /** 套餐价目（后端 membership.planMetaList 的镜像）：未就绪返回 null，调用方必须走失败态，不回退硬编码 */
+    function planPriceMeta() {
+      if (!TIER_META || !Array.isArray(TIER_META.planPrices) || !TIER_META.planPrices.length) return null;
+      return TIER_META.planPrices;
+    }
+    /** 套餐展示串：名称 + 价格 + 时长，全部来自后端元数据（TD-2） */
+    function planPriceLabel(p) {
+      const price = Number(p && p.price);
+      const money = Number.isFinite(price) ? price.toFixed(2) : '—';
+      const name = (p && (p.name || p.code)) || '未知套餐';
+      const dur = (p && p.durationLabel) ? ' · ' + p.durationLabel : '';
+      return `${name}  ¥${money}${dur}`;
     }
 
 
@@ -710,7 +849,7 @@
     // ========== 权限检查 ==========
     async function checkAdmin() {
       try {
-        const res = await fetch(`${API_BASE}/user/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/user/profile`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (!data.success || data.user.role !== 'admin') {
           alert('需要管理员权限');
@@ -739,7 +878,7 @@
 
         const titles = {
           dashboard: '仪表盘', users: '考勤用户管理', 'market-users': '交易平台用户管理', cards: '卡密管理',
-          reports: '举报管理', orders: '订单管理', 'sponsor-orders': '赞助订单', packages: '套餐管理', 'market-items': '商品管理',
+          reports: '举报管理', orders: '订单管理', 'sponsor-orders': '赞助订单', packages: '套餐管理', coupons: '优惠码管理', 'market-items': '商品管理',
           feedback: '留言管理', email: '群发邮件', 'sign-mgmt': '签到管理', settings: '系统设置'
         };
         document.getElementById('pageTitle').textContent = titles[page];
@@ -752,8 +891,9 @@
         else if (page === 'orders') loadOrders();
         else if (page === 'sponsor-orders') loadSponsorOrders();
         else if (page === 'packages') loadAdminPackages();
+        else if (page === 'coupons') loadCoupons();
         else if (page === 'market-items') loadMarketItems();
-        else if (page === 'feedback') loadFeedbacks();
+        else if (page === 'feedback') { loadFeedbacks(); loadReplySettings(); loadUserFeedbacks(); }
         else if (page === 'email') loadEmailStats();
         else if (page === 'sign-mgmt') loadSignReport();
         else if (page === 'settings') { loadSettings(); loadSponsorNotice(); }
@@ -765,7 +905,7 @@
       const box = document.getElementById('signReportBox');
       box.innerHTML = '加载中...';
       try {
-        const res = await fetch(`${API_BASE}/admin/autosign-report`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/autosign-report`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (!data.success) { box.innerHTML = '<span style="color:#dc3545;">加载失败：' + (data.message || '') + '</span>'; return; }
         let html = `<p style="margin:0 0 10px;color:#334155;">自动签到用户 <strong>${data.total}</strong> 人，今日已签 <strong style="color:#166534;">${data.signed}</strong> 人，未签 <strong style="color:#b42318;">${data.missing.length}</strong> 人</p>`;
@@ -787,7 +927,7 @@
       const btn = document.getElementById('btnSendSummary'); const out = document.getElementById('mailToolResult');
       btn.disabled = true; out.textContent = '发送中...';
       try {
-        const res = await fetch(`${API_BASE}/admin/send-summary`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/send-summary`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         out.textContent = data.success ? '✅ 今日汇总邮件已发送，请查收邮箱' : '❌ ' + (data.message || '发送失败');
       } catch (e) { out.textContent = '❌ ' + e.message; }
@@ -798,7 +938,7 @@
       const btn = document.getElementById('btnRenewalCheck'); const out = document.getElementById('mailToolResult');
       btn.disabled = true; out.textContent = '检查中...';
       try {
-        const res = await fetch(`${API_BASE}/admin/check-renewal`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/check-renewal`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (!data.success) { out.textContent = '❌ ' + (data.message || '检查失败'); }
         else if (!data.sent) { out.textContent = `检查完成：本次无到期提醒可发（已发 ${data.sent} 封 / 失败 ${data.failed} 封）`; }
@@ -810,13 +950,15 @@
     // ========== 仪表盘 ==========
     async function loadDashboardStats() {
       try {
-        const res = await fetch(`${API_BASE}/admin/stats`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/stats`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (data.success) {
           document.getElementById('statTotalUsers').textContent = data.stats.users.total;
           document.getElementById('statVipUsers').textContent = data.stats.users.vip;
           document.getElementById('statTodaySigns').textContent = data.stats.signs.today;
           document.getElementById('statMarketUsers').textContent = data.stats.users.market || 0;
+          const kaoyanEl = document.getElementById('statKaoyanIntent');
+          if (kaoyanEl) kaoyanEl.textContent = (data.stats.kaoyan && data.stats.kaoyan.intent) || 0;
 
           const todaySigns = data.stats.signs.today || 0;
           const totalUsers = data.stats.users.total || 1;
@@ -832,6 +974,7 @@
               <tr><td>交易平台用户</td><td><strong>${data.stats.users.market || 0}</strong></td></tr>
               <tr><td>今日新增用户</td><td><strong>${data.stats.users.today}</strong></td></tr>
               <tr><td>总邀请次数</td><td><strong>${data.stats.invites?.total || 0}</strong></td></tr>
+              <tr><td>考研意向预约</td><td><strong>${(data.stats.kaoyan && data.stats.kaoyan.intent) || 0}</strong></td></tr>
             </table>
             <div style="margin-top:14px; background:#f8f9fc; padding:12px; border-radius:8px;">
               <strong>📊 今日签到热力</strong>
@@ -848,7 +991,7 @@
       const btn = document.querySelector('#page-dashboard .btn-warning');
       btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 执行中...';
       try {
-        const res = await fetch(`${API_BASE}/admin/trigger-sign`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/trigger-sign`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         document.getElementById('triggerResult').innerHTML = data.success
           ? '<span style="color:#28a745;">✅ 任务已触发</span>'
@@ -860,21 +1003,24 @@
     // ========== 用户管理 ==========
     async function loadUsers(page = 1) {
       currentPage = page;
+      if (!(await requireTierMeta('usersTable'))) return;
       const search = document.getElementById('userSearch')?.value || '';
+      const wxFilter = document.getElementById('userWxFilter')?.value || '';
       try {
-          const res = await fetch(`${API_BASE}/admin/users?page=${page}&limit=20&scope=attendance&search=${encodeURIComponent(search)}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          const res = await fetch(`${API_BASE}/admin/users?page=${page}&limit=20&scope=attendance&search=${encodeURIComponent(search)}&wx=${encodeURIComponent(wxFilter)}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
         });
         const data = await res.json();
         if (data.success) {
           document.getElementById('usersTable').innerHTML = `
             <table>
-              <thead><tr><th>学号</th><th>姓名</th><th>邮箱</th><th>会员套餐</th><th>角色</th><th>签到统计</th><th>操作</th></tr></thead>
+              <thead><tr><th>学号</th><th>姓名</th><th>邮箱</th><th>通知渠道</th><th>会员套餐</th><th>角色</th><th>签到统计</th><th>操作</th></tr></thead>
               <tbody>${data.users.map(u => `
                 <tr>
                   <td>${u.studentId}</td>
                   <td>${(u.name && u.name !== u.studentId) ? u.name : '未实名'}</td>
                   <td>${u.email || '-'} ${u.emailVerified ? '✓' : ''}</td>
+                  <td>${notifyChannelBadges(u.notify, u)}</td>
                   <td>${u.isVip
                     ? (u.vipExpireAt && new Date(u.vipExpireAt).getTime() <= Date.now()
                         ? `<span class="badge badge-danger">${memberLabel(u)} · 已过期${Math.max(0, Math.floor((Date.now() - new Date(u.vipExpireAt).getTime()) / 86400000)) > 0 ? Math.max(0, Math.floor((Date.now() - new Date(u.vipExpireAt).getTime()) / 86400000)) + '天' : '（今天）'}</span><br><span style="font-size:12px;color:#94a3b8;">到期 ${fmtDate(u.vipExpireAt)}</span>`
@@ -904,12 +1050,91 @@
 
     function searchUsers() { loadUsers(1); }
 
+    // 通知渠道徽标：服务端已解析好（u.notify = {channels, level, configured, available}）
+    function notifyChannelBadges(notify, u) {
+      const n = notify || {};
+      const ch = Array.isArray(n.channels) ? n.channels : [];
+      const avail = n.available || {};
+      const levelText = n.level === 'always' ? '成功+失败都通知' : '仅失败时通知';
+      const out = [];
+      if (ch.indexOf('wechat') >= 0 && avail.wechat !== false) {
+        out.push('<span class="badge badge-success" title="微信 · ' + levelText + '">微</span>');
+      }
+      if (ch.indexOf('email') >= 0 && avail.email !== false) {
+        out.push('<span class="badge badge-info" title="邮件 · ' + levelText + '">邮</span>');
+      }
+      if (!out.length) {
+        return (u && u.wxpusherUid)
+          ? '<span class="badge badge-warning" title="已绑微信，但通知全部关闭或渠道不可用">无</span>'
+          : '<span style="color:#94a3b8;font-size:12px;">无</span>';
+      }
+      return out.join(' ');
+    }
+
+    // 通知矩阵预演：只走 dryRun，不真发微信/邮件
+    async function testNotifyMatrix(category) {
+      const p = document.getElementById('notifyTestResult');
+      if (!currentUserId) return;
+      if (p) p.textContent = '预演中…';
+      try {
+        const res = await fetch(`${API_BASE}/admin/wx-test`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUserId, category, dryRun: true })
+        });
+        const d = await res.json();
+        if (d.success && d.matrix) {
+          const to = (d.wouldSend || []).map(x => x.channel === 'wechat' ? '微信' : '邮件').join('、') || '无';
+          if (p) p.textContent = d.matrix.description + '\n将发送：' + to;
+        } else if (p) {
+          p.textContent = d.message || '预演失败';
+        }
+      } catch (e) {
+        if (p) p.textContent = '预演失败：' + e.message;
+      }
+    }
+
+    // 真实发送一条测试通知（会真的推送到用户微信）
+    async function testNotifyReal(category) {
+      if (!currentUserId) return;
+      if (!confirm('将真实推送到该用户微信，确定发送？')) return;
+      const p = document.getElementById('notifyTestResult');
+      if (p) p.textContent = '发送中…';
+      try {
+        const res = await fetch(`${API_BASE}/admin/wx-test`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUserId, category, level: 'always', channels: ['wechat'], dryRun: false })
+        });
+        const d = await res.json();
+        const sent = (d.sent || []).map(s => `${s.channel === 'wechat' ? '微信' : '邮件'}：${s.ok ? '成功' : '失败'}${s.message && s.message !== 'ok' ? '（' + s.message + '）' : ''}`).join('；');
+        if (p) p.textContent = `${d.message || ''}\n${(d.matrix || {}).description || ''}${sent ? '\n' + sent : ''}`;
+        showToast(d.success ? '服务端已接受发送' : (d.message || '发送失败'), d.success ? 'success' : 'error');
+      } catch (e) {
+        if (p) p.textContent = '发送失败：' + e.message;
+      }
+    }
+
+    // 检查用户 UID 是否在当前 AppToken 的应用订阅者列表（收不到推送时排障）
+    async function checkWxSubscription() {
+      const uid = currentUserData && currentUserData.user && currentUserData.user.wxpusherUid;
+      if (!uid) { alert('该用户还没绑定微信'); return; }
+      try {
+        const res = await fetch(`${API_BASE}/admin/wx-user-check?uid=${encodeURIComponent(uid)}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+        });
+        const d = await res.json();
+        if (!d.success) { alert(d.message || '检查失败'); return; }
+        alert(d.message + (d.record ? `\n\n订阅时间：${d.record.createTime ? new Date(d.record.createTime).toLocaleString() : '-'}\n订阅者总数：${d.total}` : ''));
+      } catch (e) { alert('检查失败：' + e.message); }
+    }
+
     async function loadMarketUsers(page = 1) {
       marketUsersPage = page;
       const search = document.getElementById('marketUserSearch')?.value || '';
       try {
         const res = await fetch(`${API_BASE}/admin/users?page=${page}&limit=20&scope=market&search=${encodeURIComponent(search)}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
         });
         const data = await res.json();
         if (data.success) {
@@ -959,7 +1184,7 @@
       try {
         showToast(`正在为 ${studentId} 签到...`, 'info');
         const res = await fetch(`${API_BASE}/admin/sign/${userId}`, {
-          method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ attendancePassword: password || undefined })
         });
         const data = await res.json();
@@ -972,8 +1197,12 @@
 
     async function viewUser(userId) {
       currentUserId = userId;
+      if (!(await requireTierMeta('userDetailContent'))) {
+        document.getElementById('userDetailModal').classList.add('show');
+        return;
+      }
       try {
-        const res = await fetch(`${API_BASE}/admin/users/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/users/${userId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (data.success) {
           currentUserData = data;
@@ -997,6 +1226,27 @@
             <div class="form-row">
               <div class="form-group"><label>角色</label><select id="editRole"><option value="user" ${u.role==='user'?'selected':''}>普通用户</option><option value="admin" ${u.role==='admin'?'selected':''}>管理员</option></select></div>
               <div class="form-group"><label>账号状态</label><select id="editActive"><option value="true" ${u.isActive!==false?'selected':''}>启用</option><option value="false" ${u.isActive===false?'selected':''}>禁用</option></select></div>
+            </div>
+            <div class="form-group"><label>通知偏好（用户自选）</label>
+              <div style="font-size:13px;color:#334155;line-height:1.9;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;">
+                <div>渠道：${notifyChannelBadges(u.notify, u)} ${u.notify && u.notify.configured ? '<span style="color:#94a3b8;">（已自定义）</span>' : '<span style="color:#94a3b8;">（默认，未设置）</span>'}</div>
+                <div>时机：${u.notify && u.notify.level === 'always' ? '成功和失败都通知' : '仅失败时通知'}</div>
+              </div>
+            </div>
+            <div class="form-group"><label>通知矩阵预演（只算不发，不打扰用户）</label>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn btn-outline btn-sm" onclick="testNotifyMatrix('success')">成功</button>
+                <button class="btn btn-outline btn-sm" onclick="testNotifyMatrix('password')">密码错</button>
+                <button class="btn btn-outline btn-sm" onclick="testNotifyMatrix('school')">学校异常</button>
+                <button class="btn btn-outline btn-sm" onclick="testNotifyMatrix('internal')">内部异常</button>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+                <button class="btn btn-warning btn-sm" onclick="testNotifyReal('internal')"><i class="fas fa-paper-plane"></i> 真实发送（失败类）</button>
+                <button class="btn btn-warning btn-sm" onclick="testNotifyReal('success')"><i class="fas fa-paper-plane"></i> 真实发送（成功类）</button>
+                <button class="btn btn-outline btn-sm" onclick="checkWxSubscription()"><i class="fas fa-search"></i> 检查微信订阅</button>
+              </div>
+              <p style="font-size:11px;color:#94a3b8;margin:6px 0 0;">「真实发送」会立刻推送到该用户微信；预演只显示矩阵判定，不会发送。</p>
+              <p id="notifyTestResult" style="font-size:12px;color:#64748b;margin:8px 0 0;white-space:pre-line;"></p>
             </div>
             <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
               <button class="btn btn-primary" onclick="saveUserChanges()"><i class="fas fa-save"></i> 保存修改</button>
@@ -1027,7 +1277,7 @@
     async function saveUserChanges() {
       try {
         const res = await fetch(`${API_BASE}/admin/users/${currentUserId}`, {
-          method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          method: 'PUT', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: document.getElementById('editName')?.value,
             email: document.getElementById('editEmail')?.value,
@@ -1054,7 +1304,7 @@
       expireAt.setDate(expireAt.getDate() + days);
       try {
         const res = await fetch(`${API_BASE}/admin/users/${currentUserId}`, {
-          method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          method: 'PUT', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ isVip: true, vipExpireAt: expireAt.toISOString() })
         });
         if ((await res.json()).success) { showToast(`已添加 ${days} 天会员`, 'success'); viewUser(currentUserId); reloadActiveUserPage(); }
@@ -1063,7 +1313,7 @@
 
     async function quickVip(userId, days) {
       try {
-        const res = await fetch(`${API_BASE}/admin/users/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/users/${userId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (!data.success) return;
         const user = data.user;
@@ -1071,7 +1321,7 @@
         if (!user.isVip || expireAt < new Date()) expireAt = new Date();
         expireAt.setDate(expireAt.getDate() + days);
         await fetch(`${API_BASE}/admin/users/${userId}`, {
-          method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          method: 'PUT', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ isVip: true, vipExpireAt: expireAt.toISOString() })
         });
         showToast(`已添加 ${days} 天会员`, 'success');
@@ -1085,7 +1335,7 @@
       if (!confirm(`确定删除用户 ${studentId} 吗？此操作不可恢复！`)) return;
       if (!confirm('再次确认：删除后将清除该用户的所有数据！')) return;
       try {
-        const res = await fetch(`${API_BASE}/admin/users/${userId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/users/${userId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         if ((await res.json()).success) {
           showToast(`✅ 用户 ${studentId} 已删除`, 'success');
           closeUserModal(); reloadActiveUserPage(); loadDashboardStats();
@@ -1109,11 +1359,137 @@
     let adminPkgCache = [];
     let editingPkgId = null;
 
+    // ========== 优惠码管理 ==========
+    let couponCache = [];
+    function couponFmtDate(v) {
+      if (!v) return '长期';
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? '-' : d.toLocaleString();
+    }
+    function couponStatusBadge(c) {
+      const map = {
+        active: '<span class="badge badge-success">生效中</span>',
+        inactive: '<span class="badge badge-danger">已停用</span>',
+        not_started: '<span class="badge badge-warning">未开始</span>',
+        expired: '<span class="badge badge-info">已过期</span>',
+        used_up: '<span class="badge badge-warning">已领完</span>'
+      };
+      return map[c.status] || '<span class="badge badge-warning">未知</span>';
+    }
+    async function loadCoupons() {
+      const box = document.getElementById('couponsTable');
+      if (!box) return;
+      try {
+        const res = await fetch(`${API_BASE}/admin/coupons`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
+        const data = await res.json();
+        if (!data.success) { box.innerHTML = '<p style="color:#dc3545;">加载失败</p>'; return; }
+        couponCache = data.coupons || [];
+        if (!couponCache.length) { box.innerHTML = '<p style="color:#94a3b8;padding:12px 0;">暂无优惠码，先在上方新增一个。</p>'; return; }
+        box.innerHTML = `<table><thead><tr><th>优惠码</th><th>立减</th><th>有效期</th><th>已用 / 上限</th><th>每人限用</th><th>状态</th><th>备注</th><th>操作</th></tr></thead><tbody>${couponCache.map(c => `
+          <tr>
+            <td><code style="font-family:var(--mono,monospace);font-weight:600;">${escSponsor(c.code)}</code></td>
+            <td>¥${Number(c.discount).toFixed(2)}</td>
+            <td style="font-size:12px;color:#64748b;">${couponFmtDate(c.validFrom)} ~ ${couponFmtDate(c.validUntil)}</td>
+            <td>${c.usedCount || 0} / ${Number(c.maxUses) > 0 ? c.maxUses : '不限'}</td>
+            <td>${Number(c.perUserLimit) > 0 ? c.perUserLimit : '不限'}</td>
+            <td>${couponStatusBadge(c)}</td>
+            <td style="font-size:12px;color:#64748b;max-width:160px;word-break:break-word;">${escSponsor(c.note || '')}</td>
+            <td><div class="action-buttons">
+              <button class="btn btn-outline btn-sm" onclick="editCoupon('${escSponsor(String(c._id))}')" title="编辑"><i class="fas fa-edit"></i></button>
+              <button class="btn ${c.active ? 'btn-warning' : 'btn-success'} btn-sm" onclick="toggleCoupon('${escSponsor(String(c._id))}', ${c.active ? 'false' : 'true'})" title="${c.active ? '停用' : '启用'}"><i class="fas fa-${c.active ? 'ban' : 'check'}"></i></button>
+              <button class="btn btn-danger btn-sm" onclick="deleteCoupon('${escSponsor(String(c._id))}')" title="删除"><i class="fas fa-trash"></i></button>
+            </div></td>
+          </tr>`).join('')}</tbody></table>`;
+      } catch (e) {
+        box.innerHTML = '<p style="color:#dc3545;">网络错误</p>';
+      }
+    }
+    function resetCouponForm() {
+      const idEl = document.getElementById('couponEditId');
+      if (idEl) idEl.value = '';
+      ['couponCodeInput', 'couponDiscountInput', 'couponFromInput', 'couponUntilInput', 'couponMaxUsesInput', 'couponPerUserInput', 'couponNoteInput'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      const a = document.getElementById('couponActiveInput');
+      if (a) a.checked = true;
+      const label = document.getElementById('couponSaveLabel');
+      if (label) label.textContent = '保存优惠码';
+      const hint = document.getElementById('couponFormHint');
+      if (hint) hint.textContent = '新增时填优惠码；编辑时编码可改。时间留空表示长期有效。';
+    }
+    function editCoupon(id) {
+      const c = couponCache.find(x => String(x._id) === String(id));
+      if (!c) return;
+      document.getElementById('couponEditId').value = String(c._id);
+      document.getElementById('couponCodeInput').value = c.code || '';
+      document.getElementById('couponDiscountInput').value = c.discount;
+      document.getElementById('couponFromInput').value = toLocalInput(c.validFrom);
+      document.getElementById('couponUntilInput').value = toLocalInput(c.validUntil);
+      document.getElementById('couponMaxUsesInput').value = c.maxUses || 0;
+      document.getElementById('couponPerUserInput').value = c.perUserLimit || 0;
+      document.getElementById('couponNoteInput').value = c.note || '';
+      document.getElementById('couponActiveInput').checked = c.active !== false;
+      document.getElementById('couponSaveLabel').textContent = '保存修改';
+      document.getElementById('couponFormHint').textContent = '正在编辑：' + c.code;
+      document.getElementById('couponCodeInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    async function saveCoupon() {
+      const id = (document.getElementById('couponEditId') || {}).value || '';
+      const body = {
+        code: ((document.getElementById('couponCodeInput') || {}).value || '').trim(),
+        discount: Number((document.getElementById('couponDiscountInput') || {}).value || 0),
+        validFrom: (document.getElementById('couponFromInput') || {}).value || '',
+        validUntil: (document.getElementById('couponUntilInput') || {}).value || '',
+        maxUses: Number((document.getElementById('couponMaxUsesInput') || {}).value || 0),
+        perUserLimit: Number((document.getElementById('couponPerUserInput') || {}).value || 0),
+        note: (document.getElementById('couponNoteInput') || {}).value || '',
+        active: !!(document.getElementById('couponActiveInput') || {}).checked
+      };
+      if (!body.code) { showToast('请输入优惠码', 'error'); return; }
+      if (!(body.discount > 0)) { showToast('请输入立减金额', 'error'); return; }
+      try {
+        const res = await fetch(`${API_BASE}/admin/coupons${id ? '/' + id : ''}`, {
+          method: id ? 'PUT' : 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (data.success) { showToast(data.message || '已保存', 'success'); resetCouponForm(); loadCoupons(); }
+        else showToast(data.message || '保存失败', 'error');
+      } catch (e) { showToast('网络错误', 'error'); }
+    }
+    async function toggleCoupon(id, active) {
+      try {
+        const res = await fetch(`${API_BASE}/admin/coupons/${id}`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ active: !!active })
+        });
+        const data = await res.json();
+        if (data.success) { showToast(active ? '已启用' : '已停用', 'success'); loadCoupons(); }
+        else showToast(data.message || '操作失败', 'error');
+      } catch (e) { showToast('网络错误', 'error'); }
+    }
+    async function deleteCoupon(id) {
+      if (!confirm('确定删除这个优惠码？已产生的订单不受影响。')) return;
+      try {
+        const res = await fetch(`${API_BASE}/admin/coupons/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+        });
+        const data = await res.json();
+        if (data.success) { showToast('已删除', 'success'); loadCoupons(); }
+        else showToast(data.message || '删除失败', 'error');
+      } catch (e) { showToast('网络错误', 'error'); }
+    }
+
     async function loadAdminPackages() {
       const box = document.getElementById('adminPackagesTable');
       if (!box) return;
+      if (!(await requireTierMeta('adminPackagesTable'))) return;
       try {
-        const res = await fetch(`${API_BASE}/admin/sponsor-packages`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/sponsor-packages`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (!data.success || !data.packages || !data.packages.length) { box.innerHTML = '<p class="empty">暂无套餐</p>'; return; }
         adminPkgCache = data.packages;
@@ -1216,7 +1592,7 @@
         const url = editingPkgId ? `${API_BASE}/admin/sponsor-packages/${editingPkgId}` : `${API_BASE}/admin/sponsor-packages`;
         const res = await fetch(url, {
           method: editingPkgId ? 'PUT' : 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
         });
         const data = await res.json();
@@ -1229,7 +1605,7 @@
 
     async function adminDeletePackage(id) {
       if (!confirm('确定删除这个套餐？历史订单不会受影响。')) return;
-      const res = await fetch(`${API_BASE}/admin/sponsor-packages/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(`${API_BASE}/admin/sponsor-packages/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
       const data = await res.json();
       alert(data.message || (data.success ? '已删除' : '删除失败'));
       loadAdminPackages();
@@ -1241,23 +1617,38 @@
     async function loadSponsorOrders() {
       const box = document.getElementById('sponsorOrdersTable');
       if (!box) return;
+      if (!(await requireTierMeta('sponsorOrdersTable'))) return;
       const status = (document.getElementById('sponsorOrderStatus') || {}).value || '';
       const reviewStatus = (document.getElementById('sponsorReviewStatus') || {}).value || '';
       const params = new URLSearchParams();
       if (status) params.set('status', status);
       if (reviewStatus) params.set('reviewStatus', reviewStatus);
       try {
-        const res = await fetch(`${API_BASE}/admin/sponsor-orders?${params.toString()}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/sponsor-orders?${params.toString()}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (!data.success) { box.innerHTML = '<p class="empty">加载失败</p>'; return; }
         if (!data.orders.length) { box.innerHTML = '<p class="empty">暂无赞助订单</p>'; return; }
-        box.innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>订单号</th><th>用户</th><th>套餐</th><th>金额</th><th>状态</th><th>核对</th><th>支付备注</th><th>创建时间</th><th>操作</th></tr></thead><tbody>' +
+        const pricesReady = !!planPriceMeta();
+        const priceNotice = pricesReady ? '' : '<div style="padding:10px 12px;margin-bottom:10px;border:1px solid #fecaca;background:#fef2f2;color:#b42318;border-radius:8px;font-size:13px;line-height:1.7;">套餐价目未加载（后端未返回 planPrices），「确认到账」已停用。请刷新页面；若仍然如此，说明后端还没发布带 planPrices 的版本。</div>';
+        box.innerHTML = priceNotice + '<div style="overflow-x:auto;"><table><thead><tr><th>订单号</th><th>用户</th><th>套餐</th><th>金额</th><th>状态</th><th>核对</th><th>支付备注</th><th>创建时间</th><th>操作</th></tr></thead><tbody>' +
           data.orders.map(o => {
             const u = o.userId || {};
+            const userDeleted = !!(o.userDeleted || u.deleted);
             const canConfirm = o.reviewStatus !== 'rejected';
             const canRevoke = o.status === 'granted' && o.reviewStatus !== 'rejected';
             const confirmLabel = o.reviewStatus === 'confirmed' ? '调整套餐' : '确认到账';
-            const actions = (canConfirm ? '<button class="btn btn-success" style="padding:6px 10px;font-size:12px;" onclick="confirmSponsorOrder(\'' + o._id + '\',' + Number(o.amount || 0) + ')">' + confirmLabel + '</button> ' : '') +
+            const pendingCount = Number(o.userPendingCount || 0);
+            // TD-13：用户被物理删除时用下单快照兜底，绝不显示空白
+            const userCell = (u.studentId
+                ? escSponsor(u.studentId) + (userDeleted ? ' <span style="color:#b42318;font-size:12px;">(已删除)</span>' : '')
+                : '<span style="color:#b42318;">（用户已删除，无快照）</span>')
+              + '<br><span style="color:#94a3b8;font-size:12px;">' + escSponsor(u.name || '') + '</span>'
+              + (pendingCount > 1 ? '<br><span style="color:#b45309;font-size:12px;">该用户共 ' + pendingCount + ' 笔待处理</span>' : '');
+            const actions = (canConfirm
+                ? (pricesReady
+                  ? '<button class="btn btn-success" style="padding:6px 10px;font-size:12px;" onclick="confirmSponsorOrder(\'' + o._id + '\',' + Number(o.amount || 0) + ',' + pendingCount + ')">' + confirmLabel + '</button> '
+                  : '<button class="btn btn-secondary" style="padding:6px 10px;font-size:12px;opacity:.55;cursor:not-allowed;" disabled title="套餐价目未加载，无法确认">' + confirmLabel + '（停用）</button> ')
+                : '') +
               (canRevoke ? '<button class="btn btn-danger" style="padding:6px 10px;font-size:12px;" onclick="revokeSponsorOrder(\'' + o._id + '\')">取消权益</button>' : '');
             const planName = o.packageName || tierLabel(o.tier);
             const duration = o.durationLabel || (o.days ? o.days + ' 天' : '');
@@ -1268,7 +1659,7 @@
             const actualLine = (o.amountMismatch && o.actualAmount) ? '<br><span style="font-size:12px;color:#0891b2;">实收 ¥' + Number(o.actualAmount).toFixed(2) + '</span>' : '';
             return '<tr>' +
               '<td style="font-size:12px;">' + escSponsor(o.orderNo) + '</td>' +
-              '<td>' + escSponsor(u.studentId || '') + '<br><span style="color:#94a3b8;font-size:12px;">' + escSponsor(u.name || '') + '</span></td>' +
+              '<td>' + userCell + '</td>' +
               '<td>' + escSponsor(planName) + '<br><span style="color:#94a3b8;font-size:12px;">' + escSponsor(duration) + '</span>' + grantedLine + '</td>' +
               '<td>¥' + Number(o.amount || 0).toFixed(2) + actualLine + coupon + '</td>' +
               '<td>' + escSponsor(o.status) + '</td>' +
@@ -1279,7 +1670,18 @@
           }).join('') + '</tbody></table></div>';
       } catch (e) { box.innerHTML = '<p class="empty">加载失败</p>'; }
     }
-    async function confirmSponsorOrder(id, amount) {
+    async function confirmSponsorOrder(id, amount, pendingCount) {
+      // TD-12：该用户名下有多笔 pending 时先警告，避免同一笔款重复开通
+      const pending = Number(pendingCount || 0);
+      if (pending > 1 && !confirm(`⚠️ 该用户当前有 ${pending} 笔未处理订单，请确认是否为同一笔款项。\n\n建议先核对其余订单的金额与备注，再决定是否继续。`)) return;
+      // 价目必须先就位：失败态直接拦住，绝不按硬编码价格引导管理员决策（TD-2）
+      if (!(await requireTierMeta('sponsorOrdersTable'))) return;
+      const planList = planPriceMeta();
+      if (!planList) {
+        const misBox = document.getElementById('sponsorOrdersTable');
+        if (misBox) misBox.innerHTML = tierMetaErrorBlock('套餐价格元数据缺失（后端未返回 planPrices）');
+        return;
+      }
       const orderAmount = Number(amount || 0);
       const input = prompt(`实收金额（元）\n订单金额：¥${orderAmount.toFixed(2)}\n若实收不同，填实际到账金额（下一步可以再手动指定套餐）。`, orderAmount.toFixed(2));
       if (input === null) return;
@@ -1287,16 +1689,8 @@
       if (!Number.isFinite(actualAmount) || actualAmount <= 0) { alert('金额格式不正确'); return; }
 
       // 可选：手动指定要开通的套餐（改套餐会按新套餐重新计算到期时间）
-      const planList = [
-        { code: 'monthly', label: '月卡  ¥6.66（30 天）' },
-        { code: 'term', label: '学期卡  ¥9.99（120 天）' },
-        { code: 'yearly', label: '学年卡  ¥15.01（365 天）' },
-        { code: 'yearly_pro', label: '学年卡 Pro  ¥20.00（365 天，可自定义时间）' },
-        { code: 'freshman', label: '大一启航卡  ¥49.90（至毕业）' },
-        { code: 'sophomore', label: '大二续航卡  ¥39.90（至毕业/3 年封顶）' },
-        { code: 'junior', label: '大三冲刺卡  ¥28.80（至毕业/2 年封顶）' }
-      ];
-      const pickText = planList.map((p, i) => `${i + 1}. ${p.label}`).join('\n');
+      // 清单来自 GET /api/admin/tier-meta 的 planPrices（= membership.PLANS），顺序即后端 plan.sort
+      const pickText = planList.map((p, i) => `${i + 1}. ${planPriceLabel(p)}`).join('\n');
       const planPick = prompt(`要改成其它套餐吗？（留空 = 按实收金额自动匹配）\n${pickText}`, '');
       if (planPick === null) return;
       let grantPlanCode = '';
@@ -1306,7 +1700,7 @@
       const body = { actualAmount };
       if (grantPlanCode) body.grantPlanCode = grantPlanCode;
       if (grantPlanCode) {
-        if (!confirm(`将把该订单改为「${planList[pickNo - 1].label}」，并按新套餐重新计算到期时间（实收 ¥${actualAmount.toFixed(2)}）。继续？`)) return;
+        if (!confirm(`将把该订单改为「${planPriceLabel(planList[pickNo - 1])}」，并按新套餐重新计算到期时间（实收 ¥${actualAmount.toFixed(2)}）。继续？`)) return;
       } else if (Math.abs(actualAmount - orderAmount) > 0.1) {
         if (!confirm(`订单 ¥${orderAmount.toFixed(2)}，实收 ¥${actualAmount.toFixed(2)}：将按实收金额匹配套餐开通，并弹窗通知用户（不发邮件）。继续？`)) return;
       }
@@ -1314,7 +1708,7 @@
       let data = null;
       try {
         let res = await fetch(`${API_BASE}/admin/sponsor-orders/${id}/confirm`, {
-          method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+          method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
         });
         data = await res.json();
         if (!data.success && data.needPlan && Array.isArray(data.plans)) {
@@ -1324,7 +1718,7 @@
           const chosen = data.plans[Number(pick) - 1];
           if (!chosen) { alert('编号无效'); return; }
           res = await fetch(`${API_BASE}/admin/sponsor-orders/${id}/confirm`, {
-            method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ actualAmount, grantPlanCode: chosen.code })
+            method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ actualAmount, grantPlanCode: chosen.code })
           });
           data = await res.json();
         }
@@ -1337,7 +1731,7 @@
       if (note === null) return;
       if (!confirm('确定取消该订单权益？用户下次登录会看到弹窗说明。')) return;
       const res = await fetch(`${API_BASE}/admin/sponsor-orders/${id}/revoke`, {
-        method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ note })
+        method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ note })
       });
       const data = await res.json();
       alert(data.message || (data.success ? '已取消' : '操作失败'));
@@ -1350,7 +1744,7 @@
       btn.disabled = true; btn.textContent = '发送中...';
       try {
         const res = await fetch(`${API_BASE}/admin/announcement`, {
-          method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: '{}'
+          method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' }, body: '{}'
         });
         const data = await res.json();
         out.textContent = data.message || '';
@@ -1362,7 +1756,7 @@
     async function loadCards() {
       const status = document.getElementById('cardStatusFilter')?.value || '';
       try {
-        const res = await fetch(`${API_BASE}/admin/cards?limit=100${status ? '&status=' + status : ''}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/cards?limit=100${status ? '&status=' + status : ''}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (data.success) {
           document.getElementById('cardsStats').innerHTML = `
@@ -1389,7 +1783,7 @@
       const days = parseInt(document.getElementById('cardDays').value);
       try {
         const res = await fetch(`${API_BASE}/admin/cards/generate`, {
-          method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ count, days })
         });
         const data = await res.json();
@@ -1409,7 +1803,7 @@
       reportsCurrentPage = page;
       const status = document.getElementById('reportStatusFilter')?.value || '';
       try {
-        const res = await fetch(`${API_BASE}/admin/reports?page=${page}&status=${status}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/reports?page=${page}&status=${status}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (data.success) {
           const badge = document.getElementById('reportBadge');
@@ -1436,7 +1830,7 @@
     async function handleReport(id, status) {
       try {
         const res = await fetch(`${API_BASE}/admin/reports/${id}`, {
-          method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          method: 'PUT', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ status })
         });
         if ((await res.json()).success) {
@@ -1451,7 +1845,7 @@
       ordersCurrentPage = page;
       const status = document.getElementById('orderStatusFilter')?.value || '';
       try {
-        const res = await fetch(`${API_BASE}/admin/orders?page=${page}&limit=20&status=${status}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/orders?page=${page}&limit=20&status=${status}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (data.success) {
           document.getElementById('ordersStats').innerHTML = `<span class="badge badge-info">总计: ${data.total || 0}</span>`;
@@ -1488,7 +1882,7 @@
     async function loadMarketItems(page = 1) {
       marketItemsPage = page;
       try {
-        const res = await fetch(`${API_BASE}/admin/market-items?page=${page}&limit=20`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/market-items?page=${page}&limit=20`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (data.success) {
           document.getElementById('marketItemsStats').innerHTML = `<span class="badge badge-info">总计: ${data.total || 0}</span>`;
@@ -1515,7 +1909,7 @@
     async function deleteMarketItem(id) {
       if (!confirm('确定下架该商品？')) return;
       try {
-        await fetch(`${API_BASE}/admin/market-items/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        await fetch(`${API_BASE}/admin/market-items/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         showToast('已下架', 'success');
         loadMarketItems(marketItemsPage);
       } catch (e) { showToast('操作失败', 'error'); }
@@ -1527,7 +1921,7 @@
       const status = document.getElementById('feedbackStatusFilter')?.value || '';
       const type = document.getElementById('feedbackTypeFilter')?.value || '';
       try {
-        const res = await fetch(`${API_BASE}/admin/feedback?page=${page}&status=${status}&type=${type}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/feedback?page=${page}&status=${status}&type=${type}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (data.success) {
           const badge = document.getElementById('feedbackBadge');
@@ -1567,7 +1961,7 @@
 
     async function viewFeedbackDetail(id) {
       try {
-        const res = await fetch(`${API_BASE}/feedback/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/feedback/${id}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (data.success) {
           const f = data.feedback;
@@ -1578,7 +1972,7 @@
 
     async function openReplyModal(id) {
       try {
-        const res = await fetch(`${API_BASE}/feedback/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/feedback/${id}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (data.success) {
           const f = data.feedback;
@@ -1599,7 +1993,7 @@
       if (!reply) { alert('请输入回复内容'); return; }
       try {
         const res = await fetch(`${API_BASE}/admin/feedback/${id}/reply`, {
-          method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          method: 'PUT', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ reply })
         });
         if ((await res.json()).success) { showToast('回复成功', 'success'); closeReplyModal(); loadFeedbacks(feedbackCurrentPage); }
@@ -1610,7 +2004,7 @@
     async function markAsRead(id) {
       try {
         await fetch(`${API_BASE}/admin/feedback/${id}/status`, {
-          method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          method: 'PUT', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'read' })
         });
         closeReplyModal(); loadFeedbacks(feedbackCurrentPage);
@@ -1620,7 +2014,7 @@
     async function deleteFeedback(id) {
       if (!confirm('确定删除这条留言吗？')) return;
       try {
-        await fetch(`${API_BASE}/admin/feedback/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        await fetch(`${API_BASE}/admin/feedback/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         showToast('删除成功', 'success');
         loadFeedbacks(feedbackCurrentPage);
       } catch (e) { showToast('删除失败', 'error'); }
@@ -1628,10 +2022,149 @@
 
     function closeReplyModal() { document.getElementById('replyModal').classList.remove('show'); }
 
+    // ========== 微信用户消息（WxPusher 上行反馈）==========
+    let userFeedbackPage = 1;
+    let autoReplyTemplateCache = '';
+
+    async function loadReplySettings() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/reply-settings`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
+        const data = await res.json();
+        if (!data.success) return;
+        autoReplyTemplateCache = data.settings.template || '';
+        const toggle = document.getElementById('autoReplyEnabled');
+        if (toggle) toggle.checked = !!data.settings.autoReplyEnabled;
+        const delay = document.getElementById('autoReplyDelayText');
+        if (delay) delay.textContent = data.settings.delayMinutes;
+      } catch (e) {}
+    }
+
+    async function loadUserFeedbacks(page = 1) {
+      userFeedbackPage = page;
+      try {
+        const res = await fetch(`${API_BASE}/admin/user-feedbacks?page=${page}&limit=20`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
+        const data = await res.json();
+        if (!data.success) return;
+        const pendingEl = document.getElementById('userFeedbackPending');
+        if (pendingEl) pendingEl.textContent = String(data.pending || 0);
+        const box = document.getElementById('userFeedbacksTable');
+        if (!box) return;
+        if (!(data.feedbacks || []).length) {
+          box.innerHTML = '<p style="color:#94a3b8;padding:12px 0;">暂无微信消息</p>';
+          const pg = document.getElementById('userFeedbackPagination');
+          if (pg) pg.innerHTML = '';
+          return;
+        }
+        const rows = data.feedbacks.map(f => {
+          const shortUid = String(f.uid || '').slice(0, 12);
+          const who = f.studentId
+            ? `学号 ${escSponsor(f.studentId)}`
+            : (/^UID_/i.test(shortUid) ? `${escSponsor(shortUid)}…` : `UID ${escSponsor(shortUid)}…`);
+          const status = f.replied
+            ? '<span class="badge badge-success">已回复</span>'
+            : (f.autoReplied ? '<span class="badge badge-info">已自动回复</span>' : '<span class="badge badge-warning">待回复</span>');
+          const time = f.createdAt ? new Date(f.createdAt).toLocaleString() : '-';
+          const due = !f.replied && !f.autoReplied && f.autoReplyDueAt
+            ? `<br><span style="font-size:11px;color:#94a3b8;">自动回复：${new Date(f.autoReplyDueAt).toLocaleTimeString()}</span>`
+            : '';
+          return `<tr>
+            <td>${who}<br><span style="font-size:11px;color:#94a3b8;">${time}</span></td>
+            <td style="max-width:420px;word-break:break-word;">${escSponsor(f.content)}</td>
+            <td>${status}${due}</td>
+            <td><div class="action-buttons"><button class="btn btn-primary btn-sm" onclick="replyUserFeedback('${escSponsor(String(f._id))}')"><i class="fas fa-reply"></i> 回复</button></div></td>
+          </tr>`;
+        }).join('');
+        box.innerHTML = `<table><thead><tr><th>用户</th><th>内容</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>`;
+        const totalPages = Math.ceil((data.total || 0) / 20);
+        const pg = document.getElementById('userFeedbackPagination');
+        if (pg) pg.innerHTML = Array.from({ length: totalPages }, (_, i) =>
+          `<button class="btn ${i + 1 === page ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="loadUserFeedbacks(${i + 1})">${i + 1}</button>`).join('');
+      } catch (e) {}
+    }
+
+    // 查看当前 AppToken 的订阅者（排查“关注了但收不到”）
+    async function showWxSubscribers() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/wx-subscribers`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
+        const data = await res.json();
+        if (!data.success) { alert(data.message || '查询失败'); return; }
+        const lines = (data.subscribers || []).map((s, i) =>
+          `${i + 1}. ${s.studentId ? '学号 ' + s.studentId + (s.name ? '（' + s.name + '）' : '') : '未绑定账号'}  ${s.uid}${s.createTime ? '  ' + new Date(s.createTime).toLocaleString() : ''}`
+        );
+        alert(`当前应用订阅者（${data.total}）：\n\n` + (lines.join('\n') || '无'));
+      } catch (e) { alert('查询失败：' + e.message); }
+    }
+
+    async function replyUserFeedback(id) {
+      const input = prompt('回复内容（会实时推送到用户微信）');
+      if (input === null) return;
+      const content = input.trim();
+      if (!content) { showToast('请输入回复内容', 'error'); return; }
+      try {
+        const res = await fetch(`${API_BASE}/admin/reply-user`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ feedbackId: id, content })
+        });
+        const data = await res.json();
+        if (data.success) { showToast(data.message || '已回复', 'success'); loadUserFeedbacks(userFeedbackPage); }
+        else showToast(data.message || '回复失败', 'error');
+      } catch (e) { showToast('网络错误', 'error'); }
+    }
+
+    async function saveAutoReplyToggle() {
+      const enabled = !!document.getElementById('autoReplyEnabled').checked;
+      try {
+        const res = await fetch(`${API_BASE}/admin/reply-settings`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ autoReplyEnabled: enabled })
+        });
+        const data = await res.json();
+        if (data.success) showToast(enabled ? '已开启延迟自动回复' : '已关闭延迟自动回复', 'success');
+        else { showToast(data.message || '保存失败', 'error'); loadReplySettings(); }
+      } catch (e) { showToast('网络错误', 'error'); loadReplySettings(); }
+    }
+
+    async function editAutoReplyTemplate() {
+      if (!autoReplyTemplateCache) await loadReplySettings();
+      const input = prompt('自动回复文案（支持 {studentId} / {content} 占位符）', autoReplyTemplateCache || '');
+      if (input === null) return;
+      const template = input.trim();
+      if (!template) { showToast('文案不能为空', 'error'); return; }
+      try {
+        const res = await fetch(`${API_BASE}/admin/reply-settings`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ template })
+        });
+        const data = await res.json();
+        if (data.success) { autoReplyTemplateCache = data.settings.template; showToast('文案已保存', 'success'); }
+        else showToast(data.message || '保存失败', 'error');
+      } catch (e) { showToast('网络错误', 'error'); }
+    }
+
+    async function runAutoReplyNow() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/run-auto-reply`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          const r = data.result || {};
+          const msg = r.disabled ? '自动回复已关闭'
+            : `扫描完成：发送 ${r.sent || 0} 条${r.failed ? '，失败 ' + r.failed + ' 条' : ''}`;
+          showToast(msg, r.failed ? 'warning' : 'success');
+          loadUserFeedbacks(userFeedbackPage);
+        } else showToast(data.message || '扫描失败', 'error');
+      } catch (e) { showToast('网络错误', 'error'); }
+    }
+
     // ========== 群发邮件 ==========
     async function loadEmailStats() {
       try {
-        const res = await fetch(`${API_BASE}/admin/email-recipients-count`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/email-recipients-count`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (data.success) {
           document.getElementById('emailRecipientStats').innerHTML = `
@@ -1650,7 +2183,7 @@
       if (!subject || !content) { showToast('请填写主题和内容', 'error'); return; }
       if (!recipients) { showToast('请选择发送范围', 'error'); return; }
 
-      const stats = await fetch(`${API_BASE}/admin/email-recipients-count`, { headers: { 'Authorization': `Bearer ${token}` } })
+      const stats = await fetch(`${API_BASE}/admin/email-recipients-count`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } })
         .then(r => r.json());
       const count = recipients === 'vip' ? stats.vip : (recipients === 'nonVip' ? (stats.all - stats.vip) : stats.all);
 
@@ -1663,7 +2196,7 @@
       try {
         const res = await fetch(`${API_BASE}/admin/send-bulk-email`, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ subject, content, recipients, filterGuest })
         });
         const data = await res.json();
@@ -1680,7 +2213,7 @@
     // ========== 设置 ==========
     async function loadSettings() {
       try {
-        const res = await fetch(`${API_BASE}/admin/config`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/config`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (data.success) {
           if (data.configs.dashboard_notice) {
@@ -1705,7 +2238,7 @@
       };
       try {
         const res = await fetch(`${API_BASE}/admin/config/dashboard_notice`, {
-          method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          method: 'PUT', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ value })
         });
         if ((await res.json()).success) showToast('通知设置已保存', 'success');
@@ -1717,7 +2250,7 @@
       const value = parseInt(document.getElementById('inviteRewardDays').value);
       try {
         const res = await fetch(`${API_BASE}/admin/config/invite_reward_days`, {
-          method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          method: 'PUT', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ value })
         });
         if ((await res.json()).success) showToast('奖励设置已保存', 'success');
@@ -1736,7 +2269,7 @@
     // ========== 🆕 赞助者专属通知 ==========
     async function loadSponsorNotice() {
       try {
-        const res = await fetch(`${API_BASE}/admin/config`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/config`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (data.success && data.configs.sponsor_notice) {
           const notice = data.configs.sponsor_notice;
@@ -1765,7 +2298,7 @@
       try {
         const res = await fetch(`${API_BASE}/admin/config/sponsor_notice`, {
           method: 'PUT',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ value })
         });
         const data = await res.json();
@@ -1793,7 +2326,7 @@
     async function loadReportBadge() {
       try {
         const res = await fetch(`${API_BASE}/admin/reports?page=1&limit=1`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
         });
         const data = await res.json();
         if (!data.success) return;
@@ -1815,7 +2348,7 @@
       if (table) table.innerHTML = '加载中...';
       try {
         const res = await fetch(`${API_BASE}/admin/reports?page=${page}&limit=20&status=${encodeURIComponent(status)}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
         });
         const data = await res.json();
         if (!data.success) {
@@ -1878,7 +2411,7 @@
       try {
         const res = await fetch(`${API_BASE}/admin/reports/${id}`, {
           method: 'PUT',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ status })
         });
         const data = await res.json();
@@ -1893,7 +2426,13 @@
       }
     }
 
-    function logout() { localStorage.clear(); window.location.href = '/'; }
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('attendancePassword');
+      localStorage.removeItem('pendingInviteCode');
+      window.location.href = '/';
+    }
 
     // ========== 事件绑定 ==========
     document.getElementById('userDetailModal').addEventListener('click', function(e) { if (e.target === this) closeUserModal(); });
@@ -1908,7 +2447,7 @@
       if (btn) btn.disabled = true;
       if (out) out.textContent = '补签中（逐个重试未签到成员，可能需要 1-2 分钟）...';
       try {
-        const res = await fetch(`${API_BASE}/admin/retry-missing`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/retry-missing`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (!data.success) { if (out) out.textContent = '❌ ' + (data.message || '失败'); }
         else if (data.skipped) { if (out) out.textContent = '未执行：' + data.skipped; }
@@ -1927,7 +2466,7 @@
     }
     async function loadAlertChannels() {
       try {
-        const res = await fetch(`${API_BASE}/admin/alert-channels`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/admin/alert-channels`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         if (!data.success) return;
         const ch = data.channels || {};
@@ -1952,7 +2491,7 @@
       try {
         const res = await fetch(`${API_BASE}/admin/alert-channels`, {
           method: 'PUT',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ channels })
         });
         const data = await res.json();
@@ -1972,7 +2511,7 @@
       try {
         const res = await fetch(`${API_BASE}/admin/alert-test`, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: !!(document.getElementById('alertTestEmail') || {}).checked })
         });
         const data = await res.json();
@@ -1992,7 +2531,7 @@
     async function initRealtimeFeedback() {
       try {
         if (typeof io !== 'function') return;
-        const res = await fetch(`${API_BASE}/user/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/user/profile`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
         const data = await res.json();
         const myId = data && data.user && data.user.id;
         if (!myId) return;
@@ -2009,10 +2548,14 @@
     }
     initRealtimeFeedback();
 
-    checkAdmin();
-    loadDashboardStats();
-    loadReportBadge();
-    loadAlertChannels();
+    // 等级元数据必须先于任何依赖它的渲染（用户列表 / 套餐管理 / 赞助订单 / 用户详情）
+    (async function boot() {
+      try { await ensureTierMeta(); } catch (e) { showTierMetaBanner(); }
+      checkAdmin();
+      loadDashboardStats();
+      loadReportBadge();
+      loadAlertChannels();
+    })();
   </script>
 </body>
 </html>
