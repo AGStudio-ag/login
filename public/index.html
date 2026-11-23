@@ -153,24 +153,28 @@ h2{font-size:24px;font-weight:900;line-height:1.3}
 .ct{position:relative;transition:background .22s}
 .ct::before{content:'';position:absolute;left:-12px;top:14px;bottom:14px;width:3px;background:var(--y);border-radius:2px;transform:scaleY(0);transition:transform .24s cubic-bezier(.22,1,.36,1)}
 @media(hover:hover) and (pointer:fine){.ct:hover{background:rgba(242,187,65,.1)}.ct:hover::before{transform:scaleY(1)}}
-/* 考研倒计时 */
-.countdown{position:relative;overflow:hidden;margin-bottom:20px;border-radius:18px;background:linear-gradient(120deg,#14223b 0%,#1d3355 58%,#14223b 100%);color:#fff;padding:18px 22px;box-shadow:0 18px 48px rgba(15,61,54,.22)}
-.countdown::before{content:'';position:absolute;inset:auto -10% -60% auto;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(242,187,65,.28),transparent 70%);pointer-events:none}
-.countdown::after{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:26px 26px;pointer-events:none;opacity:.6}
-.countdown .wrap-cd{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
-.cd-label{display:flex;align-items:center;gap:12px;min-width:0}
-.cd-badge{flex:none;width:42px;height:42px;border-radius:12px;background:var(--y);color:var(--g);display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:900;box-shadow:0 6px 18px rgba(242,187,65,.32)}
-.cd-title{font-size:17px;font-weight:900;letter-spacing:-.01em;line-height:1.3}
-.cd-sub{font-size:12px;color:#a9c0d8;margin-top:3px;font-family:var(--mono)}
-.cd-clock{display:flex;align-items:flex-end;gap:8px;font-family:var(--mono)}
-.cd-unit{display:flex;flex-direction:column;align-items:center;min-width:52px}
-.cd-num{font-size:30px;font-weight:800;line-height:1;color:var(--y);font-variant-numeric:tabular-nums;letter-spacing:-.04em;transition:transform .18s cubic-bezier(.22,1,.36,1)}
-.cd-num.tick{transform:scale(1.12)}
-.cd-name{font-size:10px;color:#a9c0d8;margin-top:6px;letter-spacing:.1em}
-.cd-sep{font-size:22px;color:rgba(242,187,65,.5);line-height:1;padding-bottom:16px}
-.cd-exam{width:100%;font-size:11.5px;color:#8fa9c4;margin-top:2px}
-@media(max-width:600px){.countdown{padding:16px;border-radius:14px}.countdown .wrap-cd{gap:14px}.cd-num{font-size:24px}.cd-unit{min-width:42px}.cd-sep{font-size:17px;padding-bottom:12px}.cd-title{font-size:15px}.cd-badge{width:36px;height:36px;font-size:18px}}
-@media(prefers-reduced-motion:reduce){.cd-num.tick{transform:none}}
+/* 考研倒计时（轻量横条） */
+.countdown{position:relative;margin-bottom:16px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.78);backdrop-filter:blur(8px);color:var(--g);padding:12px 16px;box-shadow:0 6px 22px rgba(15,61,54,.06)}
+.countdown .wrap-cd{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.cd-label{display:flex;align-items:center;gap:10px;min-width:0}
+.cd-badge{flex:none;width:32px;height:32px;border-radius:9px;background:var(--y);color:var(--g);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900}
+.cd-title{font-size:14px;font-weight:900;letter-spacing:-.01em;line-height:1.3}
+.cd-sub{font-size:11px;color:var(--mute);margin-top:2px;font-family:var(--mono)}
+.cd-clock{display:flex;align-items:center;gap:5px;font-family:var(--mono);margin-left:auto}
+.cd-unit{display:flex;flex-direction:column;align-items:center;min-width:36px}
+.cd-num{font-size:20px;font-weight:800;line-height:1;color:var(--g);font-variant-numeric:tabular-nums;letter-spacing:-.03em;transition:transform .18s cubic-bezier(.22,1,.36,1)}
+.cd-num.tick{transform:scale(1.1)}
+.cd-name{font-size:9px;color:var(--mute);margin-top:4px;letter-spacing:.08em}
+.cd-sep{font-size:15px;color:var(--mute);line-height:1;margin-top:-8px}
+.cd-exam{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--mute);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+/* 倒计时区链接 */
+.cd-links{display:flex;gap:8px;flex-wrap:wrap}
+.cd-link{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;color:var(--g);text-decoration:none;border:1px solid var(--line);border-radius:99px;padding:5px 12px;background:#fff;transition:border-color .2s,transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s}
+.cd-link:hover{border-color:var(--g);transform:translateY(-1px);box-shadow:0 4px 12px rgba(15,61,54,.1)}
+.cd-link .ico{font-size:13px}
+.cd-link--demo{background:var(--y);border-color:var(--y)}
+@media(max-width:600px){.countdown{padding:11px 13px;border-radius:12px}.countdown .wrap-cd{gap:10px}.cd-num{font-size:18px}.cd-unit{min-width:32px}.cd-sep{font-size:13px;margin-top:-7px}.cd-title{font-size:13px}.cd-badge{width:28px;height:28px;font-size:14px}.cd-clock{margin-left:0;width:100%;justify-content:flex-start}}
+@media(prefers-reduced-motion:reduce){.cd-num.tick,.cd-link:hover{transform:none}}
 
 /* 返回登录 */
 .back-login{display:inline-flex;align-items:center;gap:6px;margin-top:16px;font-size:13px;font-weight:800;color:var(--g);text-decoration:none;border:1px solid var(--line);border-radius:99px;padding:8px 16px;background:#fff;transition:border-color .22s,transform .22s cubic-bezier(.22,1,.36,1),box-shadow .22s}
@@ -221,7 +225,19 @@ h2{font-size:24px;font-weight:900;line-height:1.3}
           <span class="cd-sep">:</span>
           <div class="cd-unit"><span class="cd-num" id="cdSecs">--</span><span class="cd-name">秒</span></div>
         </div>
-        <div class="cd-exam" id="cdExam">初试时间加载中…</div>
+        <div class="cd-exam">
+          <span id="cdExam">初试时间加载中…</span>
+          <span class="cd-links">
+            <a class="cd-link" href="https://yz.chsi.com.cn/" target="_blank" rel="noopener noreferrer" title="中国研究生招生信息网">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20"/></svg>
+              研招网
+            </a>
+            <a class="cd-link cd-link--demo" href="/kaoyan-demo.html" title="考研资料站演示版">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              资料站 Demo
+            </a>
+          </span>
+        </div>
       </div>
     </div>
   </div>
