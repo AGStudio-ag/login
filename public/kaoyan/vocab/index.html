@@ -1,0 +1,1034 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f3eee3">
+<meta name="description" content="2027 考研英语（二）单词大观：南萧《2-4天速成版》2868 词推导记忆（思维链路），另含真题词汇、真题词频表与资料索引。">
+<title>英语 · 单词大观（2868 词推导记忆）</title>
+<link rel="icon" href="/kaoyan/icons/icon-192.png" type="image/png">
+<link rel="stylesheet" href="../app.css?v=c29db394bb">
+<link rel="stylesheet" href="../refine.css?v=4a591ac066">
+<link rel="stylesheet" href="../portal.css?v=602a24de47">
+<link rel="stylesheet" href="./vocab.css?v=ecb8258b43">
+<style id="wp-study-guard">.wp-fab,.wp-panel{display:none!important}</style>
+<script>try{var t=localStorage.getItem('zz27_theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body data-portal-mode="study" class="vc-fixed">
+<header class="pt-topbar">
+  <a class="pt-brand" href="#"><span class="pt-seal">E2</span>
+    <span><b>英语 · 单词大观</b><i>2868 词推导记忆 / 真题词汇 / 词频</i></span></a>
+  <nav class="vc-tabs" aria-label="词汇站导航">
+    <button type="button" id="vcTab-dg" class="on">单词大观</button>
+    <button type="button" id="vcTab-drill">真题词汇</button>
+    <button type="button" id="vcTab-freq">真题词频</button>
+    <button type="button" id="vcTab-map">单词地图</button>
+    <button type="button" id="vcTab-files">资料地图</button>
+  </nav>
+  <div class="top-actions">
+    <span class="pt-days" data-countdown>距初试 — 天</span>
+    <a class="wp-top-link on-light" href="#" aria-label="返回资料库">📚 <span class="wp-label">资料库</span></a>
+    <button class="pt-theme" type="button" data-portal-theme aria-label="切换亮暗主题">☾</button>
+  </div>
+</header>
+
+<main class="vc-main">
+  <div class="vc-stats">
+    <div class="vc-stat"><b id="vcTotal">—</b><span>收录词条</span></div>
+    <div class="vc-stat"><b id="vcLearned">—</b><span>已学</span></div>
+    <div class="vc-stat"><b id="vcMastered">—</b><span>已掌握</span></div>
+    <div class="vc-stat"><b id="vcDue">—</b><span>今日待复习</span></div>
+  </div>
+
+  <section class="vc-view vc-stack" id="vcView-drill">
+    <div class="vc-note" id="vcMeta"></div>
+    <div class="vc-bar">
+      <input id="vcQ" type="search" placeholder="搜索英文或中文释义…" aria-label="搜索词条">
+      <select id="vcGroup" aria-label="分组"></select>
+      <select id="vcDeck" aria-label="词库"></select>
+      <div class="more-wrap">
+        <button type="button" class="more-btn" id="vcMoreBtn" aria-label="更多操作">⚙ 更多</button>
+        <div class="more-panel" id="vcMorePanel">
+          <h4>排序 / 显示</h4>
+          <div class="more-row"><button type="button" id="vcMode" title="切换顺序/随机">顺序 / 随机</button></div>
+          <h4>数据</h4>
+          <div class="more-row"><button type="button" id="vcReset" class="danger" title="清空学习进度">清空学习进度</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="vc-bar" id="vcFilter">
+      <button type="button" class="on" data-f="all">全部练习</button>
+      <button type="button" data-f="today">今日待学</button>
+      <button type="button" data-f="dueonly">到期复习</button>
+      <button type="button" data-f="weak">未掌握</button>
+      <button type="button" data-f="fav">★ 收藏</button>
+      <button type="button" data-f="easy">⊘ 太简单</button>
+      <span id="vcFavCount" style="font-size:11.5px;color:var(--muted)">收藏 0 · 太简单 0</span>
+      <span id="vcProgHint" style="font-size:11.5px;color:var(--muted)">空格翻面 · 1/2/3 评分 · ← → 切词 · 只有评分才算进度</span>
+    </div>
+    <div class="vc-card" id="vcCard" role="button" tabindex="0" aria-label="词汇卡片，点击翻面"></div>
+    <div class="vc-grade" id="vcGrade">
+      <button type="button" class="g0" data-n="0" disabled>忘了 · 1 天后</button>
+      <button type="button" class="g1" data-n="1" disabled>模糊 · 2 天后</button>
+      <button type="button" class="g2" data-n="2" disabled>认识 · 4 天后</button>
+    </div>
+    <div class="vc-nav">
+      <button type="button" id="vcFavBtn" class="fav-btn" title="收藏/取消收藏当前词（跨设备同步）">☆ 收藏</button>
+      <button type="button" id="vcEasyBtn" class="easy-btn" title="太简单：不再进入推荐/复习，可到「太简单」区管理">⊘ 太简单</button>
+      <button type="button" id="vcPrev">← 上一张</button>
+      <span id="vcPos" style="font-size:12.5px;color:var(--muted);align-self:center;font-variant-numeric:tabular-nums"></span>
+      <button type="button" id="vcNext">下一张 →</button>
+    </div>
+    <p class="vc-hint">进度只保存在本机浏览器；评分按 1—2—4—7 天安排下次复习，与作文记忆卡同一套节奏。练习范围四档：<b>全部练习</b>=当前筛选内全部词；<b>今日待学</b>=新卡 + 到期卡一起复习；<b>到期复习</b>=只复习已到期的卡，不掺新卡；<b>未掌握</b>=熟练度未达 2 级。分组按原文件顺序每 50 词一组，是程序分组，不代表年份或篇章。</p>
+  </section>
+
+  <section class="vc-view vc-stack on" id="vcView-dg">
+    <div class="vc-note">南萧《英语单词大观·2-4天速成版》全 <b>2868</b> 词，按原书顺序（类型一·词根型 / 类型二·独立 / 类型三·释义），每张卡正面是单词，翻面看 <b>推导与记忆法（思维链路）</b> + 已考词性词义。进度存本机浏览器；换设备同步，点页面右下角 <b>☁ 云端同步</b> 即可。</div>
+    <div class="vc-bar">
+      <input id="dgQ" type="search" placeholder="搜索英文或释义…" aria-label="搜索单词大观">
+      <select id="dgType" aria-label="类型"></select>
+      <div class="more-wrap">
+        <button type="button" class="more-btn" id="dgMoreBtn" aria-label="更多操作">⚙ 更多</button>
+        <div class="more-panel" id="dgMorePanel">
+          <h4>定位 / 起点</h4>
+          <div class="more-row"><span>跳转</span><input id="dgJump" type="number" min="1" step="1" inputmode="numeric" placeholder="第几个词" aria-label="跳到第几个词"><button type="button" id="dgJumpBtn">跳转</button><button type="button" id="dgResetPosBtn" class="dg-resetpos" title="把进度起点钉到这一词">设为起点</button></div>
+          <div class="more-row"><button type="button" id="dgBackLatest" title="回到当前进度所在的词">↩ 回到最新进度</button></div>
+          <h4>显示</h4>
+          <div class="more-row"><button type="button" id="dgCompact" title="切换精简/完整推导">精简/完整</button></div>
+          <div class="hintline">跳转/回到最新＝临时查看不改起点；想真的改起点用「设为起点」。评分后自动定位到下一个。</div>
+          <h4>数据</h4>
+          <div class="more-row"><button type="button" id="dgReset" class="danger" title="清空学习进度">清空学习进度</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="dg-bars">
+      <span class="dg-pos" id="dgProgress">第 <b>1</b> / 2868</span>
+      <span class="dg-chips">
+        <span class="dg-sort" id="dgFilter">
+          <button type="button" class="on" data-f="all">全部</button>
+          <button type="button" data-f="weak">未掌握</button>
+          <button type="button" data-f="fav">★ 收藏</button>
+          <button type="button" data-f="easy">⊘ 太简单</button>
+        </span>
+        <span class="dg-sort" id="dgSort">
+          <button type="button" class="on" data-k="book">书序</button>
+          <button type="button" data-k="freq">按词频</button>
+          <button type="button" data-k="mode" id="dgMode">顺序</button>
+        </span>
+      </span>
+      <span id="dgProgHint" class="dg-hint">轻点卡片 / 空格 翻面 · 下方 1/2/3 评分</span>
+    </div>
+    <div class="vc-card" id="dgCard" role="button" tabindex="0" aria-label="单词大观卡片，点击翻面"></div>
+    <div class="dg-actions">
+      <div class="vc-grade" id="dgGrade">
+        <button type="button" class="g0" data-n="0" disabled>忘了 · 1 天后</button>
+        <button type="button" class="g1" data-n="1" disabled>模糊 · 2 天后</button>
+        <button type="button" class="g2" data-n="2" disabled>认识 · 4 天后</button>
+      </div>
+      <div class="vc-nav">
+        <button type="button" id="dgFavBtn" class="fav-btn" title="收藏/取消收藏当前词（跨设备同步）">☆ 收藏</button>
+        <button type="button" id="dgEasyBtn" class="easy-btn" title="太简单：不再进入推荐/复习，可到「太简单」区管理">⊘ 太简单</button>
+        <button type="button" id="dgPrev">← 上一张</button>
+        <span id="dgPos" style="font-size:12.5px;color:var(--muted);align-self:center;font-variant-numeric:tabular-nums"></span>
+        <button type="button" id="dgNext">下一张 →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="vc-view vc-scroll" id="vcView-freq">
+    <div class="vc-note"><b>真题词频表</b>：数值逐字取自 <b>英语.csv</b> 原表，仅按频次降序展示，未改动、未重新定义含义。</div>
+    <div class="vc-bar">
+      <input id="vcFreqQ" type="search" placeholder="搜索单词…" aria-label="搜索词频">
+      <select id="vcFreqTop" aria-label="显示范围">
+        <option value="100">Top 100</option><option value="500">Top 500</option>
+        <option value="1000">Top 1000</option><option value="all">全部</option>
+      </select>
+    </div>
+    <div id="vcFreqTable"></div>
+    <div class="vc-pager">
+      <button type="button" id="vcFreqPrev">← 上一页</button>
+      <span id="vcFreqInfo"></span>
+      <button type="button" id="vcFreqNext">下一页 →</button>
+    </div>
+  </section>
+
+  <section class="vc-view vc-scroll" id="vcView-map">
+    <div class="map-head">
+      <div class="map-overview" id="mapOverview">2868 词 · 加载中…</div>
+      <div class="map-legend">
+        <span><i class="lg t1"></i>类型一·词根型</span><span><i class="lg t2"></i>类型二·独立</span><span><i class="lg t3"></i>类型三·释义</span>
+        <span class="lg-sep"></span>
+        <span><i class="lv lv0"></i>未学</span><span><i class="lv lv1"></i>学过</span><span><i class="lv lv2"></i>已掌握</span><span><i class="lv lve"></i>太简单</span><span><i class="lv lvf"></i>收藏</span>
+      </div>
+    </div>
+    <div class="map-toolbar">
+      <label>状态筛选 <select id="mapState"><option value="all">全部状态</option><option value="new">未学</option><option value="learned">学过(含掌握)</option><option value="mastered">已掌握</option><option value="weak">未掌握</option><option value="fav">收藏</option><option value="easy">太简单</option></select></label>
+      <label>类型 <select id="mapType"><option value="all">全部类型</option><option value="类型一·词根型">类型一</option><option value="类型二·独立">类型二</option><option value="类型三·释义">类型三</option></select></label>
+      <span class="map-tip">点小块跳到该词（临时查看，不改起点）</span>
+    </div>
+    <div id="mapBody"></div>
+  </section>
+
+  <section class="vc-view vc-scroll" id="vcView-files">
+    <div class="vc-note"><b>资料地图</b>：下列文件都在本机 <b>研考/英语/</b> 里，此处只登记文件名、体积与文件名中的年份，<b>不提取内容、不宣称已上线</b>；需要哪一份接进来，改 <code>portal.json</code> 即可。</div>
+    <div id="vcFiles"></div>
+  </section>
+</main>
+
+<script src="./data/words.js?v=1726e6ef21"></script>
+<script src="./data/highfreq.js?v=8b1690ccec"></script>
+<script src="./data/daguan.js?v=f62a9f0eb6"></script>
+<script>
+/* 通用：更多抽屉开关（单词大观 / 真题词汇共用） */
+window.bindMore=function(btnId,panelId){
+  var b=document.getElementById(btnId),p=document.getElementById(panelId);
+  if(!b||!p)return;
+  b.addEventListener('click',function(e){e.stopPropagation();var open=p.classList.toggle('open');b.setAttribute('aria-expanded',open?'true':'false');});
+  document.addEventListener('click',function(e){ if(p.classList.contains('open')&&!p.contains(e.target)&&!b.contains(e.target))p.classList.remove('open'); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&p.classList.contains('open')){p.classList.remove('open');b.focus();} });
+};
+(function(){
+  var KEY='ag_daguan_progress_v1';
+  var DATA = window.VOCAB_DAGUAN || [];
+  /* 词库是 4.2 MB 的独立文件：网络抖动 / 新部署换了 ?v= 时可能加载失败。
+     失败时绝不能当成「进度清零」，要明确报错并可重试。 */
+  function retryData(cb){
+    var s=document.createElement('script');
+    s.src='./data/daguan.js?r='+Date.now();
+    s.onload=function(){ DATA=window.VOCAB_DAGUAN||[]; cb(); };
+    s.onerror=function(){ cb(); };
+    document.head.appendChild(s);
+  }
+  var TYPES=[['all','全部类型'],['类型一·词根型','类型一·词根型'],['类型二·独立','类型二·独立'],['类型三·释义','类型三·释义']];
+  var COMPACT_KEY='ag_dg_compact_v1';
+  var DGAPS=[1,2,4,7];
+  var state={filter:'all',type:'all',sort:'book',mode:'seq',q:'',idx:0,flipped:false,queue:[],progress:{},compact:true,expand:false,curPos:-1,maxPos:-1,vpos:null,tempView:false,fav:{},easy:{}};
+  function el(id){return document.getElementById(id);}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  /* 全局书序（0 基）：与筛选/排序无关，用来显示真实进度、支持按序跳转 */
+  var IDX=null;
+  function idxOf(w){ if(!IDX){ IDX={}; DATA.forEach(function(it,i){IDX[it.w]=i;}); } var v=IDX[w]; return v===undefined?-1:v; }
+  /* 进度锚点 = 最后一条「评分产生的作答记录」，只有 grade() 能改。
+     翻页 / 翻面 / 搜索 / 筛选 / 排序都不写进度；搜索是临时视图，清空后回到锚点。 */
+  var LAST_KEY='ag_daguan_last_v1', BAK_KEY='ag_daguan_progress_bak_v1', FAV_KEY='ag_daguan_fav_v1', EASY_KEY='ag_daguan_easy_v1', anchorWord=null, warnMsg='';
+  function isMap(o){return !!o&&typeof o==='object'&&!Array.isArray(o);}
+  function parseMap(raw){ if(!raw)return null; try{var o=JSON.parse(raw);return isMap(o)?o:null;}catch(e){return null;} }
+  // 提示要跨一次刷新仍在（首次注册 SW 时页面会自刷一次），用 sessionStorage 顶一下
+  function setWarn(m){ warnMsg=m; try{ sessionStorage.setItem('ag_dg_warn', m); }catch(e){} }
+  function load(){
+    var raw=null; try{raw=localStorage.getItem(KEY);}catch(e){}
+    var p=parseMap(raw);
+    if(!p){
+      // 记录损坏 / 被写成 "undefined" / 非对象：尝试自动备份，绝不静默清零
+      var bak=null; try{bak=localStorage.getItem(BAK_KEY);}catch(e){}
+      var pb=parseMap(bak);
+      if(pb){ p=pb; setWarn('本机进度记录损坏，已从自动备份恢复 '+Object.keys(pb).length+' 条');
+        try{ localStorage.setItem(KEY, JSON.stringify(pb)); }catch(e){} }   // 修复主键，避免每次打开都报警
+      else { p={}; if(raw) setWarn('本机进度无法解析，原始数据已保留（未被覆盖）'); }
+    }
+    if(!warnMsg){ try{ var w=sessionStorage.getItem('ag_dg_warn'); if(w){ warnMsg=w; sessionStorage.removeItem('ag_dg_warn'); } }catch(e){} }
+    state.progress=p;
+    if(state.progress.__pos!==undefined){ state.curPos=Number(state.progress.__pos)||0; delete state.progress.__pos; }
+    if(state.progress.__maxPos!==undefined){ state.maxPos=Number(state.progress.__maxPos)||0; delete state.progress.__maxPos; }
+    // 手动锚点优先：显式「重置到当前进度」设定的起点压过自动位置（可被往回调）
+    if(state.progress.__vpos){ try{var vo=JSON.parse(state.progress.__vpos);if(vo&&typeof vo.p==='number'&&typeof vo.v==='number')state.vpos=vo;}catch(e){} delete state.progress.__vpos; }
+    if(state.vpos){ state.curPos=state.vpos.p; if(state.vpos.p>state.maxPos)state.maxPos=state.vpos.p; }
+    if(state.progress.__last){anchorWord=state.progress.__last;delete state.progress.__last;} // 兼容旧数据
+    try{var a=JSON.parse(localStorage.getItem(LAST_KEY)||'null');if(a&&a.w)anchorWord=a.w;}catch(e){}
+    state.fav=parseMap(localStorage.getItem(FAV_KEY))||{};
+    state.easy=parseMap(localStorage.getItem(EASY_KEY))||{};
+  }
+  function save(force){
+    // 同步组件刚写入并即将刷新：跳过本次陈旧内存写入，避免覆盖合并后的新进度
+    if(!force){ try{ var m=Number(sessionStorage.getItem('zz27_ext_write')||0); if(m && Date.now()-m<3000) return; }catch(e){} }
+    var p=state.progress, real=0;
+    for(var k in p){ if(p.hasOwnProperty(k)){ real++; break; } }
+    var raw=null; try{raw=localStorage.getItem(KEY);}catch(e){}
+    var cur=parseMap(raw);
+    // 关键保护：本机已有非空进度，但内存里是空的（多为词库未加载/解析失败）→ 拒绝用空覆盖
+    if(!force && real===0 && cur && Object.keys(cur).length>0) return;
+    // 位置随进度一起存（__pos=当前看到第几个，__maxPos=看过的最远位置），同步时按数值取大
+    p.__pos = state.curPos>=0 ? state.curPos : undefined;
+    p.__maxPos = state.maxPos>=0 ? state.maxPos : undefined;
+    if(state.vpos){ state.vpos.p=state.curPos>=0?state.curPos:state.vpos.p; p.__vpos=JSON.stringify(state.vpos); }
+    var s; try{s=JSON.stringify(p);}catch(e){ delete p.__pos; delete p.__maxPos; delete p.__vpos; return; }
+    delete p.__pos; delete p.__maxPos; delete p.__vpos;
+    try{ if(raw && raw!==s && cur) localStorage.setItem(BAK_KEY, raw); }catch(e){}   // 滚动备份上一版（只备份合法数据，别把损坏值盖到好备份上）
+    try{ localStorage.setItem(KEY,s); }catch(e){}
+    // 独立键：带全局书序 pos + 时间戳。游标也是进度，合并时按 pos 取更靠前的那条
+    try{
+      if(anchorWord){
+        var ap=idxOf(anchorWord);
+        localStorage.setItem(LAST_KEY,JSON.stringify({w:anchorWord,pos:ap<0?undefined:ap,t:Date.now()}));
+      } else localStorage.removeItem(LAST_KEY);
+    }catch(e){}
+    try{ localStorage.setItem(FAV_KEY,JSON.stringify(state.fav)); }catch(e){}
+    try{ localStorage.setItem(EASY_KEY,JSON.stringify(state.easy)); }catch(e){}
+  }
+  /* 太简单：标记后从推荐/复习队列排除，只在「太简单」收纳区可见 */
+  function isEasy(w){var f=state.easy[w];return !!(f&&f.v);}
+  function toggleEasy(w){
+    if(!w)return;
+    var old=state.easy[w], now=(old&&old.v)?0:1;
+    state.easy[w]={t:Date.now(),v:now};
+    try{ localStorage.setItem(EASY_KEY,JSON.stringify(state.easy)); }catch(e){}
+    // 记住当前显示词的位置：buildQueue 会因该词被排除而按锚点回退到队首，
+    // 这里在建队后主动定位到「原本那张的下一张」，保持连续标记/浏览的节奏。
+    var cur=state.queue[state.idx], was=cur?idxOf(cur.w):-1;
+    var targetW=cur?cur.w:w, hadQueue=state.queue.length;
+    buildQueue();
+    var keep=state.queue.findIndex(function(x){return x.w===targetW;});
+    if(keep<0 && hadQueue>0 && !state.q){
+      var next=state.queue.findIndex(function(x){var ii=idxOf(x.w);return ii>was;});
+      state.idx=next>=0?next:Math.max(0,state.queue.length-1);
+    } else if(keep>=0) state.idx=keep;
+    state.flipped=false;
+    renderCard(); renderStats();
+  }
+  /* 收藏：{word:{t:时间戳,v:1|0}}，取消收藏写 v:0 墓碑（不删键），合并按 t 取新 */
+  function isFav(w){var f=state.fav[w];return !!(f&&f.v);}
+  function toggleFav(w){
+    if(!w)return;
+    var old=state.fav[w];
+    state.fav[w]={t:Date.now(),v:old&&old.v?0:1};
+    try{ localStorage.setItem(FAV_KEY,JSON.stringify(state.fav)); }catch(e){}
+    if(state.filter==='fav'){
+      var cur=state.queue[state.idx], was=cur?idxOf(cur.w):-1;
+      var targetW=cur?cur.w:w;
+      buildQueue();
+      var keep=state.queue.findIndex(function(x){return x.w===targetW;});
+      if(keep<0 && was>=0){
+        var next=state.queue.findIndex(function(x){var ii=idxOf(x.w);return ii>was;});
+        state.idx=next>=0?next:Math.max(0,state.queue.length-1);
+      } else if(keep>=0) state.idx=keep;
+    }
+    renderCard(); renderStats();
+  }
+  function progHint(){
+    var h=el('dgProgHint'); if(!h)return;
+    h.classList.remove('is-warn');
+    if(warnMsg){ h.textContent='⚠ '+warnMsg; h.style.color='var(--red)'; h.classList.add('is-warn'); return; }
+    h.style.color='';
+    // 本机没有任何进度、也没设同步钥匙：明确提示可恢复，避免误以为「记录被清了」
+    var hasKey=false; try{hasKey=!!localStorage.getItem('zz27_cloudsync_key');}catch(e){}
+    if(!hasKey && DATA.length && Object.keys(state.progress).length===0){
+      h.textContent='本机暂无进度 · 之前学过？点右下角 ☁ 输入同步钥匙即可恢复';
+      h.style.color='var(--muted)'; h.classList.add('is-warn'); return;
+    }
+    h.textContent=state.q
+      ? '搜索是临时查阅 · 清空搜索回到上次位置'
+      : '轻点卡片 / 空格 翻面 · 下方 1/2/3 评分';
+  }
+  function today(){var d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+  function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function addDays(n){var d=today();d.setDate(d.getDate()+n);return iso(d);}
+  function levelOf(w){var p=state.progress[w];return p?p.level:0;}
+  function dueOf(w){var p=state.progress[w];return p?p.due:null;}
+  function buildQueue(){
+    var t=iso(today()), arr=DATA.map(function(it,i){return {w:it.w,m:it.m,f:it.f,t:it.t,i:it.i,n:it.n,g:it.g,c:it.c,cs:it.cs,k:it.k};});
+    if(state.q){var q=state.q.toLowerCase();arr=arr.filter(function(x){return x.w.toLowerCase().indexOf(q)>=0||(x.m&&x.m.toLowerCase().indexOf(q)>=0);});}
+    if(state.type!=='all'){arr=arr.filter(function(x){return x.t===state.type;});}
+    if(state.filter==='weak'){arr=arr.filter(function(x){return levelOf(x.w)<2;});}
+    else if(state.filter==='fav'){arr=arr.filter(function(x){return isFav(x.w);});}
+    else if(state.filter==='easy'){arr=arr.filter(function(x){return isEasy(x.w);});}
+    // 太简单＝不想再练：除收纳区与搜索外，从队列排除
+    if(state.filter!=='easy' && !state.q) arr=arr.filter(function(x){return !isEasy(x.w);});
+    if(state.sort==='freq'){arr.sort(function(a,b){return b.f-a.f;});}
+    if(state.mode==='rand'){for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=arr[i];arr[i]=arr[j];arr[j]=tmp;}}
+    state.queue=arr;
+    if(state.q){ state.idx=0; }                       // 搜索：临时视图，不定位
+    else if(state.curPos>=0 && DATA[state.curPos]){    // ① 优先回到「上次看到的那张」
+      var pw=DATA[state.curPos].w, pi=arr.findIndex(function(x){return x.w===pw;});
+      state.idx=pi>=0?pi:0;
+    }
+    else if(anchorWord){                              // ② 旧数据：回到最后评分的那条
+      var fi=arr.findIndex(function(x){return x.w===anchorWord;});
+      state.idx=fi>=0?fi:0;
+    }
+    if(state.idx>arr.length-1)state.idx=Math.max(0,arr.length-1);
+    if(state.idx<0)state.idx=0;
+    state.flipped=false;
+    progHint();
+  }
+  function stats(){
+    var learned=0,mastered=0,due=0,t=iso(today());
+    DATA.forEach(function(it){var p=state.progress[it.w];if(p){learned++;if(p.level>=2)mastered++;if(p.due&&p.due<=t)due++;}});
+    var fav=0; for(var w in state.fav){ if(state.fav[w]&&state.fav[w].v)fav++; }
+    var easy=0; for(var w in state.easy){ if(state.easy[w]&&state.easy[w].v)easy++; }
+    return {total:DATA.length,learned:learned,mastered:mastered,due:due,fav:fav,easy:easy};
+  }
+  function renderCard(){
+    var box=el('dgCard'), q=state.queue, cur=q[state.idx];
+    if(!cur){
+      if(!DATA.length){
+        box.innerHTML='<div class="kicker">词库加载失败</div><div class="vc-word">没能取到 2868 词的数据</div>'+
+          '<div class="dg-tip">多为网络问题（该文件约 4 MB）。进度仍在，不会丢。<br>点下面按钮重试，或刷新页面。</div>'+
+          '<button type="button" class="dg-more" id="dgRetry">↻ 重新加载词库</button>';
+        var rb=el('dgRetry');
+        if(rb)rb.addEventListener('click',function(){rb.disabled=true;rb.textContent='加载中…';retryData(function(){buildQueue();renderStats();renderCard();});});
+      } else {
+        box.innerHTML='<div class="kicker">没有符合条件的词</div><div class="vc-word">换个筛选试试</div>';
+      }
+      el('dgGrade').querySelectorAll('button').forEach(function(b){b.disabled=true;});el('dgPos').textContent='0 / 0';return;
+    }
+    if(state.flipped){
+      var back='';
+      if(cur.m) back+='<div class="vc-mean">'+esc(cur.m)+'</div>';
+      // 推导记忆法：精简模式下「核心派生义」常驻显示，完整联想故事收进 <details> 折叠——
+      // 既保留这套记忆法的价值，又避免长文占满屏幕、要上滑才能点到评分。
+      var showFull = !state.compact;
+      if(cur.g||cur.c||cur.cs){
+        back+='<div class="dg-method"><div class="dg-h">推导记忆法</div>';
+        if(showFull){
+          if(cur.g)back+='<div class="dg-g"><b>构词</b> '+esc(cur.g)+'</div>';
+          if(cur.c)back+='<div class="dg-c">'+esc(cur.c)+'</div>';
+        } else {
+          if(cur.cs) back+='<div class="dg-c">'+esc(cur.cs)+'</div>';
+          if(cur.c && cur.cs && cur.c!==cur.cs){
+            back+='<details class="dg-details"><summary>▸ 看完整联想故事</summary><div class="dg-c">'+esc(cur.c)+'</div></details>';
+          }
+        }
+        back+='</div>';
+      }
+      if(cur.k) back+='<div class="dg-kaokao"><div class="dg-h">已考词性词义</div>'+esc(cur.k)+'</div>';
+      box.className='vc-card dg-back flipped';
+      box.innerHTML='<div class="dg-body">'+back+'</div>';
+      autoFit();
+    } else {
+      box.className='vc-card';
+      box.innerHTML='<div class="vc-word">'+esc(cur.w)+(isFav(cur.w)?' <span class="fav-mark">★</span>':'')+(isEasy(cur.w)?' <span class="easy-mark">⊘</span>':'')+'</div>'+
+        '<div class="vc-meta">词频 '+cur.f+'</div>';
+    }
+    el('dgGrade').querySelectorAll('button').forEach(function(b){b.disabled=!state.flipped;});
+    var dg2=el('dgGrade').querySelector('.g2');
+    if(dg2)dg2.textContent='认识 · '+DGAPS[Math.min(3,levelOf(cur.w)+1)]+' 天后';
+    el('dgPos').textContent=(state.idx+1)+' / '+q.length;
+    var fb2=el('dgFavBtn'); if(fb2){var on2=isFav(cur.w);fb2.textContent=on2?'★ 已收藏':'☆ 收藏';fb2.classList.toggle('fav-on',on2);}
+    var eb2=el('dgEasyBtn'); if(eb2){var eo2=isEasy(cur.w);eb2.textContent=eo2?'✓ 已跳过':'⊘ 太简单';eb2.classList.toggle('easy-on',eo2);}
+    renderPos();
+  }
+  /* 当前所在位置（全局书序）+ 已学 + 待复习 */
+  function renderPos(){
+    var p=el('dgProgress'); if(!p)return;
+    var cur=state.queue[state.idx], pos=cur?idxOf(cur.w):-1, st=stats();
+    if(!DATA.length){ p.innerHTML='词库未加载'; return; }
+    p.innerHTML='第 <b>'+(pos>=0?pos+1:0)+'</b> / '+DATA.length+
+      '　·　已学 <b>'+st.learned+'</b>'+
+      '<span class="dg-extra">　·　待复习 <b>'+st.due+'</b>'+
+      (state.maxPos>pos?'　·　最远 <b>'+(state.maxPos+1)+'</b>':'')+
+      '　·　<b id="dgFavCount">收藏 '+st.fav+'</b>'+'</span>';
+  }
+  /* 翻面/评分才算「到过这里」；单纯跳转只改当前位置，不虚增进度 */
+  function markPos(hit){
+    if(state.q || state.tempView) return;   // 搜索/普通跳转都是临时查阅：不动游标
+    var cur=state.queue[state.idx]; if(!cur)return;
+    var i=idxOf(cur.w); if(i<0)return;
+    state.curPos=i;
+    if(hit && i>state.maxPos)state.maxPos=i;
+  }
+  /* 背面自适应：内容超出时逐步缩小字号，尽量做到卡片内不滚动 */
+  function autoFit(){
+    var box=el('dgCard'); if(!box||!state.flipped)return;
+    var fit=1; box.style.setProperty('--dg-fit','1');
+    for(var i=0;i<9;i++){
+      if(box.scrollHeight<=box.clientHeight+2)break;
+      fit-=0.07;
+      if(fit<0.62){fit=0.62;box.style.setProperty('--dg-fit','0.62');break;}
+      box.style.setProperty('--dg-fit',fit.toFixed(2));
+    }
+    var body=box.querySelector('.dg-body');
+    if(body)box.classList.toggle('dg-vcenter', body.offsetHeight < box.clientHeight*0.82);
+  }
+  /* 按书序跳转（1 基）：会清空搜索/筛选，保证「第 N 词」就是第 N 个 */
+  function jumpTo(n){
+    if(!DATA.length)return;
+    n=Math.round(Number(n)||1);
+    n=Math.max(1,Math.min(DATA.length,n));
+    state.q=''; state.filter='all'; state.type='all'; state.sort='book'; state.flipped=false;
+    var qi=el('dgQ'); if(qi)qi.value='';
+    var ts=el('dgType'); if(ts)ts.value='all';
+    var fb=document.querySelectorAll('#dgFilter button');
+    for(var i=0;i<fb.length;i++)fb[i].classList.toggle('on',fb[i].getAttribute('data-f')==='all');
+    var sb=document.querySelectorAll('#dgSort button[data-k]');
+    for(var j=0;j<sb.length;j++)sb[j].classList.toggle('on',sb[j].getAttribute('data-k')==='book');
+    buildQueue();
+    var w=DATA[n-1].w, fi=state.queue.findIndex(function(x){return x.w===w;});
+    state.idx=fi>=0?fi:0;
+    // 普通跳转＝临时查看：只改当前显示下标，不动 curPos/锚点、不落盘。
+    // tempView 让翻面/切后台的 markPos 也跳过；想真的改起点请用「设为起点」。
+    state.tempView=true;
+    renderCard();
+  }
+  /* 手动保底：跳到第 N 词，并把它钉为新的进度起点。
+     vpos.v 取当前时间戳（单调递增）——合并时高版本压过旧位置，因此即使之前
+     自动位置已推到更靠后、或旧设备带着旧进度登录，都以此手动锚点为准。
+     之后正常翻面/评分推进时 p 会跟着长、v 不变，所以仍满足「进度只增」。 */
+  function resetTo(n){
+    if(!DATA.length)return;
+    n=Math.round(Number(n)||1);
+    n=Math.max(1,Math.min(DATA.length,n));
+    state.q=''; state.filter='all'; state.type='all'; state.sort='book'; state.flipped=false;
+    var qi=el('dgQ'); if(qi)qi.value='';
+    var ts=el('dgType'); if(ts)ts.value='all';
+    var fb=document.querySelectorAll('#dgFilter button');
+    for(var i=0;i<fb.length;i++)fb[i].classList.toggle('on',fb[i].getAttribute('data-f')==='all');
+    var sb=document.querySelectorAll('#dgSort button[data-k]');
+    for(var j=0;j<sb.length;j++)sb[j].classList.toggle('on',sb[j].getAttribute('data-k')==='book');
+    buildQueue();
+    var w=DATA[n-1].w, fi=state.queue.findIndex(function(x){return x.w===w;});
+    state.idx=fi>=0?fi:0;
+    state.curPos=n-1; state.maxPos=n-1;
+    state.tempView=false;
+    state.vpos={p:n-1,v:Date.now()};
+    anchorWord=w;                 // 游标也指到手动设定的词
+    renderCard(); renderStats();
+    save(true);                   // 强制写入（即使清进度后为空也要落下锚点）
+    if(window.ZZ_SYNC){}          // 同步组件靠本地变化检测自动推送
+    try{localStorage.setItem('ag_dg_reset_notice',String(Date.now()));}catch(e){}
+  }
+  function renderStats(){
+    var s=stats();
+    if(!DATA.length){   // 词库没加载出来：显示「—」而不是 0，避免误判成进度清零
+      ['vcTotal','vcLearned','vcMastered','vcDue'].forEach(function(id){var e=el(id);if(e)e.textContent='—';});
+      return;
+    }
+    el('vcTotal').textContent=s.total;el('vcLearned').textContent=s.learned;el('vcMastered').textContent=s.mastered;el('vcDue').textContent=s.due;
+    var fc=el('dgFavCount'); if(fc)fc.textContent='收藏 '+s.fav;
+  }
+  function renderDaguan(){renderStats();renderCard();}
+  function grade(n){
+    var cur=state.queue[state.idx]; if(!cur||!state.flipped)return;  // 必须点开翻译页才能评分
+    var prev=levelOf(cur.w),lv=n===0?0:(n===1?1:Math.min(3,prev+1));
+    state.progress[cur.w]={level:lv,due:addDays(DGAPS[lv]),seen:(state.progress[cur.w]?state.progress[cur.w].seen||0:0)+1};
+    // 评分是真实学习行为：即使是跳转/地图临时定位过去的词，一旦评分就推进锚点与位置，
+    // 保证下次打开从这里继续（符合「评分推进度」口径）。仅搜索中的评分不挪起点。
+    if(!state.q) anchorWord=cur.w;
+    state.tempView=false;
+    markPos(true);                    // 这一张算「看过」
+    if(state.idx<state.queue.length-1)state.idx++;else state.idx=0;
+    state.flipped=false;
+    markPos(false);                   // 位置停在下一张，刷新后从下一张继续
+    save(); renderStats(); renderCard();
+  }
+  function move(d){if(!state.queue.length)return;state.tempView=false;state.idx=(state.idx+d+state.queue.length)%state.queue.length;state.flipped=false;markPos(false);renderCard();}
+  function init(){
+    load();
+    try{var cp=localStorage.getItem(COMPACT_KEY);if(cp!==null)state.compact=(cp==='1');}catch(e){}
+    var cbtn=el('dgCompact'); if(cbtn)cbtn.textContent=state.compact?'精简':'完整';
+    var tsel=el('dgType'); if(tsel){var o='';TYPES.forEach(function(t){o+='<option value="'+t[0]+'">'+t[1]+'</option>';});tsel.innerHTML=o;}
+    buildQueue(); renderDaguan();
+    if(!DATA.length){ retryData(function(){ buildQueue(); renderStats(); renderCard(); }); }  // 首次加载失败自动重试一次
+    var card=el('dgCard'); if(card)card.addEventListener('click',function(e){
+      if(!state.queue.length)return;
+      if(e.target.closest('details'))return; // 让 <details> 自行展开/收起，不触发翻面
+      state.flipped=!state.flipped;
+      if(state.flipped)markPos(true);
+      renderCard();
+    });
+    document.addEventListener('keydown',function(e){
+      if(location.hash.replace('#','').split('&')[0]!=='dg')return;
+      if(e.code==='Space'&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();state.flipped=!state.flipped;if(state.flipped)markPos(true);renderCard();}
+      if(state.flipped&&e.key==='1')grade(0);
+      if(state.flipped&&e.key==='2')grade(1);
+      if(state.flipped&&e.key==='3')grade(2);
+      if(e.key==='ArrowLeft')move(-1);
+      if(e.key==='ArrowRight')move(1);
+    });
+    el('dgGrade').addEventListener('click',function(e){var b=e.target.closest('button');if(b&&!b.disabled)grade(parseInt(b.dataset.n,10));});
+    el('dgPrev').addEventListener('click',function(){move(-1);});
+    el('dgNext').addEventListener('click',function(){move(1);});
+    var dgb=el('dgFavBtn'); if(dgb)dgb.addEventListener('click',function(){
+      var cur=state.queue[state.idx]; if(cur)toggleFav(cur.w);
+    });
+    var dgeb=el('dgEasyBtn'); if(dgeb)dgeb.addEventListener('click',function(){
+      var cur=state.queue[state.idx]; if(cur)toggleEasy(cur.w);
+    });
+    el('dgQ').addEventListener('input',function(){state.q=this.value.trim();state.idx=0;state.tempView=false;buildQueue();renderCard();});
+    el('dgType').addEventListener('change',function(){state.type=this.value;state.idx=0;state.tempView=false;buildQueue();renderCard();});
+    el('dgFilter').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;state.filter=b.dataset.f;state.idx=0;state.tempView=false;this.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);});buildQueue();renderCard();});
+    el('dgSort').addEventListener('click',function(e){
+      var b=e.target.closest('button');if(!b)return;
+      if(b.dataset.k==='mode'){state.mode=state.mode==='seq'?'rand':'seq';b.textContent=state.mode==='seq'?'顺序':'随机';}
+      else {state.sort=b.dataset.k;this.querySelectorAll('button[data-k="book"],button[data-k="freq"]').forEach(function(x){x.classList.toggle('on',x===b);});}
+      state.idx=0;state.tempView=false;buildQueue();renderCard();
+    });
+    el('dgReset').addEventListener('click',function(){if(!confirm('确定清空单词大观的学习进度？此操作不可撤销。'))return;state.progress={};anchorWord=null;warnMsg='';state.vpos=null;state.curPos=0;state.maxPos=-1;try{localStorage.removeItem(BAK_KEY);}catch(e){}save(true);renderStats();buildQueue();renderCard();});
+    var jb=el('dgJumpBtn'), ji=el('dgJump');
+    if(jb&&ji){
+      jb.addEventListener('click',function(){ jumpTo(ji.value); ji.value=''; });
+      ji.addEventListener('keydown',function(e){ if(e.key==='Enter'){e.preventDefault();jumpTo(this.value);this.value='';} });
+      var blb=el('dgBackLatest'); if(blb)blb.addEventListener('click',function(){ if(window.dgBackLatest)window.dgBackLatest(); });
+      var rpb=el('dgResetPosBtn');
+      if(rpb) rpb.addEventListener('click',function(){
+        var n=Number(ji.value);
+        if(!n || !confirm('把进度起点手动设为第 '+Math.round(n)+' 词？\n\n这会覆盖自动记录的位置（用于进度错乱时手动纠正）。\n已学词条本身不会删除，下次打开从第 '+Math.round(n)+' 词继续。')){ return; }
+        resetTo(n); ji.value='';
+      });
+    }
+    var rt=null;
+    window.addEventListener('resize',function(){ if(rt)clearTimeout(rt); rt=setTimeout(autoFit,180); });
+    document.addEventListener('visibilitychange',function(){ if(document.hidden){ markPos(false); try{save();}catch(e){} } });
+    window.addEventListener('beforeunload',function(){try{save();}catch(e){}}); // 只保存评分记录与锚点，不记录浏览位置
+    var cbtn2=el('dgCompact'); if(cbtn2)cbtn2.addEventListener('click',function(){state.compact=!state.compact;state.expand=false;try{localStorage.setItem(COMPACT_KEY,state.compact?'1':'0');}catch(e){}this.textContent=state.compact?'精简':'完整';renderCard();});
+    var tab=el('vcTab-dg'); if(tab)tab.addEventListener('click',function(){ if(window.switchTab) window.switchTab('dg'); });
+    if(window.bindMore)window.bindMore('dgMoreBtn','dgMorePanel');
+  }
+  window.renderDaguan=renderDaguan;
+  /* 供单词地图调用：临时定位到某词（不改起点、不落盘） */
+  /* 清掉所有筛选/搜索/排序并同步 UI 高亮——供地图跳转与「回到最新进度」共用 */
+  function clearFilters(){
+    state.q=''; state.filter='all'; state.type='all'; state.sort='book'; state.mode='seq';
+    var qi=el('dgQ'); if(qi)qi.value='';
+    var ts=el('dgType'); if(ts)ts.value='all';
+    var fb=document.querySelectorAll('#dgFilter button');
+    for(var i=0;i<fb.length;i++)fb[i].classList.toggle('on',fb[i].getAttribute('data-f')==='all');
+    var sb=document.querySelectorAll('#dgSort button[data-k]');
+    for(var j=0;j<sb.length;j++)sb[j].classList.toggle('on',sb[j].getAttribute('data-k')==='book');
+    var dm=el('dgMode'); if(dm)dm.textContent='顺序';
+    buildQueue();
+  }
+  /* 临时定位到某个词（不改起点/不落盘） */
+  function locateWord(w,alwaysClear){
+    if(!DATA.length||!w)return false;
+    var fi=state.queue.findIndex(function(x){return x.w===w;});
+    if(fi<0 || alwaysClear){ clearFilters(); fi=state.queue.findIndex(function(x){return x.w===w;}); }
+    if(fi<0)return false;
+    state.idx=fi; state.flipped=false; state.tempView=true;
+    renderCard();
+    return true;
+  }
+  window.dgOpenWord=function(w){
+    if(locateWord(w,true)){   // 地图是全量视图，跳过去统一回「全部/书序」上下文
+      if(window.switchTab)window.switchTab('dg');
+      try{el('dgCard').scrollIntoView({block:'center'});}catch(e){}
+    }
+  };
+  /* 一键回到最新进度：按 __vpos → __pos → 评分锚点 → 0 定位，临时查看不改起点 */
+  window.dgBackLatest=function(){
+    if(!DATA.length)return;
+    // 「最新进度」以实时 curPos 为准（评分/标记后它会前进）；vpos 只在没有实时位置时兜底
+    var pos=state.curPos;
+    if(pos<0 && state.vpos && typeof state.vpos.p==='number') pos=state.vpos.p;
+    if(pos<0 && anchorWord){ var ai=idxOf(anchorWord); if(ai>=0)pos=ai; }
+    if(pos<0)pos=0;
+    pos=Math.max(0,Math.min(DATA.length-1,pos));
+    var w=DATA[pos].w;
+    // 该词若被筛掉（太简单/筛选），找书序 >= pos 的第一个可见词
+    clearFilters();
+    var fi=state.queue.findIndex(function(x){return x.w===w;});
+    if(fi<0){
+      for(var i=pos;i<DATA.length;i++){
+        var k=state.queue.findIndex(function(x){return x.w===DATA[i].w;});
+        if(k>=0){ fi=k; break; }
+      }
+    }
+    if(fi<0)fi=0;
+    state.idx=fi; state.flipped=false; state.tempView=true;
+    renderCard();
+    if(window.switchTab)window.switchTab('dg');
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<script>
+(function(){
+  var WORDS = window.VOCAB_WORDS || [], FREQ = window.VOCAB_FREQ || [],
+      FILES = window.VOCAB_FILES || [], META = window.VOCAB_META || {};
+  var DECKS = [
+    {name:'英语阅读词汇（1772）', words: window.VOCAB_WORDS || []},
+    {name:'阅读高频词（真题提炼）', words: window.VOCAB_HIGHFREQ || []}
+  ];
+  var deckIdx = 0;
+  var KEY='ag_vocab_progress_v1', FAV_KEY='ag_vocab_fav_v1', EASY_KEY='ag_vocab_easy_v1', root=document.documentElement;
+  var state={tab:'dg',filter:'all',group:0,mode:'seq',q:'',idx:0,flipped:false,
+             queue:[],progress:{},fav:{},easy:{},freqTop:100,freqPage:0,freqQ:''};
+  var GROUP_SIZE=50;
+  var GAPS=[1,2,4,7];
+
+  /* 与单词大观同一规则：只有评分产生作答记录才推进度锚点；
+     翻页 / 翻面 / 搜索 / 筛选 / 换词库都不改顺序进度。 */
+  var LAST_KEY='ag_vocab_last_v1', anchorWord=null;
+  function isMap(o){return !!o&&typeof o==='object'&&!Array.isArray(o);}
+  function parseMap(raw){ if(!raw)return null; try{var o=JSON.parse(raw);return isMap(o)?o:null;}catch(e){return null;} }
+  function load(){
+    var raw=null; try{ raw=localStorage.getItem(KEY); }catch(e){}
+    var p=parseMap(raw);
+    if(!p){ state.progress = {}; }        // 非法值不再静默清零：交给下面的「禁止空覆盖」保护
+    else state.progress=p;
+    if(state.progress.__last){anchorWord=state.progress.__last;delete state.progress.__last;} // 兼容旧数据
+    try{var a=JSON.parse(localStorage.getItem(LAST_KEY)||'null');if(a&&a.w)anchorWord=a.w;}catch(e){}
+    state.fav=parseMap(localStorage.getItem(FAV_KEY))||{};
+    state.easy=parseMap(localStorage.getItem(EASY_KEY))||{};
+  }
+  function save(force){
+    // 同步组件刚写入并即将刷新：跳过本次陈旧内存写入，避免覆盖合并后的新进度
+    if(!force){ try{ var m=Number(sessionStorage.getItem('zz27_ext_write')||0); if(m && Date.now()-m<3000) return; }catch(e){} }
+    var s; try{ s=JSON.stringify(state.progress); }catch(e){ return; }
+    var raw=null; try{ raw=localStorage.getItem(KEY); }catch(e){}
+    var cur=parseMap(raw);
+    if(!force && Object.keys(state.progress).length===0 && cur && Object.keys(cur).length>0) return;
+    try{ localStorage.setItem(KEY,s); }catch(e){}
+    try{
+      if(anchorWord){
+        // 游标也是进度：带全库序号 pos，合并时按 pos 取更靠前的那条
+        var arr=window.VOCAB_WORDS||[], wi=-1;
+        for(var i=0;i<arr.length;i++){ if(arr[i][0]===anchorWord){ wi=i; break; } }
+        localStorage.setItem(LAST_KEY,JSON.stringify({w:anchorWord,pos:wi<0?undefined:wi,t:Date.now()}));
+      } else localStorage.removeItem(LAST_KEY);
+    }catch(e){}
+    try{ localStorage.setItem(FAV_KEY,JSON.stringify(state.fav)); }catch(e){}
+    try{ localStorage.setItem(EASY_KEY,JSON.stringify(state.easy)); }catch(e){}
+  }
+  /* 太简单：标记后从推荐/复习队列排除，只在「太简单」收纳区可见；同收藏用墓碑同步 */
+  function isEasy(w){var f=state.easy[w];return !!(f&&f.v);}
+  function toggleEasy(w){
+    if(!w)return;
+    var old=state.easy[w], now=(old&&old.v)?0:1;
+    state.easy[w]={t:Date.now(),v:now};
+    try{ localStorage.setItem(EASY_KEY,JSON.stringify(state.easy)); }catch(e){}
+    // 同单词大观：标记后停在原本那张的位置（下一张），不回队首
+    var cur=state.queue[state.idx], was=cur?cur.i:-1, targetW=cur?cur.w:w, hadQueue=state.queue.length;
+    buildQueue();
+    var keep=state.queue.findIndex(function(x){return x.w===targetW;});
+    if(keep<0 && hadQueue>0 && !state.q){
+      var next=state.queue.findIndex(function(x){return x.i>was;});
+      state.idx=next>=0?next:Math.max(0,state.queue.length-1);
+    } else if(keep>=0) state.idx=keep;
+    state.flipped=false;
+    renderCard(); renderStats();
+  }
+  /* 收藏：{word:{t:时间戳,v:1|0}}；取消收藏写 v:0 墓碑（不删键），
+     合并按 t 取新 → 取消也能跨设备同步，不会被另一台合并回来。 */
+  function isFav(w){var f=state.fav[w];return !!(f&&f.v);}
+  function toggleFav(w){
+    if(!w)return;
+    var old=state.fav[w];
+    state.fav[w]={t:Date.now(),v:old&&old.v?0:1};
+    try{ localStorage.setItem(FAV_KEY,JSON.stringify(state.fav)); }catch(e){}
+    if(state.filter==='fav'){
+      var cur=state.queue[state.idx], was=cur?cur.i:-1, targetW=cur?cur.w:w;
+      buildQueue();
+      var keep=state.queue.findIndex(function(x){return x.w===targetW;});
+      if(keep<0 && was>=0){
+        var next=state.queue.findIndex(function(x){return x.i>was;});
+        state.idx=next>=0?next:Math.max(0,state.queue.length-1);
+      } else if(keep>=0) state.idx=keep;
+    }
+    renderCard(); renderStats();
+  }
+  function progHint(){
+    var h=el('vcProgHint'); if(!h)return;
+    h.textContent=state.q
+      ? '搜索是临时查阅，不计入进度 · 清空搜索回到上次评分的词'
+      : '空格翻面 → 1/2/3 评分才算进度 · 翻页 / 浏览不改顺序';
+  }
+  function today(){ var d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+  function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function addDays(n){ var d=today();d.setDate(d.getDate()+n);return iso(d); }
+
+  function levelOf(w){ var p=state.progress[w];return p?p.level:0; }
+  function dueOf(w){ var p=state.progress[w];return p?p.due:null; }
+  function stats(){
+    var learned=0,mastered=0,due=0,t=iso(today());
+    WORDS.forEach(function(it){
+      var p=state.progress[it[0]];
+      if(p){learned++; if(p.level>=2)mastered++; if(p.due&&p.due<=t)due++;}
+    });
+    var fav=0; for(var w in state.fav){ if(state.fav[w]&&state.fav[w].v)fav++; }
+    var easy=0; for(var w in state.easy){ if(state.easy[w]&&state.easy[w].v)easy++; }
+    return {total:WORDS.length,learned:learned,mastered:mastered,due:due,fav:fav,easy:easy};
+  }
+  function buildQueue(){
+    var t=iso(today()), arr=WORDS.map(function(it,i){return {w:it[0],m:it[1],i:i,it:it};});
+    if(state.q){
+      var q=state.q.toLowerCase();
+      arr=arr.filter(function(x){return x.w.toLowerCase().indexOf(q)>=0||x.m.indexOf(state.q)>=0;});
+    }
+    if(state.filter==='today'){
+      // 今日待学：未学过的新卡 + 已到期的卡，一起复习
+      arr=arr.filter(function(x){var d=dueOf(x.w);return !d||d<=t;});
+    }else if(state.filter==='dueonly'){
+      // 到期复习：只复习已学且到期的卡，不掺新卡
+      arr=arr.filter(function(x){var d=dueOf(x.w);return d&&d<=t;});
+    }else if(state.filter==='weak'){
+      arr=arr.filter(function(x){return levelOf(x.w)<2;});
+    }else if(state.filter==='fav'){
+      arr=arr.filter(function(x){return isFav(x.w);});
+    }else if(state.filter==='easy'){
+      arr=arr.filter(function(x){return isEasy(x.w);});
+    }
+    // 太简单＝不想再练：除「太简单」收纳区与搜索外，一律从队列排除
+    if(state.filter!=='easy' && !state.q) arr=arr.filter(function(x){return !isEasy(x.w);});
+    if(state.group>0){
+      var s=(state.group-1)*GROUP_SIZE;
+      arr=arr.filter(function(x){return x.i>=s&&x.i<s+GROUP_SIZE;});
+    }
+    if(state.mode==='rand'){
+      for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=arr[i];arr[i]=arr[j];arr[j]=tmp;}
+    }
+    state.queue=arr;
+    if(state.q) state.idx=0;                          // 搜索：临时视图，不定位锚点
+    else if(anchorWord){                             // 清空搜索 / 正常队列：回到最后评分的词
+      var fi=arr.findIndex(function(x){return x.w===anchorWord;});
+      state.idx=fi>=0?fi:0;
+    }
+    state.idx=Math.min(state.idx,Math.max(0,arr.length-1));
+    state.flipped=false;
+    progHint();
+  }
+  function el(id){return document.getElementById(id);}
+  function buildGroup(){
+    var groups=Math.ceil(WORDS.length/GROUP_SIZE), sel=el('vcGroup');
+    var opt='<option value="0">全部词</option>';
+    for(var g=1;g<=groups;g++)opt+='<option value="'+g+'">第 '+g+' 组（'+((g-1)*GROUP_SIZE+1)+'—'+Math.min(g*GROUP_SIZE,WORDS.length)+'）</option>';
+    sel.innerHTML=opt;
+  }
+  function setDeck(i){
+    deckIdx=i; WORDS=DECKS[i].words; state.group=0; state.idx=0; state.flipped=false;
+    buildGroup(); buildQueue(); renderStats(); renderCard();
+    if(state.tab==='freq')renderFreq();
+    el('vcDeck').value=String(i);
+  }
+
+  function renderStats(){
+    var s=stats();
+    el('vcTotal').textContent=s.total; el('vcLearned').textContent=s.learned;
+    el('vcMastered').textContent=s.mastered; el('vcDue').textContent=s.due;
+    var fc=el('vcFavCount'); if(fc)fc.textContent='收藏 '+s.fav+' · 太简单 '+s.easy;
+  }
+  function renderCard(){
+    var box=el('vcCard'), q=state.queue, cur=q[state.idx];
+    if(!cur){
+      box.innerHTML='<div class="kicker">没有符合条件的词</div><div class="vc-word">换个筛选试试</div>';
+      el('vcGrade').querySelectorAll('button').forEach(function(b){b.disabled=true;});
+      el('vcPos').textContent='0 / 0'; return;
+    }
+    box.className='vc-card'+(state.flipped?' flipped':'');
+    var extra='';
+    if(cur.it && cur.it.length>2){
+      var ph=cur.it[2]||'', tag=cur.it[5]||'', dn=cur.it[3]||'', tier=cur.it[6]||'';
+      if(ph) extra+='<div class="vc-phon">'+esc(ph)+'</div>';
+      extra+='<div class="vc-mean">'+esc(cur.m)+'</div>';
+      extra+='<div class="vc-meta">'+esc(tag)+(dn?' · 阅读出现 '+dn+' 篇':'')+(tier?' · '+esc(tier):'')+'</div>';
+    }
+    box.innerHTML='<div class="kicker">'+ (state.flipped?'释义':'点击卡片 / 空格翻面') +'</div>'+
+      '<div class="vc-word">'+esc(cur.w)+(isFav(cur.w)?' <span class="fav-mark">★</span>':'')+(isEasy(cur.w)?' <span class="easy-mark">⊘</span>':'')+'</div>'+
+      (state.flipped?extra:'<div class="vc-hidden">先回忆，再翻面</div>');
+    el('vcGrade').querySelectorAll('button').forEach(function(b){b.disabled=!state.flipped;});
+    var g2=el('vcGrade').querySelector('.g2');
+    if(g2)g2.textContent='认识 · '+GAPS[Math.min(3,levelOf(cur.w)+1)]+' 天后';
+    el('vcPos').textContent=(state.idx+1)+' / '+q.length;
+    var fb=el('vcFavBtn'); if(fb){var on=isFav(cur.w);fb.textContent=on?'★ 已收藏':'☆ 收藏';fb.classList.toggle('fav-on',on);}
+    var eb=el('vcEasyBtn'); if(eb){var eo=isEasy(cur.w);eb.textContent=eo?'✓ 已跳过':'⊘ 太简单';eb.classList.toggle('easy-on',eo);}
+  }
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function grade(n){
+    var cur=state.queue[state.idx]; if(!cur||!state.flipped)return;
+    var prev=levelOf(cur.w), lv = n===0?0:(n===1?1:Math.min(3,prev+1));
+    state.progress[cur.w]={level:lv,due:addDays(GAPS[lv]),seen:(state.progress[cur.w]?.seen||0)+1};
+    if(!state.q) anchorWord=cur.w;    // ★ 评分推进度；搜索中评分不挪「上次位置」
+    save(); renderStats();
+    if(state.idx<state.queue.length-1) state.idx++; else state.idx=0;
+    state.flipped=false; renderCard();
+  }
+  function move(d){
+    if(!state.queue.length)return;
+    state.idx=(state.idx+d+state.queue.length)%state.queue.length;
+    state.flipped=false; renderCard();
+  }
+  function renderFreq(){
+    var q=state.freqQ.toLowerCase();
+    var arr=FREQ.filter(function(x){return !q||x[0].toLowerCase().indexOf(q)>=0;});
+    var limited=state.freqTop==='all'?arr:arr.slice(0,state.freqTop);
+    var pages=Math.max(1,Math.ceil(limited.length/100));
+    state.freqPage=Math.min(state.freqPage,pages-1);
+    var slice=limited.slice(state.freqPage*100,(state.freqPage+1)*100);
+    var gloss={}; WORDS.forEach(function(x){gloss[x[0]]=1;});
+    var h='<table class="vc-table"><thead><tr><th>#</th><th>单词</th><th>频次</th><th>阅读词表</th></tr></thead><tbody>';
+    slice.forEach(function(x,i){
+      h+='<tr><td>'+(state.freqPage*100+i+1)+'</td><td>'+esc(x[0])+'</td><td>'+x[1]+'</td><td>'+
+         (gloss[x[0]]?'<span class="hit">已收录</span>':'<span style="color:var(--muted)">—</span>')+'</td></tr>';
+    });
+    h+='</tbody></table>';
+    el('vcFreqTable').innerHTML=h;
+    el('vcFreqInfo').textContent='共 '+limited.length+' 词 · 第 '+(state.freqPage+1)+' / '+pages+' 页';
+    el('vcFreqPrev').disabled=state.freqPage<=0;
+    el('vcFreqNext').disabled=state.freqPage>=pages-1;
+  }
+  function renderFiles(){
+    var h='';
+    FILES.forEach(function(g){
+      h+='<div class="vc-file-group"><h3>'+esc(g.name)+' <span style="font-size:11px;color:var(--muted);font-weight:400">'+g.items.length+' 份</span></h3>';
+      g.items.forEach(function(f){
+        var yr=f.years.length?(f.years[0]+(f.years.length>1?'—'+f.years[f.years.length-1]:'')):'';
+        h+='<div class="vc-file"><b>'+esc(f.name)+'</b>'+
+           (yr?'<em>'+yr+'</em>':'')+'<em>'+f.mb+' MB</em><span class="tag">本机资料 · 未上线</span></div>';
+      });
+      h+='</div>';
+    });
+    el('vcFiles').innerHTML=h;
+  }
+  function switchTab(t){
+    state.tab=t;
+    ['drill','freq','dg','map','files'].forEach(function(k){
+      el('vcView-'+k).classList.toggle('on',k===t);
+      el('vcTab-'+k).classList.toggle('on',k===t);
+    });
+    document.body.classList.toggle('dg-active', t==='dg'||t==='map');   // 单词大观/地图各自有进度显示，隐藏顶部四宫格
+    if(t==='dg'){ if(window.renderDaguan)window.renderDaguan(); }
+    else { renderStats(); if(t==='freq')renderFreq(); if(t==='files')renderFiles(); if(t==='map'&&window.renderMap)window.renderMap(); }
+    try{ history.replaceState(null,'','#'+t); }catch(e){}
+  }
+  window.switchTab=switchTab;
+
+  function init(){
+    load();
+    var h=location.hash.replace('#','').split('&')[0];
+    if(h==='freq'||h==='files'||h==='dg'||h==='drill'||h==='map')state.tab=h;
+    // 分组下拉
+    buildGroup();
+    // 词库切换下拉
+    var dsel=el('vcDeck'), dopt='';
+    DECKS.forEach(function(d,i){ dopt+='<option value="'+i+'">'+esc(d.name)+(d.words.length?' ('+d.words.length+')':'')+'</option>'; });
+    dsel.innerHTML=dopt;
+    el('vcMeta').innerHTML='释义取自 <b>英语10-26阅读单词带汉语.txt</b>：解析 '+META.rawPairs+
+      ' 条、同词合并后 <b>'+META.unique+'</b> 词；与自测表交叉核对覆盖 <b>'+META.coverage+
+      '%</b>。词频取自 <b>英语.csv</b> 原表数值（'+FREQ.length+' 词，'+META.freqMin+'—'+META.freqMax+
+      '），含义以原资料为准。';
+    buildQueue(); renderStats(); renderCard(); switchTab(state.tab);
+
+    el('vcCard').addEventListener('click',function(){state.flipped=!state.flipped;renderCard();});
+    document.addEventListener('keydown',function(e){
+      if(state.tab!=='drill')return;
+      if(e.code==='Space'&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();state.flipped=!state.flipped;renderCard();}
+      if(state.flipped&&e.key==='1')grade(0);
+      if(state.flipped&&e.key==='2')grade(1);
+      if(state.flipped&&e.key==='3')grade(2);
+      if(e.key==='ArrowLeft')move(-1);
+      if(e.key==='ArrowRight')move(1);
+    });
+    el('vcGrade').addEventListener('click',function(e){
+      var b=e.target.closest('button'); if(b&&!b.disabled)grade(parseInt(b.dataset.n,10));
+    });
+    el('vcPrev').addEventListener('click',function(){move(-1);});
+    el('vcNext').addEventListener('click',function(){move(1);});
+    var vfb=el('vcFavBtn'); if(vfb)vfb.addEventListener('click',function(){
+      var cur=state.queue[state.idx]; if(cur)toggleFav(cur.w);
+    });
+    var veb=el('vcEasyBtn'); if(veb)veb.addEventListener('click',function(){
+      var cur=state.queue[state.idx]; if(cur)toggleEasy(cur.w);
+    });
+    el('vcQ').addEventListener('input',function(){state.q=this.value.trim();state.idx=0;buildQueue();renderCard();});
+    el('vcGroup').addEventListener('change',function(){state.group=parseInt(this.value,10);state.idx=0;buildQueue();renderCard();});
+    el('vcDeck').addEventListener('change',function(){setDeck(parseInt(this.value,10));});
+    el('vcFilter').addEventListener('click',function(e){
+      var b=e.target.closest('button'); if(!b)return;
+      state.filter=b.dataset.f; state.idx=0;
+      this.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);});
+      buildQueue();renderCard();
+    });
+    el('vcMode').addEventListener('click',function(){
+      state.mode=state.mode==='seq'?'rand':'seq';
+      this.textContent=state.mode==='seq'?'顺序':'随机';
+      state.idx=0;buildQueue();renderCard();
+    });
+    if(window.bindMore)window.bindMore('vcMoreBtn','vcMorePanel');
+    var mtab=el('vcTab-map'); if(mtab)mtab.addEventListener('click',function(){ if(window.switchTab) window.switchTab('map'); });
+    el('vcReset').addEventListener('click',function(){
+      if(!confirm('确定清空全部词汇学习进度？此操作不可撤销。'))return;
+      state.progress={};anchorWord=null;save(true);renderStats();buildQueue();renderCard();
+    });
+    ['drill','freq','files'].forEach(function(k){el('vcTab-'+k).addEventListener('click',function(){switchTab(k);});});
+    el('vcFreqQ').addEventListener('input',function(){state.freqQ=this.value.trim();state.freqPage=0;renderFreq();});
+    el('vcFreqTop').addEventListener('change',function(){
+      state.freqTop=this.value==='all'?'all':parseInt(this.value,10);state.freqPage=0;renderFreq();
+    });
+    el('vcFreqPrev').addEventListener('click',function(){state.freqPage--;renderFreq();});
+    el('vcFreqNext').addEventListener('click',function(){state.freqPage++;renderFreq();});
+    window.addEventListener('hashchange',function(){
+      var t=location.hash.replace('#','').split('&')[0];if(t==='freq'||t==='files'||t==='dg'||t==='drill'||t==='map')switchTab(t);
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<script>
+/* 单词地图看板：2868 词，每词一小块；类型=绿/黄/红，状态=透明度/边框 */
+(function(){
+  var D=window.VOCAB_DAGUAN||[];
+  var TYPES=['类型一·词根型','类型二·独立','类型三·释义'];
+  var TCLS={'类型一·词根型':'t1','类型二·独立':'t2','类型三·释义':'t3'};
+  var ready=false;
+  function store(k){try{return JSON.parse(localStorage.getItem(k)||'{}')||{};}catch(e){return {};}}
+  function lvl(w,prog,easy){
+    if(easy[w]&&easy[w].v)return 'e';
+    var p=prog[w]; if(!p)return '0';
+    if((p.level||0)>=2)return '2';
+    return '1';
+  }
+  function render(){
+    D=window.VOCAB_DAGUAN||[];                       // 每次重绘取最新（daguan.js 可能晚到或重试后才就绪）
+    var box=document.getElementById('mapBody'); if(!box||!D.length)return;
+    var prog=store('ag_daguan_progress_v1'), fav=store('ag_daguan_fav_v1'), easy=store('ag_daguan_easy_v1');
+    var fs=document.getElementById('mapState').value, ft=document.getElementById('mapType').value;
+    var tot=D.length, learned=0, mastered=0, weak=0, favn=0, easyn=0;
+    D.forEach(function(it){
+      var p=prog[it.w], L=lvl(it.w,prog,easy);
+      if(p)learned++; if((p&&p.level>=2))mastered++; if(p&&p.level<2)weak++;
+      if(fav[it.w]&&fav[it.w].v)favn++; if(easy[it.w]&&easy[it.w].v)easyn++;
+    });
+    var ov=document.getElementById('mapOverview');
+    ov.innerHTML='<b>'+tot+'</b> 词　已学 <b class="c-blue">'+learned+'</b>　已掌握 <b class="c-jade">'+mastered+'</b>　未掌握 <b class="c-red">'+weak+'</b>　收藏 <b class="c-gold">'+favn+'</b>　太简单 <b>'+easyn+'</b>';
+    var html='';
+    TYPES.forEach(function(t){
+      if(ft!=='all'&&ft!==t)return;
+      var words=D.filter(function(x){return x.t===t;});
+      var cnt={0:0,1:0,2:0,e:0};
+      words.forEach(function(x){cnt[lvl(x.w,prog,easy)]++;});
+      var show=words.filter(function(x){
+        var L=lvl(x.w,prog,easy);
+        if(fs==='all')return true;
+        if(fs==='new')return L==='0';
+        if(fs==='learned')return L==='1'||L==='2';
+        if(fs==='mastered')return L==='2';
+        if(fs==='weak'){var p=prog[x.w];return !!(p&&p.level<2);}
+        if(fs==='fav')return !!(fav[x.w]&&fav[x.w].v);
+        if(fs==='easy')return L==='e';
+        return true;
+      });
+      html+='<div class="map-sec"><div class="map-sec-h"><span class="lg '+TCLS[t]+'"></span><b>'+t+'</b>'+
+        '<span class="map-sec-stat">共 '+words.length+' · 未学 '+cnt[0]+' · 学过 '+cnt[1]+' · 掌握 '+cnt[2]+' · 太简单 '+cnt.e+'</span></div>'+
+        '<div class="map-grid">';
+      show.forEach(function(x){
+        var L=lvl(x.w,prog,easy), f=(fav[x.w]&&fav[x.w].v)?' fav':'';
+        html+='<button type="button" class="map-cell '+TCLS[t]+' lv'+L+f+'" data-w="'+esc(x.w)+'" title="'+esc(x.w)+' — '+esc((x.m||'').slice(0,40))+'"></button>';
+      });
+      html+='</div></div>';
+    });
+    box.innerHTML=html||'<div class="map-empty">没有符合筛选的单词</div>';
+    Array.prototype.forEach.call(box.querySelectorAll('.map-cell'),function(c){
+      c.addEventListener('click',function(){
+        if(window.dgOpenWord)window.dgOpenWord(this.getAttribute('data-w'));
+      });
+    });
+  }
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function init(){
+    D=window.VOCAB_DAGUAN||[];
+    if(!D.length){ if((window.__mapTries=(window.__mapTries||0)+1)<30)setTimeout(init,600); return; }   // 4MB 词库加载慢，最多等 18s
+    document.getElementById('mapState').addEventListener('change',render);
+    document.getElementById('mapType').addEventListener('change',render);
+    var tab=document.getElementById('vcTab-map');
+    if(tab)tab.addEventListener('click',function(){setTimeout(render,50);});
+    // 同步组件刷新页面后重绘
+    window.addEventListener('storage',function(){render();});
+    render();ready=true;
+  }
+  window.renderMap=function(){if(ready)render();else init();};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<script src="../sync.js?v=ad065c5cdb"></script>
+<script src="../portal.js?v=d9e06705a1"></script>
+</body>
+</html>

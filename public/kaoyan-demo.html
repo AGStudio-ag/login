@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<meta name="description" content="考研备考资料站界面演示版，仅展示公共课栏目形态，内容为通用示例。">
-<title>考研备考资料站 · 演示版</title>
+<meta name="description" content="考研公共课备考资料库：政治、英语、数学，卡片化复习，进度本地保存。">
+<title>考研公共课资料库</title>
 <link rel="icon" type="image/png" href="/favicon-32x32.png">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
@@ -20,7 +20,7 @@ a{color:inherit}
 .brand .m{width:26px;height:26px;border-radius:7px;background:var(--y);color:var(--g);display:grid;place-items:center;font-size:14px;font-weight:900}
 .back{font-size:12.5px;font-weight:800;text-decoration:none;border:1px solid var(--line);border-radius:99px;padding:5px 12px;background:#fff}
 .back:hover{border-color:var(--g)}
-.banner{max-width:1040px;margin:18px auto 0;padding:10px 16px;background:#fff8e6;border:1px solid #f0dca8;border-radius:10px;font-size:12.5px;color:#7a5b12;line-height:1.7}
+.banner{max-width:1040px;margin:18px auto 0;padding:10px 16px;background:#fff;border:1px solid var(--line);border-radius:10px;font-size:12.5px;color:var(--mute);line-height:1.7}
 .hero{text-align:center;padding:38px 20px 20px}
 .hero .tag{display:inline-block;font:800 11px/1 ui-monospace,monospace;letter-spacing:.14em;color:var(--mute);border:1px solid var(--line);border-radius:99px;padding:7px 14px;background:#fff}
 .hero h1{font-size:clamp(26px,5vw,40px);font-weight:900;letter-spacing:-.03em;margin:16px 0 8px}
@@ -33,16 +33,7 @@ a{color:inherit}
 .card h3{font-size:16px;font-weight:900;margin-bottom:6px}
 .card p{font-size:12.5px;color:var(--mute);line-height:1.7}
 .card .more{display:inline-block;margin-top:14px;font-size:11.5px;font-weight:800;color:var(--g)}
-.section{margin:8px 0 40px}
-.section h2{font-size:19px;font-weight:900;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.section h2::before{content:'';width:4px;height:18px;background:var(--y);border-radius:2px}
-.demo-box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}
-.demo-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px dashed var(--line)}
-.demo-row:last-child{border-bottom:0}
-.demo-row .n{width:26px;height:26px;border-radius:8px;background:var(--soft);color:var(--mute);display:grid;place-items:center;font:800 12px ui-monospace,monospace;flex:none}
-.demo-row .t{font-size:13.5px;font-weight:700}
-.demo-row .s{font-size:11.5px;color:var(--mute);margin-top:2px}
-.note{margin-top:16px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--y);border-radius:10px;font-size:12.5px;color:var(--mute)}
+.note{margin:0 0 40px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--y);border-radius:10px;font-size:12.5px;color:var(--mute)}
 .foot{background:var(--g);color:#a9bfd6;text-align:center;padding:22px 20px;font-size:12px}
 .foot b{color:var(--y)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto}}
@@ -51,56 +42,47 @@ a{color:inherit}
 <body>
 <header class="topbar">
   <div class="wrap">
-    <a class="brand" href="/"><span class="m">研</span> 考研备考资料站 · 演示版</a>
+    <a class="brand" href="/"><span class="m">研</span> 考研公共课资料库</a>
     <a class="back" href="/">← 返回登录</a>
   </div>
 </header>
 
 <div class="wrap">
   <div class="banner">
-    ⚠️ <b>界面演示</b>：本页仅展示公共课栏目的设计形态，所列文字均为通用示例占位，不包含任何真实资料、题目、下载内容或个人数据。如需完整资料请以你自己的渠道为准。
+    公共课资料对大家开放：<b>政治 / 英语 / 数学</b>，点下方卡片进入。翻卡、做题等学习进度<b>只保存在你自己的浏览器里</b>，不会上传。其他专项内容不在本库范围内。
   </div>
 </div>
 
 <section class="hero">
-  <span class="tag">DEMO PREVIEW</span>
+  <span class="tag">PUBLIC SUBJECTS</span>
   <h1>把复习资料，整理得清清楚楚</h1>
   <p>卡片化知识点 · 分科分类 · 随时回顾</p>
 </section>
 
 <div class="wrap">
   <div class="grid">
-    <a class="card" href="#demo">
+    <a class="card" href="/kaoyan/politics/">
       <div class="ic">政</div>
       <h3>政治 · 知识点卡片</h3>
-      <p>把零散考点拆成一张张卡片，正反两面快速自测。</p>
-      <span class="more">查看示例 →</span>
+      <p>主动回忆卡、知识地图、考前速览与真题考点专项，卡片化反复自测。</p>
+      <span class="more">进入政治 →</span>
     </a>
-    <a class="card" href="#demo">
+    <a class="card" href="/kaoyan/english/">
       <div class="ic">英</div>
-      <h3>英语 · 写作素材</h3>
-      <p>常用表达与结构模板分类归档，临考快速翻阅。</p>
-      <span class="more">查看示例 →</span>
+      <h3>英语 · 写作与词汇</h3>
+      <p>作文记忆卡、定稿模板、单词大观与七年真题套写，按题型分区推进。</p>
+      <span class="more">进入英语 →</span>
     </a>
-    <a class="card" href="#demo">
+    <a class="card" href="/kaoyan/math/">
       <div class="ic">数</div>
-      <h3>数学 · 公式速查</h3>
-      <p>高频公式集中速查，减少翻书时间。</p>
-      <span class="more">查看示例 →</span>
+      <h3>数学 · 公式与题库</h3>
+      <p>知识图谱、速查速背看板、模拟卷逐题刷与错题本，公式题型一页可查。</p>
+      <span class="more">进入数学 →</span>
     </a>
   </div>
-
-  <section class="section" id="demo">
-    <h2>界面示例</h2>
-    <div class="demo-box">
-      <div class="demo-row"><span class="n">01</span><div><div class="t">示例条目 · 卡片正面</div><div class="s">这里展示知识点卡片在站点中的呈现方式（占位文本）</div></div></div>
-      <div class="demo-row"><span class="n">02</span><div><div class="t">示例条目 · 卡片背面</div><div class="s">点击翻转后显示的内容区域（占位文本）</div></div></div>
-      <div class="demo-row"><span class="n">03</span><div><div class="t">示例条目 · 分类目录</div><div class="s">按科目与章节整理的目录结构（占位文本）</div></div></div>
-    </div>
-    <div class="note">演示版仅包含以上公共课栏目示意。其他科目与专项内容不在此展示。</div>
-  </section>
+  <div class="note">资料库完整入口在 <a href="/kaoyan/" style="font-weight:800">这里</a>，可从顶部导航在各科之间切换。祝上岸。</div>
 </div>
 
-<footer class="foot">本页仅为 <b>DEMO 演示</b>，不含真实资料 · <a href="/" style="color:var(--y)">返回登录</a></footer>
+<footer class="foot">考研公共课资料库 · 进度仅本地保存 · <a href="/" style="color:var(--y)">返回登录</a></footer>
 </body>
 </html>

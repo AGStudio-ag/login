@@ -1,0 +1,3427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4a5aa8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="英语作文">
+<link rel="icon" href="./icons/icon-192.png" type="image/png">
+<title>英语作文 · 记忆卡学习站</title>
+<style>
+:root{
+  --bg:#f6f3ed; --panel:#fffdf9; --ink:#2c2c34; --ink2:#5d5e6b; --muted:#8b8c99;
+  --line:#e8e2d8; --brand:#4a5aa8; --brand2:#6b7bc9; --accent:#e07a55;
+  --green:#3f9d7c; --amber:#d99a35; --red:#c8554d; --soft:#f0eee7;
+  --shadow:0 8px 30px rgba(60,55,45,.09); --shadow2:0 16px 44px rgba(60,55,45,.16);
+  --radius:18px; --serif:Georgia,"Times New Roman",serif;
+}
+html[data-theme="dark"]{
+  --bg:#181a22; --panel:#22252f; --ink:#eceef5; --ink2:#b9bdcc; --muted:#8d92a4;
+  --line:#343846; --brand:#8f9cf5; --brand2:#a9b3ff; --accent:#f0956f;
+  --green:#5cc4a1; --amber:#e8b45c; --red:#ec7d73; --soft:#2b2f3b;
+  --shadow:0 8px 30px rgba(0,0,0,.28); --shadow2:0 16px 44px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;line-height:1.7;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font-family:inherit}
+a{color:var(--brand)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+
+/* ---------- top bar ---------- */
+.topbar{background:linear-gradient(120deg,#4a5aa8,#6373c4 55%,#7d6ac0);color:#fff;padding:18px 0 20px;position:relative;overflow:hidden}
+.topbar:after{content:"";position:absolute;right:-60px;top:-90px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.08)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:relative;z-index:1}
+.logo{width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:24px;flex:none}
+.tt h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.5px}
+.tt p{margin:2px 0 0;font-size:12.5px;opacity:.85}
+.topright{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.countdown{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);padding:7px 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap}
+.countdown b{font-size:17px}
+.iconbtn{width:36px;height:36px;border-radius:11px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:16px;transition:.2s}
+.iconbtn:hover{background:rgba(255,255,255,.32);transform:translateY(-2px)}
+.tabs{background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;box-shadow:0 2px 12px rgba(0,0,0,.03)}
+.tabs .wrap{display:flex;gap:6px;overflow-x:auto}
+.tab{padding:13px 17px;font-size:14px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;transition:.18s}
+.tab:hover{color:var(--brand)}
+.tab.active{color:var(--brand);border-bottom-color:var(--brand)}
+.tab .dot{display:inline-block;min-width:19px;height:19px;line-height:19px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;text-align:center;margin-left:6px;padding:0 5px}
+
+main{padding:26px 0 70px}
+.view{display:none;animation:fade .35s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:1.25fr .85fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:820px){.g2,.g3{grid-template-columns:1fr}}
+h2.sec{font-size:17px;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+h2.sec small{font-weight:400;color:var(--muted);font-size:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--brand);color:#fff;padding:11px 20px;border-radius:12px;font-weight:600;font-size:14px;transition:.18s;box-shadow:0 5px 14px rgba(74,90,168,.22)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(74,90,168,.32)}
+.btn.ghost{background:var(--soft);color:var(--ink);box-shadow:none;border:1px solid var(--line)}
+.btn.small{padding:8px 14px;font-size:13px;border-radius:10px}
+.btn.warm{background:var(--accent);box-shadow:0 5px 14px rgba(224,122,85,.25)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* ---------- home ---------- */
+.hero{background:linear-gradient(135deg,var(--panel),var(--soft));border:1px solid var(--line);border-radius:22px;padding:26px;display:flex;gap:26px;align-items:center;flex-wrap:wrap;box-shadow:var(--shadow)}
+.ring{width:132px;height:132px;flex:none;border-radius:50%;background:conic-gradient(var(--brand) var(--p,0%),var(--line) 0);display:grid;place-items:center;position:relative}
+.ring:before{content:"";position:absolute;inset:11px;background:var(--panel);border-radius:50%}
+.ring div{position:relative;text-align:center;line-height:1.25}
+.ring b{font-size:27px;display:block;color:var(--brand)}
+.ring span{font-size:11px;color:var(--muted)}
+.hero .txt{flex:1;min-width:230px}
+.hero h2{margin:0 0 6px;font-size:22px}
+.hero p{margin:0 0 14px;color:var(--ink2);font-size:13.5px}
+.hero .acts{display:flex;gap:10px;flex-wrap:wrap}
+.statrow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+@media(max-width:640px){.statrow{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
+.stat b{display:block;font-size:23px;color:var(--brand);line-height:1.2}
+.stat span{font-size:11.5px;color:var(--muted)}
+.quote{margin-top:16px;padding:14px 18px;border-left:4px solid var(--accent);background:var(--soft);border-radius:0 12px 12px 0;font-size:13.5px;color:var(--ink2)}
+.badge-mini{display:inline-flex;align-items:center;gap:5px;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px;margin:4px 5px 0 0}
+.badge-mini.off{opacity:.38;filter:grayscale(1)}
+.levelbar{height:8px;background:var(--soft);border-radius:99px;overflow:hidden;margin-top:8px}
+.levelbar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--accent));border-radius:99px;transition:width .5s}
+
+/* ---------- flashcards ---------- */
+.deckbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:600;color:var(--ink2);transition:.18s}
+.chip:hover{border-color:var(--brand);color:var(--brand)}
+.chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.studybar{display:flex;align-items:center;gap:12px;margin-bottom:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.studybar .pb{flex:1;min-width:120px;height:7px;background:var(--soft);border-radius:99px;overflow:hidden}
+.studybar .pb i{display:block;height:100%;background:var(--green);transition:width .3s}
+.flipwrap{perspective:1400px;max-width:760px;margin:0 auto}
+.flip{position:relative;width:100%;height:340px;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.2,.8,.3,1);cursor:pointer}
+.flip.on{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:22px;padding:28px 30px;display:flex;flex-direction:column;box-shadow:var(--shadow2);border:1px solid var(--line);overflow:auto}
+.face.front{background:linear-gradient(150deg,var(--panel),var(--soft))}
+.face.back{background:linear-gradient(150deg,#fffaf3,#f5f0e6);transform:rotateY(180deg)}
+html[data-theme="dark"] .face.back{background:linear-gradient(150deg,#2c2b34,#262a36)}
+.face .tag{align-self:flex-start;font-size:11.5px;font-weight:700;letter-spacing:.5px;padding:5px 12px;border-radius:999px;background:var(--brand);color:#fff}
+.face .hint{font-size:11px;color:var(--muted);margin-top:10px}
+.face .q{font-size:20px;font-weight:700;margin:20px 0 auto;line-height:1.6;white-space:pre-line}
+.face .a{font-family:var(--serif);font-size:19px;line-height:1.75;margin:16px 0 auto;white-space:pre-line;color:var(--ink)}
+.face .note{font-size:12.5px;color:var(--ink2);background:var(--soft);border-radius:10px;padding:10px 13px;margin-top:14px;white-space:pre-line}
+.face .num{position:absolute;top:24px;right:26px;font-size:12px;color:var(--muted)}
+.gradebar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:760px;margin:18px auto 0}
+@media(max-width:560px){.gradebar{grid-template-columns:repeat(2,1fr)}.flip{height:390px}.face{padding:20px}}
+.grade{border-radius:13px;padding:12px 8px;font-weight:700;font-size:13.5px;border:1px solid var(--line);background:var(--panel);transition:.18s;text-align:center}
+.grade small{display:block;font-weight:400;font-size:11px;color:var(--muted);margin-top:2px}
+.grade:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.g0:hover{border-color:var(--red);color:var(--red)}
+.g1:hover{border-color:var(--amber);color:var(--amber)}
+.g2:hover{border-color:var(--green);color:var(--green)}
+.g3:hover{border-color:var(--brand);color:var(--brand)}
+.cardtools{display:flex;justify-content:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.keyhint{text-align:center;font-size:11.5px;color:var(--muted);margin-top:12px}
+kbd{background:var(--soft);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-size:11px;font-family:inherit}
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+
+/* ---------- play ---------- */
+.playtabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.qbox{max-width:760px;margin:0 auto}
+.qhead{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--muted);margin-bottom:12px}
+.qtitle{font-size:18px;font-weight:700;line-height:1.6;margin-bottom:16px;white-space:pre-line}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:620px){.opts{grid-template-columns:1fr}}
+.opt{text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:12px 15px;font-size:14px;transition:.16s;line-height:1.5}
+.opt:hover{border-color:var(--brand);transform:translateX(3px)}
+.opt.right{background:rgba(63,157,124,.14);border-color:var(--green);color:var(--green);font-weight:700}
+.opt.wrong{background:rgba(200,85,77,.12);border-color:var(--red);color:var(--red)}
+.opt.dim{opacity:.5}
+.explain{margin-top:14px;padding:13px 16px;border-radius:12px;background:var(--soft);font-size:13px;color:var(--ink2);white-space:pre-line;border-left:4px solid var(--brand)}
+.scorebar{display:flex;gap:16px;align-items:center;font-size:13px;font-weight:600;flex-wrap:wrap}
+.scorebar b{color:var(--accent);font-size:18px}
+.orderbox{display:grid;gap:8px}
+.orderbtn{display:flex;gap:12px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:11px 15px;font-size:13.5px;transition:.16s}
+.orderbtn:hover{border-color:var(--brand)}
+.orderbtn .idx{width:26px;height:26px;border-radius:8px;background:var(--soft);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+.orderbtn.done{background:rgba(63,157,124,.12);border-color:var(--green);opacity:.72}
+.orderbtn.done .idx{background:var(--green);color:#fff}
+.orderbtn.shake{animation:shake .35s}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.timer{font-size:22px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+
+/* ---------- docs ---------- */
+.doclayout{display:grid;grid-template-columns:230px 1fr;gap:18px;align-items:start}
+@media(max-width:820px){.doclayout{grid-template-columns:1fr}}
+.docside{position:sticky;top:70px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
+@media(max-width:820px){.docside{position:static}}
+.docside h3{margin:0 0 10px;font-size:13px;color:var(--muted);font-weight:700;letter-spacing:1px}
+.docbtn{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:10px;font-size:13px;color:var(--ink2);margin-bottom:4px;transition:.16s;line-height:1.45}
+.docbtn:hover{background:var(--soft)}
+.docbtn.on{background:var(--brand);color:#fff;font-weight:600}
+.docbtn.pending{opacity:.6;cursor:pointer;border:1px dashed var(--line)}
+.docbtn.pending:after{content:" · 待更新";font-size:10.5px;color:var(--accent)}
+.docside input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--ink);font-size:12.5px;outline:none;margin-bottom:8px}
+.docside input:focus{border-color:var(--brand)}
+.searchres{max-height:230px;overflow:auto;font-size:12px;color:var(--ink2)}
+.searchres div{padding:7px 9px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:6px}
+.searchres div:hover{background:var(--soft)}
+.searchres b{color:var(--brand)}
+.docbody{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:32px 38px;box-shadow:var(--shadow);min-height:400px}
+@media(max-width:620px){.docbody{padding:20px}}
+.docbody h1{font-size:26px;margin:0 0 8px;color:var(--brand);border-bottom:2px solid var(--line);padding-bottom:12px}
+.docbody h2{font-size:19px;margin:30px 0 12px;padding-left:12px;border-left:4px solid var(--brand)}
+.docbody h3{font-size:16px;margin:22px 0 10px;color:var(--accent)}
+.docbody h4{font-size:14px;margin:18px 0 8px}
+.docbody p{margin:10px 0;font-size:14px;color:var(--ink2)}
+.docbody strong{color:var(--ink);font-weight:700}
+.docbody code{background:var(--soft);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12.5px;font-family:Consolas,"Courier New",monospace;color:var(--accent)}
+.docbody pre{background:#282c38;color:#eef0f6;border-radius:12px;padding:16px 18px;overflow:auto;font-size:12.5px;line-height:1.65;margin:14px 0}
+.docbody pre code{background:none;border:none;color:inherit;padding:0;font-size:12.5px;white-space:pre}
+.docbody blockquote{margin:14px 0;padding:11px 16px;background:var(--soft);border-left:4px solid var(--accent);border-radius:0 10px 10px 0;color:var(--ink2);font-size:13.5px}
+.docbody ul,.docbody ol{padding-left:22px;color:var(--ink2);font-size:14px}
+.docbody li{margin:5px 0}
+.docbody hr{border:none;border-top:1px dashed var(--line);margin:26px 0}
+.tablewrap{overflow-x:auto;margin:14px 0}
+.docbody table{border-collapse:collapse;width:100%;font-size:13px}
+.docbody th,.docbody td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+.docbody th{background:var(--soft);font-weight:700;color:var(--ink)}
+.docbody td{color:var(--ink2)}
+.docbody tr:nth-child(even) td{background:rgba(128,128,128,.035)}
+.docblock+.docblock{margin-top:44px;padding-top:10px;border-top:2px dashed var(--line)}
+
+/* ---------- badges ---------- */
+.badgegrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:820px){.badgegrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:460px){.badgegrid{grid-template-columns:1fr}}
+.badge{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center;box-shadow:var(--shadow)}
+.badge .ico{font-size:34px;filter:grayscale(1);opacity:.35}
+.badge.on .ico{filter:none;opacity:1}
+.badge b{display:block;font-size:14px;margin-top:8px}
+.badge span{font-size:11.5px;color:var(--muted);display:block;margin-top:4px;line-height:1.5}
+.badge.on{border-color:var(--amber);background:linear-gradient(160deg,var(--panel),rgba(217,154,53,.1))}
+
+/* ---------- misc ---------- */
+#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:#2c2c34;color:#fff;padding:12px 22px;border-radius:999px;font-size:13.5px;opacity:0;pointer-events:none;transition:.3s;z-index:99;box-shadow:var(--shadow2);max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.confetti{position:fixed;width:9px;height:14px;top:-20px;z-index:98;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.2}}
+.footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0 30px}
+.noprint{}
+
+@media print{
+  body{background:#fff;color:#111}
+  html[data-theme="dark"]{--panel:#fff;--ink:#111;--ink2:#333;--muted:#666;--line:#ddd;--soft:#f6f6f6;--brand:#3b4a94;--accent:#b45c3c}
+  .topbar,.tabs,.docside,.footer,.noprint,#toast{display:none!important}
+  main{padding:0}
+  .wrap{max-width:none;padding:0}
+  .view{display:none!important}
+  #view-docs{display:block!important}
+  .doclayout{display:block}
+  .docbody{border:none;box-shadow:none;padding:0;min-height:0}
+  .docbody h1{font-size:22pt}
+  .docbody h2{font-size:15pt;page-break-after:avoid}
+  .docbody h3{font-size:12pt;page-break-after:avoid}
+  .docbody p,.docbody li,.docbody td,.docbody th{font-size:10.5pt}
+  .docbody pre{background:#f5f5f5;color:#222;border:1px solid #ddd;white-space:pre-wrap;font-size:9pt}
+  .docbody pre code{color:#222;white-space:pre-wrap}
+  .docbody blockquote{background:#f7f7f7}
+  .docblock{page-break-before:always}
+  .docblock:first-child{page-break-before:auto}
+  .tablewrap{overflow:visible}
+  table{page-break-inside:auto}
+  tr{page-break-inside:avoid}
+  @page{size:A4;margin:16mm 15mm}
+}
+</style>
+<link rel="stylesheet" href="./portal.css?v=602a24de47">
+<style id="wp-study-guard">.wp-fab,.wp-panel{display:none!important}</style>
+</head>
+<body data-portal-mode="study">
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo" href="#" title="返回资料库" style="text-decoration:none;color:inherit">🃏</a>
+    <div class="tt"><h1>英语作文 · 记忆卡学习站</h1><p>一套骨架 · 只换 P1 · 背到闭卷 ｜ 2027 考研</p></div>
+    <div class="topright">
+      <div class="countdown" id="countdown">距考试 <b>—</b> 天</div>
+      <button class="iconbtn" id="themeBtn" title="切换深浅色">🌙</button>
+      <button class="iconbtn" id="exportBtn" title="导出学习记录">⬇</button>
+      <button class="iconbtn" id="importBtn" title="导入学习记录">⬆</button>
+      <button class="iconbtn" id="printBtn" title="打印 / 存成 PDF">🖨</button>
+      <input type="file" id="importFile" accept=".json" hidden>
+    </div>
+  </div>
+</header>
+<nav class="tabs"><div class="wrap" id="tabs">
+  <button class="tab active" data-v="home">🏠 今日</button>
+  <button class="tab" data-v="cards">🃏 记忆卡<span class="dot" id="dueDot">0</span></button>
+  <button class="tab" data-v="play">🎮 练习</button>
+  <button class="tab" data-v="docs">📖 讲义</button>
+  <button class="tab" data-v="badges">🏆 成就</button>
+</div></nav>
+<main class="wrap">
+
+<!-- ============ HOME ============ -->
+<section class="view active" id="view-home">
+  <div class="hero">
+    <div class="ring" id="ring"><div><b id="ringPct">0%</b><span id="ringSub">今日目标</span></div></div>
+    <div class="txt">
+      <h2 id="greet">今天也把这一套写到不卡壳</h2>
+      <p id="todayLine">按 60 天计划稳步推进 · 资料顺序 ≠ 复习顺序，仍按「先小作文、后大作文」执行。</p>
+      <div class="acts">
+        <button class="btn" id="startToday">▶ 开始今日复习</button>
+        <button class="btn ghost" id="random5">🎲 随机抽 5 张</button>
+        <button class="btn warm" id="quickJudge">⚡ 判型速测</button>
+      </div>
+    </div>
+  </div>
+  <div class="statrow">
+    <div class="stat"><b id="stStreak">0</b><span>连续打卡（天）</span></div>
+    <div class="stat"><b id="stMastered">0</b><span>已掌握卡片</span></div>
+    <div class="stat"><b id="stXp">0</b><span>累计 XP</span></div>
+    <div class="stat"><b id="stQuiz">0%</b><span>练习正确率</span></div>
+  </div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card">
+      <h2 class="sec">📈 我的等级 <small id="levelName"></small></h2>
+      <div class="levelbar"><i id="levelBar" style="width:0%"></i></div>
+      <p style="font-size:12.5px;color:var(--muted);margin:10px 0 0" id="levelTip">翻卡、评分、答题都能攒 XP。记住：先写对，再写高级。</p>
+      <h2 class="sec" style="margin-top:22px">🎯 最近解锁</h2>
+      <div id="recentBadges"></div>
+    </div>
+    <div class="card">
+      <h2 class="sec">🗓 今日建议 <small>每天 10 分钟就够</small></h2>
+      <div id="planBox" style="font-size:13.5px;color:var(--ink2)"></div>
+      <h2 class="sec" style="margin-top:20px">⚙️ 设置</h2>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px">
+        每日目标
+        <select id="goalSel" style="border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:9px;padding:6px 9px">
+          <option value="8">8 张</option><option value="12">12 张</option><option value="20">20 张</option><option value="30">30 张</option>
+        </select>
+        <button class="btn ghost small" id="resetBtn">清空学习记录</button>
+      </div>
+      <p style="font-size:11.5px;color:var(--muted);margin:10px 0 0">学习记录只存在这台电脑的浏览器里，不上传。换电脑前记得用右上角 ⬇ 导出备份。</p>
+    </div>
+  </div>
+  <div class="quote" id="quote"></div>
+</section>
+
+<!-- ============ CARDS ============ -->
+<section class="view" id="view-cards">
+  <div class="deckbar" id="deckbar"></div>
+  <div class="studybar">
+    <span id="sessionInfo">选择卡组开始</span>
+    <div class="pb"><i id="sessionBar" style="width:0%"></i></div>
+    <button class="btn ghost small" id="restartBtn">重开一轮</button>
+  </div>
+  <div class="flipwrap"><div class="flip" id="flip">
+    <div class="face front"><span class="tag" id="fTag">卡组</span><div class="q" id="fQ">点「开始今日复习」或选一个卡组</div><div class="hint">点击卡片 / 按空格翻开看答案</div><div class="num" id="fNum"></div></div>
+    <div class="face back"><span class="tag" style="background:var(--green)">答案</span><div class="a" id="fA"></div><div class="note" id="fNote"></div><div class="num" id="fNum2"></div></div>
+  </div></div>
+  <div class="gradebar" id="gradebar">
+    <button class="grade g0" data-g="0">😵 忘了<small>今天再来</small></button>
+    <button class="grade g1" data-g="1">🤔 模糊<small>明天再看</small></button>
+    <button class="grade g2" data-g="2">🙂 记得<small>按间隔复习</small></button>
+    <button class="grade g3" data-g="3">😎 太简单<small>隔久一点</small></button>
+  </div>
+  <div class="cardtools"><button class="btn ghost small" id="prevBtn">← 上一张</button><button class="btn ghost small" id="skipBtn">跳过 →</button><button class="btn ghost small" id="favBtn">☆ 收藏</button></div>
+  <div class="keyhint"><kbd>空格</kbd> 翻卡 · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> 评分 · <kbd>←</kbd><kbd>→</kbd> 切卡</div>
+</section>
+
+<!-- ============ PLAY ============ -->
+<section class="view" id="view-play">
+  <div class="playtabs" id="playtabs">
+    <button class="chip on" data-p="judge">🧭 判型速测</button>
+    <button class="chip" data-p="point">📌 考点选择</button>
+    <button class="chip" data-p="order">🧱 骨架拼装</button>
+    <button class="chip" data-p="rush">⚡ 60 秒挑战</button>
+  </div>
+  <div class="card">
+    <div class="qbox" id="playBox"></div>
+  </div>
+</section>
+
+<!-- ============ DOCS ============ -->
+<section class="view" id="view-docs">
+  <div class="doclayout">
+    <aside class="docside noprint">
+      <h3>全部讲义</h3>
+      <div id="docnav"></div>
+      <h3 style="margin-top:18px">全文搜索</h3>
+      <input id="docSearch" placeholder="输入关键词，如 B2 / 署名">
+      <div class="searchres" id="searchres"></div>
+      <button class="btn ghost small" id="printBtn2" style="width:100%;margin-top:14px">🖨 打印 / 存 PDF</button>
+    </aside>
+    <article class="docbody" id="docBody"></article>
+  </div>
+</section>
+
+<!-- ============ BADGES ============ -->
+<section class="view" id="view-badges">
+  <div class="card">
+    <h2 class="sec">🏆 成就墙 <small id="badgeCount"></small></h2>
+    <div class="badgegrid" id="badgeGrid"></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h2 class="sec">📊 学习数据</h2>
+    <div class="statrow" style="margin-top:0">
+      <div class="stat"><b id="dReviews">0</b><span>累计翻卡评分</span></div>
+      <div class="stat"><b id="dDue">0</b><span>今日待复习</span></div>
+      <div class="stat"><b id="dCombo">0</b><span>最高连击</span></div>
+      <div class="stat"><b id="dQuiz">0</b><span>累计答题</span></div>
+    </div>
+    <p style="font-size:12.5px;color:var(--muted);margin:16px 0 0">复习节奏沿用你原件里的 <b>1-2-4-7</b>：卡片按「忘了 / 模糊 / 记得 / 太简单」自动排到 1 / 2 / 4 / 7 天之后，再逐次拉长到 15 / 30 / 60 天。考前 3 天只看一页纸 + 总写错的卡。</p>
+  </div>
+</section>
+</main>
+<div class="footer">英语作文定稿资料 · 单文件离线网页 · 学习记录保存在本机浏览器 · 原 00—05 六份原件未改动 · <a href="#" style="color:inherit;text-decoration:underline">返回资料库</a></div>
+<div id="toast"></div>
+
+<!-- ============ DOC SOURCES ============ -->
+<script type="text/plain" id="md-0"># 我的作文定稿资料 · 先看这里
+
+> 🆕 **11/15 增补｜新资料已集成**：上级「英语」文件夹新增的真题库 + 柴荣 / 石雷鹏 / Monkey 全年班资料（598 份、约 5.1 GB）已全部盘点，**结论见 `10_新增资料集成与英语取舍.md`（附排版版 `10_新增资料集成地图.html`）**。
+> 骨架没动，但有三处**必须知道的勘误**：① **2010/2011/2012 署名都是 Zhang Wei**（不是只有 2012）；② **2024/2025/2026 连续三年 B2 静态柱状**；③ **纪要（minutes）已进 2025/2026 大纲**，仍认格式不背。
+> 新资料的价值集中在阅读（英语细节题 3—4 题、避坑五条）和小题型分数账，作文部分只取思路、不引入第二套模板。
+
+> 🆕 **新版入口（推荐）**：双击 `英语作文记忆卡.html` —— 113 张记忆卡、自动复习排期、判型小游戏、11 份全文讲义（另含 08/09 排版页与 12 号小作文占位）都在一个离线网页里；或者直接看 `英语作文备考手册.pdf`（排版版，74 页，可直接打印）。下面这些 Markdown 保留为资料源，不必再逐个打开。
+>
+> 🆕 **真题套写练习页**：`/essay/practice/`（本地在 `dbzz/site/essay/practice/`）——2020—2026 七年真题，逐句揭示 + 原版四档对照。
+
+> 🆕 **11/16 定稿｜骨架从 11 句改为 10 句（3+4+3）**：南萧《27 大作文一页纸》4 份 PDF + 语雀英语套写 **28 份 HTML（7 年 × 4 档）全部取得并逐份实测**。原版一律 9 句、174—215 词；本站取它「P1 一句话列全数据」的做法，保留自己的 P2 真分析与 P3 具体建议，合成 **10 句、150—165 词**。裁定理由见 `11_大作文一页纸_拆解与取舍.md` 第 0.2 节。
+
+**适用：2027 考研英语（二）｜最近修订：2026-11-16｜考试：2026-12-19，剩 33 天**
+
+---
+
+## 一句话说明
+
+这不是第 7 套模板，是**把你已有资料定稿成一套**。
+
+我把工作区 6 份原件（00—05）和上一级「英语」文件夹里的讲义、真题全部读了一遍，**原件一个字都没有改动**；新东西全部放在 `06_我的作文定稿资料/` 里。
+
+---
+
+## 三个发现，决定了这套资料怎么写
+
+**1. 你已经有一版自己的模板。** 04 里动态图那段后面标了「不要标题（看题目）自用 Pro 版」，用了 `maintained a steady upward trajectory`、`For one thing / For another`、`without exposing ourselves to unnecessary risks`。这版比前面的基础版更顺、更像人写的。所以我不另造骨架，**把它升级成唯一定稿**，静态图、表格、双图表都往这一套上挂。
+
+**2. 一套骨架 + 只换第一段，是讲义印证的结论。** 上级目录《1.27 考研英语大作文模板》P6—P7 明确写：「图画、图表、文字作文的第一段完全不同……第二、三段几乎相同，合并学习」。三段式不用按题型背 4 遍，P2/P3 完全共用。
+
+**3. 真题判型有个坑，必须点破。** 《附件1：历年大作文题目汇总》里 2010—2026 共 17 年**全是图表，没有一次图画/文字**；其中 2013、2021 标注「柱状图但是用饼状图公式」，而 **2024、2025、2026 连续三年都是静态多选柱状**（2025 老年人休闲活动 90.8/68.3/34.7/31.8/18.4，2024 劳动实践课收获 91.3/84.8/54.4/32.6，2026 儿童户外活动看法 54.6/54.5/37.2/33.2，全部合计 > 100%）。
+
+> 所以：**判「动态 / 静态」不能看图形，要看有没有时间轴。** 看到柱子就写 `from...to...`、写过去时，是这几年最容易踩的坑。
+
+另外，27 版讲义新增了**双图表**（26 英一已考），英语精力分配里也给了它权重。原 04 没有这个兜底，我在定稿模板里补了一个 P1 模块，只换首句，不增加第二套骨架。
+
+---
+
+## 文件清单
+
+| 文件 | 内容 | 什么时候看 |
+|---|---|---|
+| `01_英语大作文_最终定稿模板.md` | **核心**。唯一骨架（10 句 3+4+3）、6 类 P1、句型/语料库、17 年真题对照表、自查清单 | 先读这一份，背到闭卷 |
+| `02_英语大作文_一页纸速背卡.md` | 纯骨架，A4 一页可打印 | 每天 5 分钟、考前 3 天 |
+| `03_英语大作文_真题套用示范.md` | 5 篇完整范文，数据全部取自真题原件 | 套题前看 1 篇 |
+| `04_英语小作文_定稿模板.md` | 9 类目的句、6 个必背模板、格式硬差异、真题 Part A 对照 | 小作文专项 |
+| `05_英语小题型速查.md` | 完形 / 阅读 / 新题型 / 翻译的分值、步骤、资料索引（11/15 补英语题型分布与避坑） | 附加，有余力再看 |
+| `06` `07` `08` `09` | 六类成篇 / 分类速记总表 / 极简作战图 / 36 天方案 | 查缺补漏与执行 |
+| **`10_新增资料集成与英语取舍.md`** | **新到的 598 份资料去重、英语边界、7 条结论 + 3 处勘误、34 天嵌入点** | **今天花 10 分钟看一遍，之后不用再翻新资料** |
+
+**优先级：01 → 02 → 03 → 04 → 05**（10 号是资料地图，不是新增背诵内容）。 整理顺序按你的要求先大后小；但**备考执行仍按 00/01 原件的「先小作文、后大作文」**，资料顺序 ≠ 复习顺序，不要临考前改节奏。
+
+---
+
+## 今天该做什么（按你自己的 60 天计划算）
+
+- 10/20 是 Day 1，**今天 11/16 = Day 28**，仍在「三、真题套用」阶段。
+- 骨架已在今天定稿：**10 句（3+4+3）**，`02_一页纸速背卡.md` 就是那一页。
+- 接下来两周只做一件事：**每天 10 分钟默 10 句 + 三天练一篇真题**（先 B2，再 A）。11/17 起骨架不再变，只微调填空词。
+- 最低完成线不变：小作文 8 篇、大作文 10 篇、默写 20 次、50—55 分钟模考 3 次 → 目标 17—20/25。
+
+---
+
+## 资料取舍（不是漏看，是故意不混）
+
+| 资料 | 处理 |
+|---|---|
+| 工作区 00—05 | **主骨架来源**，全部吸收；原件不动 |
+| 《1.27/2.27 大小作文模板》（27 版） | 只取考情结论、判型逻辑、双图表首句、格式差异；**不引入它的 200 词骨架** |
+| 《英语历年主题词汇总及拓展》 | 主题词全部并入 01 的语料库 |
+| 《历年大作文题目汇总》《大小作文历年真题合集 2010—2025》 | 用于 16 年题型表 + 5 篇示范文的真题数据 |
+| 2017/2018 真题 PDF | 确认分值结构、Part A/B 原题要求 |
+| 周思成《写作讲义》、柴荣《大小作文模板》、大道至简系列 | 按 00 原件的定位当「字典」，卡住再翻；柴荣为扫描版未逐页提取。**不并入定稿，避免混搭** |
+| 刘琦《三小门真题精读讲义》 | 是篇章精读（原文+词汇+长难句），无考情结论；小题型速查按 2017/2018 真题 Directions 写 |
+| `英语10-26阅读单词带汉语.txt` / `不带汉语.txt` | 新增的阅读词汇表，索引放进 05，用法：先自测不带汉语版，再对带汉语版 |
+
+---
+
+## 三条铁律（沿用你原件，别破）
+
+1. **只背一套骨架**，其他资料只取句子，不混搭。
+2. **先写对，再写高级**；不写自己不会拼的词。
+3. **英语专属**：小约 100 词、大约 150 词，写作共 25 分。绝不拿英语一 160—200 词的模板往里套；27 版讲义自己也是按 200 词设计的，英语必须删原因点、删后半句。
+
+---
+
+## 打印建议
+
+- `02_一页纸速背卡.md`：A4 单面，贴墙 / 夹书里，替代 02 原件的反面。
+- `01`：A4 双面，整份打印，直接在上面标红自己总写错的空。
+- `03`：只看不背，套题前对照 1 篇即可。
+
+**最后一句**：写作是英语里投入产出比最高的 25 分。剩下 39 天，你要做的不是多背一套模板，是把这一套写到不卡壳、不写错。
+</script>
+<script type="text/plain" id="md-1"># 英语大作文 · 最终定稿模板
+
+**15 分｜150—165 词｜10 句（P1 3 + P2 4 + P3 3）｜建议 30—35 分钟｜三段｜不写标题**
+
+> 这是**唯一一套骨架**，以你在 04 里标注的「自用 Pro 版」为底稿升级而成。
+> 从今天起只微调词，不换句子、不加第二套。填空统一用【】。
+
+---
+
+## 0. 先把英语的底线记准
+
+| 项目 | 英语（你考的） | 英语一（别套） |
+|---|---|---|
+| 写作总分 | 25 分（小 10 + 大 15） | 30 分（小 10 + 大 20） |
+| 大作文字数 | **约 150 词** | 160—200 词 |
+| 大作文分值 | 15 分 | 20 分 |
+| 提示信息 | 图表为主（大纲也允许图画/文字） | 图表、图画、文字 |
+
+近三年 Part B 原题要求（真题原件）：
+
+> Write an essay based on the chart below. In your essay, you should **1) describe and interpret the chart, and 2) give your comments**. Write your answer in about 150 words on the ANSWER SHEET. (15 points)
+
+拆成两件事：**描述 + 解读（P1 + P2）**、**评论（P3）**。三段式正好对上，一段都不多。
+
+**三条硬性规定：**
+
+1. **不写标题**（沿用你 Pro 版的标注；近年 Directions 也没要求 title，题目若明确要再补）。
+2. **不照搬 200 词模板**。27 版讲义是按 200 词设计的（它自己写了「英语一写 3 点原因，英语写 2—3 点」），英语必须删掉第 3 个原因、删掉重复的后半句。
+3. **动态图只写 2—3 个点（首、中、尾），静态图把每一类都列出来**。动态图逐年抄是没看懂趋势；静态图漏类别是没读全题目。两者别搞反。
+
+---
+
+## 1. 考情：17 年真题（2010—2026）告诉我们的三件事
+
+来源：上级目录《附件1：历年大作文题目汇总》P14—P21，主题来自《英语历年主题词汇总及拓展》，2023—2025 图表数据已核对真题原件。
+
+| 年份 | 图表 | 年份 | 图表 |
+|---|---|---|---|
+| 2010 柱状 | 2011 柱状 | 2012 **表格** | 2013 **柱状（用饼图公式）** |
+| 2014 柱状 | 2015 饼状 | 2016 饼状 | 2017 线状 |
+| 2018 饼状 | 2019 柱状 | 2020 饼状 | 2021 **柱状（用饼图公式）** |
+| 2022 柱状 | 2023 线状 | 2024 **柱状（静态占比）** | 2025 **柱状（静态占比）** |
+| 2026 **柱状（静态多选）** | — | — | — |
+
+**结论 1：17 年 100% 是图表，图画/文字一次没考。** 大纲允许，但别为 10% 的可能挤掉 90% 的训练。只留一个 P1 兜底即可。
+
+**结论 2：静态图和动态图同等重要，而且 2024、2025、2026 连续三年考静态多选柱状。** 2013、2021、2024、2025 都是「柱子形态、但没有时间轴、只有占比/差异」。看到柱子就写 `from...to...` 和过去时，是眼下最容易丢分的地方。
+
+**结论 3：两个新兜底要认得。** 2012 表格「毫无趋势、成分太多」，是历年唯一不适合通用动态公式的题（27 版讲义 P24 特别注明）；26 英一又首考**双图表**，27 版给英语的精力分配里也留了权重。两者都只换 P1，P2/P3 不动。
+
+**建议精力分配（英语专属，改编自 27 版）：** 动态 35% / 静态 35% / 表格 10% / 双图表 10% / 图画·文字 10%。
+
+---
+
+## 2. 3 秒判型：先选题，再动笔
+
+```
+图里有没有时间轴（from 2012 to 2021 / 多个年份 / over the period）？
+├─ 有  →【A 动态图】过去时  rose / climbed / surged
+└─ 没有
+   ├─ 两幅图并排？              →【D 双图表】
+   ├─ 行列交叉、多组对比？       →【C 表格】看时间定
+   ├─ 百分比 / 占比 / 最大最小？ →【B 静态图】现在时 accounts for / ranks first
+   └─ 图画或一句话文字？         →【E 兜底】
+```
+
+> **判型口诀：看时间轴，不看图形。** 柱子 + 年份 = 动态；柱子 + 百分比 = 静态。
+
+**时态 + P2 主题句一起换**（这 4 个词是原 04 里没区分开的小细节）：
+
+| 题型 | 时态 | P2 第一句 | P1 点题句 |
+|---|---|---|---|
+| A 动态 | 过去时 | Several factors may account for **this trend**. | This trend clearly reflects ... |
+| B 静态 | 现在时 | Several factors may account for **this pattern**. | This distribution clearly suggests ... |
+| C 表格 | 有变化用过去时，纯横截面用现在时 | Several factors may account for **this situation**. | This comparison clearly shows ... |
+| D 双图表 | 各图各按时态 | Several factors may account for **this trend**. | Taken together, the two charts clearly reflect ... |
+| E 兜底 | 现在时为主 | Several factors may account for **this phenomenon**. | This picture clearly reflects ... |
+
+---
+
+## 3. 唯一骨架：10 句（3 + 4 + 3）
+
+**P2 / P3 五类题型完全共用，一个字不改。** 下面是 A 动态图的完整形态。
+
+> **2026-11-16 修订：由 11 句（4+4+3）改为 10 句（3+4+3）。**
+> 只改一处：原来 P1 的第 2、3 句（趋势 + 具体数据）合并成一句，把全部数据一次列完。
+> 字数不变（150—165 词），句数少一句，**但漏数据的风险归零**——原来写成 `By contrast, only 18.4%...` 时，中间的 34.7% 和 31.8% 就凭空消失了（2025 真题五类，旧稿只写了三类；2026 四类，旧稿只写三类）。
+
+```
+【P1｜55—65 词｜总起 + 全数据 + 点题】
+1  The 【bar chart】 illustrates 【话题】 in / among 【范围】.
+2  Overall, the figure maintained a 【steady upward】 trajectory: 【指标1】 rose from 【A】 to 【B】, while 【指标2】 surged from 【C】 to 【D】.
+3  This 【trend】 clearly reflects 【点题名词短语】.
+
+【P2｜50—60 词｜2 个原因 + 1 个例子】
+4  Several factors may account for this 【trend】.
+5  For one thing, 【原因1：名词短语】 has made 【主题】 more 【形容词】.
+6  For another, with 【背景名词短语 + doing】, 【人群】 are increasingly willing to 【动词短语】.
+7  For instance, 【例子句】, which has further 【结果动词短语】.
+
+【P3｜30—40 词｜观点 + 建议 + 展望】
+8  In my view, this 【trend】 is largely 【positive】.
+9  It is important for 【individuals】 to 【建议1】, while 【the government】 should 【建议2】.
+10 Only in this way can we 【具体展望】.
+```
+
+**第 2 句是全篇唯一的长句，也是唯一的得分点和唯一的风险点**，写法记死：
+
+- 静态图（B1/B2）：`【项目1】 ranks first at A%, followed by 【项目2】 at B%, 【项目3】 at C% and 【项目4】 at D%.`
+- 动态图（A）：`the figure rose from A in Y1 to C in Y2, and then surged to B in Y3.`
+- **只在每个数字前重复 `at`，不写 `respectively`**。`respectively` 本身不算错，但它要求前后数量一一对应，写错一个就全句崩；重复 `at` 慢一点，但不会配错。
+
+**这套骨架自带 4 个复杂句**：`which` 非限定定语从句（句 7）、`with + 名词 + doing`（句 6）、`while` 对比（句 2 和句 9）、`Only in this way` 倒装（句 10）。够拿语言分了，**不用再往里塞从句，更不要塞不会拼的词**。
+
+---
+
+## 4. 只换 P1：六个模块（A / B1 / B2 / C / D / E）
+
+### 【A】动态图 · 柱状 / 折线（有时间轴）
+
+```
+The 【bar / line chart】 illustrates changes in 【主题】 in 【范围】 from 【Y1】 to 【Y3】.
+Overall, the figure maintained a steady upward trajectory, climbing from 【A】 in 【Y1】 to 【C】 in 【Y2】 and then surging to 【B】 in 【Y3】.
+This trend clearly reflects 【点题】.
+```
+- 双指标时第 2 句改成：`Overall, the figure maintained a steady upward trajectory: 【指标1】 rose from A to B, while 【指标2】 surged from C to D.`（2022 快递就是这种）
+- `trajectory` 可换 `trend`；`climbing / surging` 按下一句动词错开，别重复。
+- 先升后降：`Overall, the figure rose steadily before peaking at 【B】 in 【Y2】 and then falling to 【C】 in 【Y3】.`
+- **一句话写完全部数据**：单指标写首、中、尾三个点；双指标各写一组首尾。2023 有 10 个年份也照样这么写，不逐年抄。
+
+### 【B1】静态图 · 饼图（各项加起来 = 100%）
+
+```
+The 【pie chart】 illustrates the composition of 【主题】 among 【人群】.
+【项目1】 accounts for the largest share at 【A%】, followed by 【项目2】 at 【B%】, 【项目3】 at 【C%】 and other purposes at 【D%】.
+This distribution clearly suggests that 【点题】.
+```
+适用于 2015、2016、2018、2020（2020 手机阅读：59.5 / 21.3 / 17.0 / 2.2）。
+- 饼图是**构成比，合计 100%**，所以 `accounts for the largest share` 和 `The remaining D%` 都可以用——但**只在 B1 用**。
+- 项目多于 4 个时，写最高的 3 项，第 4 句用 `The remaining 【X%】 is made up of 【类别】.` 收尾。这时 P1 是 4 句，P2 减到 3 句（省掉例子句）。
+
+### 【B2】静态图 · 多选占比柱状（各项独立，加起来 > 100%）★ 2024—2026 连考三年
+
+```
+The 【bar chart】 illustrates the 【views / gains / activities】 of 【人群】.
+【项目1】 ranks first at 【A%】, followed by 【项目2】 at 【B%】, 【项目3】 at 【C%】 and 【项目4】 at 【D%】.
+This distribution clearly suggests that 【点题】.
+```
+**三条红线：**
+
+1. **不能写 `The remaining X%`**——各项加起来不是 100%，根本没有「剩余」。2025（90.8+68.3+34.7+31.8+18.4=244%）、2024（91.3+84.8+54.4+32.6=263%）、2026（54.6+54.5+37.2+33.2=179.5%）、2021（54.3+47.7+23.9+15.8=141.7%）全是多选。
+2. **不用 `account for the largest share`**，用 `ranks first`。`share` 是「份额」，多选里每项是一个独立比例，不是份额。
+3. **四类（五类）全部列出来，不要只报前两名再说「By contrast, only…」**。这是旧稿最隐蔽的错：2025 五类只写三类、2024/2026 四类只写三类，中间那几项凭空消失，阅卷一对图就知道没读全。**「By contrast, only X%」这句话已经从句型里删掉**，因为它逼你先跳过中间项。
+
+### 【C】表格
+
+```
+The table compares 【比较对象】 in 【范围】 in 【年份】 (and 【年份】).
+The most striking feature is that 【最大差异，带数据】, while 【反向数据】.
+By contrast, 【次要对比，带数据】, which suggests that 【点题】.
+```
+- 表格的最大差异和「点题」**压进同一句**（末尾 `which suggests`），否则 P1 会到 4 句。
+- 若表格项目特别多、一句装不下，**允许 P1 写 4 句**（总起 + 最大差异 + 次要对比 + 点题），这时 P2 省掉例子句、只写 3 句，全篇仍是 10 句。
+- 表格若带年份、确有变化，才用过去时；纯横截面用现在时。
+
+**2012 特例（毫无趋势）改成纯横向比较**，不写 rose / declined：
+
+```
+The table compares job satisfaction among different age groups in a company.
+The most striking feature is that employees aged 41–50 reported the highest dissatisfaction, at 64.0%, while none of them chose "satisfied".
+By contrast, 40.0% of those over 50 were satisfied, the highest of the three groups, which suggests that job satisfaction varies considerably with age.
+```
+
+### 【D】双图表（27 版新增，只换首句）
+
+首句三选一（27 版讲义 P16—P17 原句）：
+
+```
+The chart on the left illustrates 【左图主题】, while the chart on the right presents 【右图主题】.
+```
+```
+The pie chart above presents 【左图主题】. As for the chart on the right, it shows 【右图主题】.
+```
+```
+The two charts present 【总主题】: the pie chart shows 【图1内容】, while the bar chart lists 【图2内容】.
+```
+
+后两句把两幅图各 1 个数据写进同一句，最后合起来点题（**共 3 句**）：
+
+```
+Overall, 【左图主要信息 + 数据】, whereas 【右图主要信息 + 数据】.
+Taken together, the two charts clearly reflect 【共同点题】.
+```
+> 27 版的原话：「静静 / 动静 / 动动结合不换骨架，只换每幅图内的主题用词」。抽象类用 `attitudes / concerns / choices / preferences`，动态类用 `changes / trends`，静态类用 `share / proportion`。**两幅图只写一个中心**，写成两个观点就上当。
+
+### 【E】兜底 · 图画 / 文字（只换 P1）
+
+```
+As is vividly depicted in the picture, 【画面 1 句】.
+The caption reads, "【标题】".
+This picture clearly reflects 【寓意】.
+```
+文字题首句换成：
+
+```
+The saying "【原句】" conveys a simple truth: 【寓意】.
+```
+
+---
+
+## 5. P1 工具箱
+
+### 5.1 首句四选一（图表类型词要写具体）
+
+| 图形 | 首句 |
+|---|---|
+| 柱状 | The **bar chart** illustrates ... |
+| 折线 | The **line chart** shows changes in ... over the period from ... to ... |
+| 饼图 | The **pie chart** illustrates the composition of ... among ... |
+| 表格 | The **table** compares ... across ... in terms of ... |
+
+介词：**among + 人群/机构**（among college students）、**in + 国家/地区**（in China）。拿不准就删掉这个短语，句子照样成立。
+
+### 5.2 数据公式 5 条（每篇选 2—3 个）
+
+| 用途 | 句型 |
+|---|---|
+| 动态升降 | X rose / fell from A in 20XX to B in 20XX. |
+| 对比 | X was B in 20XX, **compared with** A in 20XX, an increase of C. |
+| 倍数 | X was almost twice / three times **that** in 20XX. |
+| 占比（**仅 B1**，构成比，总和 = 100%） | X, Y and Z accounted for A%, B% and C% **respectively**. |
+| 多项并列（B1/B2 通用，最稳） | X ranks first at A%, followed by Y at B%, Z at C% and W at D%. |
+| 最高 / 最低 | X topped the list at A%, followed by Y at B%. / X ranks first at A%. |
+
+### 5.3 替换词（挑自己会拼的，别贪多）
+
+| 类别 | 可换 |
+|---|---|
+| 上升 | rise / climb / increase / grow / jump / surge / soar |
+| 下降 | fall / drop / decline / decrease / diminish |
+| 幅度大 | sharply / markedly / significantly / dramatically |
+| 幅度小 | slightly / gradually / steadily / modestly |
+| 趋势名词 | trend / trajectory / upward trend / downward trend |
+| 占比 | account for / make up / constitute；proportion / percentage / share |
+| 对比衔接 | while / whereas / by contrast / in contrast / meanwhile |
+| 具体引出 | Specifically / To be specific / As the data show |
+
+> `compared with` 不是 `comparing with`；`rise / fall` 不及物，别写成 `raise`；占比用 `account for`，不写 `occupy 30%`。
+
+### 5.4 P1 十条易错（考前扫一遍）
+
+1. 图里只有占比却写成过去时 `rose` —— **静态用现在时**。
+2. 多选占比柱状写 `The remaining X%...` —— **见 B2**。
+3. 动态图把所有年份抄一遍 —— **只留首、中、尾 3 个点**；静态图反过来，**四类五类必须全列**，漏一项就是内容不完整。
+4. 所有图都写 `chart` —— 写 bar / line / pie / table。
+5. `compared with` 写成 `comparing with`。
+6. 主谓不一致：`the number of ... was`，`the percentage of ... was`。
+7. 时态全篇乱跳：描述用过去、原因用现在完成/现在、建议用 should，这是**正常的**，不要反过来统一。
+8. 点题句写成空话 `This is a very interesting chart.`
+9. 数据抄错：看清 %、单位（十万人次 / 家 / yuan）。
+10. 拼写：`environment / government / phenomenon / respectively / percentage`。
+
+---
+
+## 6. P2 工具箱：任何主题都能填出两个原因
+
+**6 个原因句（一篇选 2 个，第 2 个优先用骨架里的 `with + doing` 句式）：**
+
+```
+The primary reason is that 【X】 has become more accessible / affordable.
+Another factor is the growing awareness of 【X】.
+This is partly driven by the rapid development of 【X】.
+People are increasingly willing to 【do X】 because 【X】.
+Policy support has also played a role: 【X】.
+For many people, 【X】 is no longer a luxury but a necessity.
+```
+
+**万能填词矩阵**（卡壳时按主题挑一行，直接塞进第 6、7 句）：
+
+| 原因类型 | 常填的主语（原因1） | 常填的结果（原因2） |
+|---|---|---|
+| 技术 / 便利 | the rapid development of mobile payment / the Internet / digital devices / express delivery | more convenient and affordable / time-saving |
+| 经济 / 收入 | rising incomes / higher living standards / falling prices | spend more on quality goods / pursue a better quality of life |
+| 观念 / 意识 | the growing awareness of health / environmental protection / lifelong learning | pay more attention to ... / choose healthier options |
+| 政策 / 供给 | policy support / better public services / more community facilities | easier access to ... / more opportunities to ... |
+| 压力 / 时间 | academic pressure / busy work schedules / work-life balance | relieve stress / kill time / seek relaxation |
+| 社会 / 文化 | changing lifestyles / social media / cultural confidence | follow the trend / stay connected with others |
+
+**例子句三种写法**（选 1 个，别写名人事例）：
+
+```
+For instance, 【many young people now buy daily necessities online】, which has further 【boosted the market】.
+For instance, 【many communities now organize free health lectures】, which has further 【encouraged residents to adopt healthier habits】.
+For instance, 【a growing number of students use mobile phones to read academic articles】, which makes 【learning more flexible】.
+```
+
+**主题词库（按你 01/04 原件的 7 类，考前中英互译一遍）：**
+
+| 主题 | 词组 |
+|---|---|
+| 教育 / 学习 | acquire knowledge, practical skills, hands-on ability, academic pressure, lifelong learning, equal access to education |
+| 就业 / 职业 | employment pressure, further study, entrepreneurship, career planning, job satisfaction, emerging industries |
+| 科技 / 生活 | digitalization, online shopping, mobile payment, express delivery, social media, artificial intelligence |
+| 消费 / 经济 | consumption upgrading, purchasing power, disposable income, domestic brands, rational consumption, quality of life |
+| 健康 / 社会 | health literacy, mental health, aging population, elderly care, work-life balance, public services |
+| 文化 / 休闲 | cultural confidence, museum visits, cultural heritage, tourism, leisure activities, spiritual life |
+| 环境 / 可持续 | environmental awareness, low-carbon lifestyle, plastic waste, sustainable development, green travel, energy conservation |
+
+**历年真题主题词（从《英语历年主题词汇总及拓展》摘的高频，套真题时直接换【主题】）：**
+
+| 年份 | 主题 | 核心词 |
+|---|---|---|
+| 2010 | 手机用户数量变化 | mobile-phone subscriptions / developed and developing countries |
+| 2011 | 国内轿车市场份额 | market share / domestic car brands |
+| 2012 | 员工工作满意度（表格） | job satisfaction / work stress / employee benefits |
+| 2013 | 学生兼职情况 | part-time jobs / work experience / self-independence |
+| 2014 | 城乡人口变化 | urbanization / rural and urban population |
+| 2015 | 春节假期花销 | Spring Festival presents / rational consumption |
+| 2016 | 学生旅游目的 | sightseeing / relieve pressure |
+| 2017 | 博物馆数量与参观人数 | museums / acquire knowledge / cultural heritage |
+| 2018 | 选择餐厅的关注因素 | restaurant service / dining environment / food prices |
+| 2019 | 本科毕业生去向 | further study / start a business / career planning |
+| 2020 | 手机阅读目的 | acquire knowledge / obtain information / kill time |
+| 2021 | 居民体育锻炼方式 | exercise alone / group activities / physical health |
+| 2022 | 快递业务量 | express delivery volumes / online shopping / rural revitalization |
+| 2023 | 居民健康素养 | health literacy / healthy lifestyle / chronic disease |
+| 2024 | 劳动实践课收获 | practical skills / relevant knowledge / cooperation capacity |
+| 2025 | 日常休闲活动 | watch television / take a walk outdoors / gardening / reading / play chess |
+| 2026 | 儿童户外活动看法 | outdoor activities / observation skills / curiosity / physical fitness / parent-child interaction |
+
+---
+
+## 7. P3 工具箱：语气四选一 + 不空喊口号
+
+| 语气 | 观点句（第 9 句） | 适用 |
+|---|---|---|
+| 积极 | In my view, this trend is largely positive. | 健康素养上升、博物馆增加、快递增长 |
+| 中性 / 提醒 | In my view, this distribution is understandable but deserves attention. | 休闲活动单一、消费结构 |
+| 消极 | This phenomenon deserves attention. | 手机依赖、过度消费、满意度低 |
+| 辩证 | While 【X】 brings convenience, it also calls for 【Y】. | 科技、网购、社交媒体 |
+
+> **一致性细节**：静态图（B1/B2）把观点句里的 `this trend` 换成 `this pattern`，表格换 `this situation`，兜底换 `this phenomenon`——要和 P2 主题句用同一个词。否则通篇 trend / pattern 混着写，阅卷看着像两套模板拼起来的。
+
+**建议句「谁做什么」词库**（把第 10 句两个空填具体，别只写 we should）：
+
+```
+individuals  → shop rationally / limit screen time / turn knowledge into action / make a reasonable budget
+families     → create more opportunities for face-to-face communication
+schools      → offer more practical courses / organize more extracurricular activities
+employers    → improve working conditions / provide staff training
+the government → protect consumers' rights / stabilize housing prices / improve public health services / invest in rural infrastructure
+society      → raise public awareness of ...
+```
+
+**展望句正误对照**（这是原 01 特别点名的扣分点）：
+
+| ✘ | ✔ |
+|---|---|
+| Only in this way can we have a better future. | Only in this way can we enjoy the convenience of e-commerce without exposing ourselves to unnecessary risks. |
+| Only in this way can we be happy. | Only in this way can we turn rising health literacy into real health outcomes. |
+| Let's work together! | Only in this way can we reduce the financial burden on ordinary families. |
+
+---
+
+## 8. 17 年真题 → 用哪个模块（套题前查一眼）
+
+| 年份 | 图表 | 判型 | 模块 | 时态 |
+|---|---|---|---|---|
+| 2010 | 柱状（手机用户） | 动态 | A | 过去 |
+| 2011 | 柱状（轿车份额） | 看时间轴 | A / B1 | 看题目 |
+| 2012 | **表格（满意度）** | 无趋势特例 | **C 特例** | 现在 |
+| 2013 | 柱状（学生兼职） | **静态占比** | B2 / B1 | 现在 |
+| 2014 | 柱状（城乡人口 20 年） | 动态 | A | 过去 |
+| 2015 | 饼状（春节花销） | 构成比 | B1 | 现在 |
+| 2016 | 饼状（旅游目的） | 构成比 | B1 | 现在 |
+| 2017 | 线状（博物馆数量/人数） | 动态·双指标 | A | 过去 |
+| 2018 | 饼状（餐厅关注因素） | 构成比 | B1 | 现在 |
+| 2019 | 柱状（毕业生去向 2013/2018） | 动态·两组对比 | A / C | 过去 |
+| 2020 | 饼状（手机阅读目的） | 构成比 | B1 | 现在 |
+| 2021 | 柱状（体育锻炼方式） | **静态占比** | B2 | 现在 |
+| 2022 | 柱状（快递业务量） | 动态 | A | 过去 |
+| 2023 | 线状（健康素养 2012—2021） | 动态 | A | 过去 |
+| 2024 | 柱状（劳动实践课收获） | **静态占比·多选** | **B2** | 现在 |
+| 2025 | 柱状（老年人休闲活动） | **静态占比·多选** | **B2** | 现在 |
+| 2026 | 柱状（儿童户外活动看法） | **静态占比·多选** | **B2** | 现在 |
+
+> 判型来自题型汇总与真题原件，个别年份（2011、2019）请以你手上真题册的图表为准，按第 2 节的决策树现场判断。**练的顺序建议：A（2023）→ B1（2020）→ B2（2024、2025）→ C（2012）→ D（改编双图表）**，正好覆盖 27 版给英语的全部重点。
+
+---
+
+## 9. 写完 3 分钟自查
+
+```
+□ 不写标题；3 段；10 句；字数 150—165（约 15—18 行）。
+□ 图表类型词写对：bar / line / pie / table；没把柱状静态图写成 from...to...。
+□ P1 三句：总起 + 一句话列全数据（动态首中尾 / 静态全部类别）+ 点题句。
+□ 时态对：动态过去、静态现在；多选占比没写 The remaining X%。
+□ P2 四句：主题句 + 2 个原因 + 1 个例子；主题句按题型用了 trend / pattern / situation。
+□ P3 有观点 + 两条具体建议 + 具体展望，没有空喊口号。
+□ 主谓一致、单复数、冠词、介词；至少 1 个从句 + 1 个非谓语/倒装。
+□ 拼写：environment / government / phenomenon / respectively / percentage / literacy。
+□ 数字、单位、百分号抄对；没有把图里所有数字都搬上来。
+□ 卷面：错字一条横线划掉，不涂黑，不用修正带。
+```
+
+---
+
+## 10. 考场 30 分钟 & 冻结节奏
+
+| 时间 | 动作 |
+|---|---|
+| 0—3 min | 审题：划出图表类型、主题、时间轴、单位；**在题旁写下 A / B1 / B2 / C / D** |
+| 3—5 min | 每段 2—3 个关键词提纲，不写完整句 |
+| 5—15 min | P1 写完（不超过 10 min） |
+| 15—24 min | P2 |
+| 24—28 min | P3 |
+| 28—30 min | 按第 9 节自查；重点看时态、数据、拼写 |
+
+**冻结（按你 01 原件的「模板定稿 5 步」）：**
+
+1. 今天—11/16：每天 10 分钟抄 + 默 `02_一页纸速背卡`，把 10 句骨架背到闭卷。
+2. 11/17（D29，大作文真题套用第一天前）：**骨架冻结**，之后只微调 1—2 个词。
+3. 换题练习只换【】里的主题词，**不换骨架、不加新句**；卡壳就改填空词，不要另找模板。
+4. 复习节奏用原件里的 **1-2-4-7**：当天、第 2 天、第 4 天、第 7 天各默 1 次。
+5. 考前 3 天只看一页纸 + 错题本，只改「时态、主谓一致、拼写、格式」四类错。
+
+> 最后一句：**150 词，写对，比写高级重要。** 这套骨架在 8—11/15，配合小作文 6—7 分、其余题型不崩，总分 50+ 是稳的。别再往里加东西。
+</script>
+<script type="text/plain" id="md-2"># 英语大作文 · 一页纸速背卡
+
+**15 分｜150—165 词｜10 句（P1 3 + P2 4 + P3 3）｜30 分钟｜3 段｜不写标题｜A4 单面打印**
+
+---
+
+## ① 3 秒判型（看时间轴，不看图形）
+
+| 题目里… | 选 | 时态 | P2 主题句 |
+|---|---|---|---|
+| 有年份 / from...to... | **A 动态** | 过去 | this **trend** |
+| 只有 % / 占比（加起来 =100%） | **B1 饼图** | 现在 | this **pattern** |
+| 只有 % / 占比（加起来 >100%，多选柱状） | **B2 多选柱状** | 现在 | this **pattern** |
+| 行列交叉表格 | **C 表格** | 看题目 | this **situation** |
+| 两幅图 | **D 双图表** | 各图各判 | this **trend** |
+| 图画 / 一句话 | **E 兜底** | 现在 | this **phenomenon** |
+
+> **2024、2025、2026 连续三年考 B2。** 柱子 ≠ 动态。
+
+---
+
+## ② 唯一骨架 · 10 句（闭卷默写）
+
+```
+P1  The 【bar chart】 illustrates 【话题】 in / among 【范围】.
+    Overall, the figure maintained a steady upward trajectory: 【指标1】 rose from 【A】 to 【B】, while 【指标2】 surged from 【C】 to 【D】.
+    This trend clearly reflects 【点题】.
+
+P2  Several factors may account for this trend.
+    For one thing, 【原因1】 has made 【主题】 more 【adj】.
+    For another, with 【背景 + doing】, 【人群】 are increasingly willing to 【do】.
+    For instance, 【例子】, which has further 【结果】.
+
+P3  In my view, this trend is largely 【positive】.
+    It is important for individuals to 【建议1】, while the government should 【建议2】.
+    Only in this way can we 【具体展望】.
+```
+
+> **第 2 句是全篇唯一长句，一句话把数据说完。** 静态图数类别、动态图写首中尾，**绝不只报前两名**。
+
+---
+
+## ③ 只换 P1：六个模块（都是 3 句）
+
+**A 动态**：见上方 10 句，原样。
+
+**B1 饼图（=100%）**
+```
+The 【pie chart】 illustrates the composition of 【主题】 among 【人群】.
+【项1】 accounts for the largest share at 【A%】, followed by 【项2】 at 【B%】, 【项3】 at 【C%】 and other purposes at 【D%】.
+This distribution clearly suggests that 【点题】.
+```
+
+**B2 多选柱状（>100%）★** —— **不写 remaining、不写 by contrast only**
+```
+The 【bar chart】 illustrates the 【views / gains / activities】 of 【人群】.
+【项1】 ranks first at 【A%】, followed by 【项2】 at 【B%】, 【项3】 at 【C%】 and 【项4】 at 【D%】.
+This distribution clearly suggests that 【点题】.
+```
+
+**C 表格**（最大差异和点题压一句；项目太多可写 4 句，P2 就省掉例子句）
+```
+The table compares 【比较对象】 in 【范围】 in 【年份】.
+The most striking feature is that 【最大差异 + 数据】, while 【反向数据】.
+By contrast, 【次要对比 + 数据】, which suggests that 【点题】.
+```
+
+**D 双图表（3 句）**
+```
+The chart on the left illustrates 【左图主题】, while the chart on the right presents 【右图主题】.
+Overall, 【左图信息 + 数据】, whereas 【右图信息 + 数据】.
+Taken together, the two charts clearly reflect 【共同点题】.
+```
+
+**E 兜底**：`As is vividly depicted in the picture, ... / The caption reads, "..." / This picture clearly reflects ...`（本来就是 3 句）
+
+---
+
+## ④ 数据句 3 个公式（只背这三个）
+
+```
+静态多项：X ranks first at A%, followed by Y at B%, Z at C% and W at D%.
+动态单线：the figure rose from A in 【Y1】 to C in 【Y2】 and then surged to B in 【Y3】.
+动态双线：X rose from A to B, while Y surged from C to D.
+```
+
+升 `rise / climb / surge`｜降 `fall / drop / decline`｜大 `sharply / significantly`｜小 `slightly / steadily`
+
+✘ `comparing with`　✘ `raise`　✘ `occupy 30%`　✘ 动态图抄光所有年份　✘ 静态图只写前两名
+
+> `respectively` 本身不算错，但它要求前后数量一一对应，**基础一般就别用**，每个数字前重复 `at` 最保险。
+
+---
+
+## ⑤ 原因 6 句（选 2 + 1 例子）
+
+```
+The primary reason is that ___ has become more accessible / affordable.
+Another factor is the growing awareness of ___.
+This is partly driven by the rapid development of ___.
+People are increasingly willing to ___ because ___.
+Policy support has also played a role: ___.
+For many people, ___ is no longer a luxury but a necessity.
+```
+填词六类：**技术便利 / 经济收入 / 观念意识 / 政策供给 / 压力时间 / 社会文化**
+
+---
+
+## ⑥ 结尾 4 组（选 1）
+
+| 语气 | 观点句 |
+|---|---|
+| 积极 | In my view, this trend is largely positive. |
+| 中性 | In my view, this distribution is understandable but deserves attention. |
+| 消极 | This phenomenon deserves attention. |
+| 辩证 | While ___ brings convenience, it also calls for ___. |
+
+> 静态图（B1/B2）把观点句的 `this trend` 换成 `this pattern`，表格换 `this situation`，兜底换 `this phenomenon`——**和 P2 主题句用同一个词**。
+
+建议填具体：`individuals → shop rationally / limit screen time`｜`schools → offer more practical courses`｜`the government → protect consumers' rights / improve public health services`
+
+✘ `Only in this way can we have a better future.`　✔ `...can we enjoy the convenience of e-commerce without exposing ourselves to unnecessary risks.`
+
+---
+
+## ⑦ 主题词 7 类（每类挑 2—3 个）
+
+**教育** acquire knowledge, practical skills｜**就业** further study, job satisfaction｜**科技** mobile payment, express delivery｜**消费** rational consumption, quality of life｜**健康** health literacy, healthy lifestyle｜**文化** museum visits, leisure activities｜**环境** low-carbon lifestyle, sustainable development
+
+---
+
+## ⑧ 交卷前 60 秒
+
+```
+□ 3 段 / 10 句 / 150—165 词 / 无标题
+□ 没把静态柱状写成 from...to...；时态对
+□ P1 三句：总起 + 一句话列全数据 + 点题
+□ P2 四句：主题句 + 2 原因 + 1 例子
+□ P3 三句：观点 + 2 建议 + 展望
+□ 数据、单位、% 抄对；静态图四类五类全列
+□ 主谓一致 / 拼写：government, phenomenon, percentage, literacy
+□ 展望句不空喊口号；卷面不涂黑
+```
+
+**考场 30 min**：审题 3 → 提纲 2 → P1 9 → P2 10 → P3 4 → 自查 2
+</script>
+<script type="text/plain" id="md-3"># 英语大作文 · 真题套用示范
+
+**5 篇完整范文 + 1 个双图表首段｜图表与数据全部取自真题原件（上级目录《考研英语 大作文+小作文历年真题合集 2010—2025》）**
+
+> 用法：**不要背这 5 篇**。每篇只看「骨架哪些没变、只换了哪些空」，然后拿 03 原件的打卡表去套下一篇真题。
+> 每篇都严格使用 `01_最终定稿模板.md` 的 **10 句骨架（P1 3 + P2 4 + P3 3）**，P2/P3 只有填空词不同；**词数全部压在 150—160**，不写超。
+
+---
+
+## 示范 1｜2023 真题 · 动态折线（模块 A）
+
+**原题**：2012—2021 年我国居民健康素养水平。数据：8.80%（2012）、…、11.58%（2016）、…、25.40%（2021）。要求 describe and interpret + give comments，约 150 词。
+
+```
+The line chart illustrates changes in the health literacy level of Chinese residents from 2012 to 2021. Overall, the figure maintained a steady upward trajectory, climbing from about 8.8% in 2012 to 11.58% in 2016 and then surging to around 25.4% in 2021. This trend clearly reflects the growing public attention to health education and disease prevention.
+
+Several factors may account for this trend. For one thing, the growing supply of health information online has made medical knowledge more accessible. For another, with living standards improving, residents are increasingly willing to spend time on exercise and check-ups. For instance, many communities now offer free health lectures, which has further encouraged healthier habits.
+
+In my view, this trend is largely positive. It is important for individuals to turn knowledge into action, while the government should improve public health services. Only in this way can we turn rising health literacy into real health outcomes.
+```
+
+**拆解**：10 个年份只写 3 个数据（起点 / 中间点 / 终点），而且压进**同一句**；`trajectory`、`surged` 是 Pro 版原句；原因走「信息供给 → 技术便利」+「生活水平 → 经济收入」；P3 用积极语气，展望句把「健康素养」具体化成 `real health outcomes`，没喊口号。
+
+---
+
+## 示范 2｜2025 真题 · 静态多选柱状（模块 B2）★ 最该练
+
+**原题**：某社区老年人主要日常休闲活动调查。看电视 90.8%、散步 68.3%、养花 34.7%、阅读 31.8%、下棋 18.4%。约 150 词。
+
+```
+The bar chart illustrates the daily leisure activities of elderly residents in one community. Watching television ranks first at 90.8%, followed by taking walks at 68.3%, tending flowers at 34.7%, reading at 31.8% and playing chess at 18.4%. This distribution clearly suggests that most elderly people prefer light, familiar activities at home.
+
+Several factors may account for this pattern. For one thing, limited mobility and few nearby facilities have made indoor activities more accessible. For another, with family members away from home, many elderly people are increasingly willing to choose solitary activities. For instance, a short walk after dinner has become a daily routine for many retirees, which has further reduced their interest in group activities.
+
+In my view, this pattern is understandable but deserves attention. It is important for families to visit the elderly more often, while the community should offer more group activities. Only in this way can we help older residents lead a richer social life.
+```
+
+**拆解**：**柱子但没有时间轴 → 现在时、ranks first、不用 from...to...**；各项加起来远超 100%（多选题），所以**没有写 `The remaining X%`**；**五类全列在同一个句子里**——旧稿只报 90.8 / 68.3 / 18.4，中间的养花 34.7、阅读 31.8 会凭空消失；P2 主题句换成 `this pattern`，P3 观点句也跟着换 `this pattern`（这是静态图最容易漏的一致性问题）；建议落到 families / community 两个具体主体。
+
+> 把这篇和 01 原件的「静态图」模板对照看：原 04 的静态模板用 `accounts for the largest share` + `The remaining X%`，适合饼图；**用到 2024/2025 这种多选柱状上会写错**。这就是 B1 / B2 必须分开的原因。
+
+---
+
+## 示范 3｜2020 真题 · 饼图（模块 B1）
+
+**原题**：某高校学生手机阅读目的调查。学习知识 59.5%、消磨时间 21.3%、获取信息 17.0%、其他 2.2%。约 150 词。
+
+```
+The pie chart illustrates the main purposes of mobile reading among college students. Acquiring knowledge accounts for the largest share at 59.5%, followed by killing time at 21.3%, obtaining information at 17.0% and other purposes at 2.2%. This distribution clearly suggests that mobile reading is mainly used for learning rather than for pure entertainment.
+
+Several factors may account for this pattern. For one thing, the growing supply of e-books and academic apps has made learning materials more accessible. For another, with academic pressure increasing, students are increasingly willing to use fragmented time for study. For instance, many students now read articles between classes, which has further blurred the line between study and leisure.
+
+In my view, this pattern is largely positive. It is important for individuals to limit passive screen time, while universities should offer better digital resources. Only in this way can we make mobile reading a genuine aid to learning.
+```
+
+**拆解**：4 个扇区刚好写满「最大 / 次大 / 第三 / 其他」，因为总和 = 100%，B1 才允许 `accounts for the largest share` 和 `The remaining ...`；主题词直接取自《英语历年主题词汇总及拓展》2020 年条目（acquire knowledge / obtain information / kill time）。
+
+---
+
+## 示范 4｜2012 真题 · 表格特例（模块 C）
+
+**原题**：某公司员工工作满意度调查。≤40 岁：满意 16.7% / 不清楚 50.0% / 不满意 33.3%；41—50 岁：0.0% / 36.0% / 64.0%；>50 岁：40.0% / 50.0% / 10.0%。至少 150 词。
+
+```
+The table compares job satisfaction among different age groups in a company. The most striking feature is that employees aged 41–50 reported the highest dissatisfaction, at 64.0%, while none of them chose "satisfied". By contrast, 40.0% of those over 50 were satisfied, the highest of the three groups, which suggests that job satisfaction varies considerably with age.
+
+Several factors may account for this situation. For one thing, the pressure of mid-career competition has made work less satisfying for employees in their forties. For another, with senior staff nearing retirement, they are increasingly willing to value a stable environment. For instance, many firms now offer flexible schedules to senior staff, which has further improved their satisfaction.
+
+In my view, this situation deserves attention. It is important for employers to offer clearer career paths, while individuals should maintain a healthy work-life balance. Only in this way can we ease the mid-career pressure shown in the table.
+```
+
+**拆解**：这是 27 版讲义点名的唯一特例——**表格毫无趋势，不能写 rose / declined**。P1 改成「最大差异 + 反向对比」；P2 主题句用 `this situation`，P3 观点句也跟着用 `this situation`；主题词取自 2012 年条目（job satisfaction / work stress / employee benefits）。
+
+---
+
+## 示范 5｜2024 真题 · 静态多选柱状（模块 B2，换词练习）
+
+**原题**：某高校劳动实践课学生主要收获调查。学习相关知识 91.3%、提升动手能力 84.8%、感觉心情舒畅 54.4%、增强合作能力 32.6%。约 150 词。
+
+```
+The bar chart illustrates the main gains reported by students taking labor practice courses at one university. Acquiring relevant knowledge ranks first at 91.3%, followed by improved practical skills at 84.8%, feeling relaxed at 54.4% and better cooperation at 32.6%. This distribution clearly suggests that students value practical gains far more than cooperation skills.
+
+Several factors may account for this pattern. For one thing, courses combining theory with real tasks have made practical skills easier to acquire. For another, with employers valuing hands-on experience, students are increasingly willing to take these courses seriously. For instance, many universities now require a real project before the term ends, which has further linked classroom learning to work.
+
+In my view, this pattern is largely positive. It is important for schools to add more group tasks, while students should make fuller use of these opportunities. Only in this way can we balance practical skills and cooperation.
+```
+
+**拆解**：和示范 2 **只换了【】里的词，10 句骨架一个没动**。把这两篇并排抄一遍，你就能体会「一套骨架 + 只换主题词」是什么意思。点题句故意写成 `more for skills than for teamwork`，为 P3 的「加团体任务」建议埋了逻辑，比空泛的「劳动实践很重要」更像评论。
+
+---
+
+## 示范 6｜双图表首段（模块 D，只练 P1）
+
+27 版讲义 P16—17 用 2026 英一「养老机器人」双图表举例。英语若考到，**只换 P1，P2/P3 原样照抄**：
+
+```
+The chart on the left illustrates 【左图主题，如 consumers' attitudes towards elderly-care robots】, while the chart on the right presents 【右图主题，如 their major concerns about such robots】.
+Overall, 【左图主要信息 + 数据】, whereas 【右图主要信息 + 数据】.
+Taken together, the two charts clearly reflect 【共同点题，如 both the promise and the limits of technology in elderly care】.
+```
+> 数据请按题目图表填，这里不编造。另两个首句备选见 `01` 第 4 节 D 模块。27 版原话：「静静 / 动静 / 动动结合不换骨架，只换每幅图内的主题用词」。
+
+---
+
+## 套用练习：只换这 8 个空
+
+拿任意一年真题，先在草稿纸上填这张表，再动笔。**骨架一个字不改。**
+
+| # | 空 | 从哪来 |
+|---|---|---|
+| 1 | 图表类型词 + 模块（A / B1 / B2 / C / D） | 看时间轴 |
+| 2 | 【主题】+【范围】+【人群】 | 图表标题、图例 |
+| 3 | 【年份】或【项目名 + 百分比】——**静态图要列全部类别** | 横轴 / 扇区标签 |
+| 4 | 时态（过去 / 现在）+ P2 主题句（trend / pattern / situation） | 判型表 |
+| 5 | 【点题】名词短语 | 主题词库，别写空话 |
+| 6 | 【原因1】【原因2】 | 万能填词矩阵六类 |
+| 7 | 【例子】 | 生活化，不写名人 |
+| 8 | 【建议1】【建议2】【展望】 | 「谁做什么」词库，展望写具体 |
+
+**建议练习顺序**（覆盖 27 版给英语的全部重点）：
+`2023 折线（A）→ 2020 饼（B1）→ 2025 多选柱（B2）→ 2024 多选柱（B2 换词）→ 2012 表格（C 特例）→ 双图表（D）`
+
+**每篇套完只改 3 个错**（按你 01 原件的精改策略）：时态、主谓一致、拼写。不要把整篇重抄一遍。
+
+---
+
+## 数据核对说明
+
+- 2023（8.80 / 11.58 / 25.40%）、2024（91.3 / 84.8 / 54.4 / 32.6%）、2025（90.8 / 68.3 / 34.7 / 31.8 / 18.4%）、2020（59.5 / 21.3 / 17.0 / 2.2%）、2012（满意度表格）：均来自真题合集扫描原件，与你 01/04 原件里出现的数据一致。
+- 示范文的**英文是套用演示，不是官方范文**；词数都在 150—160 区间，考场以「写对、不低于 150」为准（**低于 150 直接扣分，超过 170 只是不加分**）。
+- 其余年份的图表数据请以你手上的真题册为准，别凭记忆填数字。
+</script>
+<script type="text/plain" id="md-4"># 英语小作文 · 定稿模板
+
+**10 分｜约 100 词（90—110）｜15—18 分钟｜3 段｜先格式，后要点，最后语言**
+
+> 沿用你 02 一页纸 + 04 模板库的那**一套骨架**，不另起第二套。
+> 本文只做三件事：把骨架定稿、补齐真题里暴露的格式硬差异、给近 7 年 Part A 对照表。
+> 9 类完整范文仍在 `04_英语大小作文模板库_直接背.docx` 原件里，照常背，不用搬过来。
+
+---
+
+## 0. 底线数字
+
+| 项目 | 值 |
+|---|---|
+| 分值 / 字数 | 10 分 / 约 100 词（90—110） |
+| 用时 | 15—18 分钟（考场先小后大） |
+| 结构 | 称呼 + 3 段（P1 20—25 词 / P2 50—60 词 / P3 15—20 词）+ 落款 |
+| 体裁 | 书信为主；通知、告示为辅；纪要概率低，认格式即可 |
+
+近年 Directions 的固定话（真题原件）：
+
+> Write your answer in about 100 words on the ANSWER SHEET. **Do not use your own name. Use "Li Ming" instead.** Do not write the address. (10 points)
+
+**署名以题目 Directions 为准**：**2010、2011、2012 三年都是 `Zhang Wei`，2013 年起是 `Li Ming`**。别因为背熟了就一律写 Li Ming。
+
+---
+
+## 1. 唯一骨架（闭卷默写）
+
+```
+Dear 【Name】,
+
+I am 【Li Ming】, and I am writing to 【purpose】.
+【Detail 1: time / place / reason】. 【Detail 2: arrangement / request】.
+
+I would appreciate it if you could 【action】.
+Thank you for your time and consideration. I look forward to hearing from you.
+
+Yours sincerely,
+Li Ming
+```
+
+约 55—65 词；**把两个细节句写满，就到 90—100 词**。写不到 90 词，通常不是词汇不够，是细节没展开。
+
+**所有书信共用这一套，只换 3 句：目的句、细节句、收尾句。**
+
+---
+
+## 2. 9 类三句组合表（看到题型 3 秒选一行）
+
+| 类型 | 目的句 | 细节句（P2） | 收尾句（P3） |
+|---|---|---|---|
+| **邀请** 必背 | I am writing to invite you to ______. | It will take place at ______ on ______. / It will last about ______, and around ______ students are expected to attend. | I would appreciate it if you could confirm your attendance by ______. |
+| **建议** 必背 | I am writing to offer some suggestions on ______. | First, ______. Second, ______. These changes would make ______ more ______. | I hope you will find them helpful. |
+| **感谢** 必背 | I am writing to express my sincere gratitude for ______. | Without your guidance, I could not have ______. Your ______ have benefited me a lot. | Please accept my sincere thanks. |
+| **投诉** 必背 | I am writing to complain about ______. | I was disappointed to find that ______. I contacted ______, but have not received a satisfactory reply. | I would appreciate it if you could ______ as soon as possible. |
+| **询问** 必背 | I am writing to inquire about ______. | I would like to know ______. Could you please also tell me ______? In addition, ______. | I look forward to your early reply. |
+| **通知** 必背 | This is to inform you that ______. / In order to ______, the Student Union will hold ______ at ______ in ______. | The activity will cover ______. All students are welcome. Please ______. | Those who are interested should sign up before ______. |
+| 推荐 选背 | I am writing to recommend ______ to you. | It is especially useful for ______ because ______. / It is written in plain language. | I would be grateful if you could take it into consideration. |
+| 道歉 选背 | I am writing to apologize for ______. | The reason was that ______. To make up for it, I would like to ______. | I sincerely hope you can forgive me. |
+| 申请 选背 | I am writing to apply for ______. | I believe I am qualified because ______. In addition, ______. | I have enclosed my resume and look forward to your reply. |
+
+**只背前 6 行就够**（对应你 00 原件的「6 小」）。推荐 / 道歉 / 申请有余力再补；纪要认识格式即可。
+
+---
+
+## 3. 格式硬差异（真题里真会扣分的地方）
+
+| 体裁 | 标题 | 称呼 | 日期 | 落款 |
+|---|---|---|---|---|
+| 书信 | **不写** | `Dear Mr. Smith,`（**逗号**，不是冒号） | **不写**、也不写地址 | `Yours sincerely,` + 署名 |
+| 通知 / 告示 | `NOTICE` 居中 | **不写 Dear** | **写**日期 | `Student Union` / `Li Ming`，**不写 Yours sincerely** |
+| 纪要 | `Meeting Minutes` / `Minutes of Meeting` | 无 | `Date:` / `Time:` 等字段 | `Recorded by: 署名`，全篇过去时 |
+
+**四条补充（来自 27 版《2.27 小作文模板》与真题原件）：**
+
+1. **回复信不要自我介绍。** 骨架第一句 `I am Li Ming, and I am writing to...` 只适用于主动去信；**回信对方知道你是谁**，首句应改成：
+   ```
+   Thanks for your email. I am pleased to hear that ______.
+   ```
+   然后直接接目的句。2017（回复 Williams 教授的邀请）、2018（取消行程向 Smith 教授道歉）都是这一类，套原骨架会多写一句自我介绍。
+2. **称呼按已知信息细分**：只知道姓 `Dear Mr. Lee / Dear Ms. Lee`；只知道名 `Dear Paul`；只知道职位 `Dear Professor / Dear Manager`；都不知道 `Dear Sir or Madam`。
+3. **通知格式两个版本，选一个冻结。** 你 04 原件是「NOTICE + 日期 + 正文 + 落款」；27 版是「Notice + 署名 + 日期 + 正文」。两者都能用，**建议沿用你 04 的，别混搭**，考场上按题目 Directions 写。
+4. **纪要字段以 04 原件的简化版为准**（Time / Place / Attendees / Chair / 讨论 / 决定 / 分工）；27 版多 `Objective`、`Recorded by` 等字段。英语至今没考过纪要，认识格式、保证过去时即可，不必逐字段背。
+
+---
+
+## 4. 审题法：把题干要点编号
+
+近 7 年 Part A 的 Directions 都是 **「一个情景 + 1) 2) 两个要点」**。落笔前在题目旁写 ① ②，P2 各写一句，写完回头数一遍。
+
+| 年份 | 情景 | 要点 ① | 要点 ② | 该用的类型 |
+|---|---|---|---|---|
+| 2012 | 网购电子词典有故障，写给客服 | make a complaint | demand a prompt solution | 投诉（署名 **Zhang Wei**） |
+| 2017 | 受 Williams 教授邀请给留学生讲中国文化 | accept the invitation | introduce the key points | 回复 + 邀请/介绍 |
+| 2018 | 取消行程、无法拜访 Smith 教授 | apologize and explain | suggest a future meeting | 道歉 + 约定 |
+| 2020 | 带国际学生参观历史遗址 | tell them about the site | give some tips for the tour | 邮件通知 / 告知 |
+| 2023 | David 问艺术展和机器人展去哪个 | make a suggestion | give your reason(s) | 建议 + 理由 |
+| 2024 | 和 Jack 做古镇老房子保护调查 | put forward your plan | ask for his opinion | 计划 + 征询 |
+| 2025 | 改编经典小说排短剧，写给 John | introduce the play | invite him to take part in it | 推荐/介绍 + 邀请 |
+
+> **看出来的规律**：近 4 年几乎都不是「单一类型」，而是「介绍 + 邀请」「建议 + 理由」「计划 + 征询」的组合。别指望只换一句目的句就完事——**两个要点必须各写到一句**，这是内容分的主要来源。
+> 组合方法：目的句写主功能（如 invite），P2 第一句写要点 ①，第二句写要点 ②，收尾句照常。骨架一个字不改。
+
+---
+
+## 5. 高频错误 8 条（考前扫一眼）
+
+| ✔ | ✘ |
+|---|---|
+| `Dear Mr. Smith,`（逗号） | `Dear Mr. Smith:`（冒号） |
+| `Yours sincerely,` + `Li Ming` | `Your sincerely` / 忘记署名 |
+| 通知写 `NOTICE` + 日期 + 落款 | 通知写成 `Dear Sir` + `Yours sincerely` |
+| 时间、地点、原因、请求写全 | 只写目的，不写细节 |
+| `I would appreciate it if you could...` | `You must / You should` |
+| 现在时为主，讲过去原因用过去时 | 全文时态乱跳 |
+| 90—110 词 | 写到 150 词（小作文写越长错越多） |
+| sincerely / appreciate / convenience | sincerly / appriciate / convinience |
+
+---
+
+## 6. 交卷前自查 10 条
+
+```
+□ 称呼、落款、署名正确；署名按 Directions（Li Ming / Zhang Wei）。
+□ 通知没写 Dear / Yours sincerely；纪要全篇过去时。
+□ 3 段；目的句在第 1 段，一句话说清「为什么写」。
+□ 题目 ①② 两个要点都写到了；时间、地点、原因、请求至少 3 个。
+□ 语气礼貌，没有 You must / You should。
+□ 时态一致；the number of... was / the percentage of... was。
+□ 拼写：sincerely, appreciate, convenience, schedule。
+□ 字数 90—110。
+□ 没写地址、没写日期（书信）。
+□ 卷面：错字一条横线划掉，不涂黑。
+```
+
+**考场 15 分钟**：审题 + 编号要点 2 min → 提纲 1 min → 成文 10 min → 检查格式 2 min。
+
+---
+
+## 7. 和原件的分工
+
+| 想要什么 | 看哪份 |
+|---|---|
+| 9 类完整可抄的范文 | `04_英语大小作文模板库_直接背.docx`（原件 01—09） |
+| 一页纸速背（正面） | `02_英语作文背诵一页纸.docx`（原件） |
+| 30 天默写顺序 | `05_英语作文30天默写表.xlsx`（原件 D1—D9） |
+| 定稿骨架 + 格式硬差异 + 真题对照 | **本文件** |
+
+> 小作文是 25 分里最容易先拿稳的 10 分。按你 00 原件的节奏，**先小后大**不要改；这份只是把「定稿 1 页」补上，不增加背诵量。
+</script>
+<script type="text/plain" id="md-5"># 英语小题型 · 速查（附加资料）
+
+**有余力再看｜这份是索引 + 答题流程，不替代你手上的真题册和专项讲义**
+
+> 按你 00 原件的原则：写作 25 分是投入产出比最高的部分，每天 35—50 分钟；**小题型的训练不要挤占作文、数学和专业课**。
+> 本文件只把「分值、题型、做题顺序、资料在哪」理清，不引入新的方法体系。
+
+---
+
+## 0. 试卷结构（2017、2018 真题 Directions 核对）
+
+| 部分 | 内容 | 分值 | 建议用时 |
+|---|---|---|---|
+| Section I | Use of English（完形填空，20 题 × 0.5） | **10** | 15 min |
+| Section II Part A | 阅读理解（4 篇 × 5 题 × 2） | **40** | 70—75 min |
+| Section II Part B | 新题型（5 题 × 2） | **10** | 15 min |
+| Section III | 翻译（英译汉） | **15** | 20—25 min |
+| Section IV Part A | 小作文（约 100 词） | **10** | 15—18 min |
+| Section IV Part B | 大作文（约 150 词） | **15** | 30—35 min |
+| 合计 | 180 分钟 | **100** | — |
+
+> **别记错**：英语写作是 25 分、大作文约 150 词；英语一是 30 分、160—200 词。阅读 40 分是最大一块，但作文 25 分是最快能提分的一块。
+
+**考场顺序建议**：按你自己模考练熟的顺序，不要临考改。常见两种：
+- 阅读 → 新题型 → 翻译 → 作文 → 完形（完形性价比最低，放最后）；
+- 或先小作文 → 大作文 → 阅读（适合写作手感好、怕后面没时间写作文的人）。
+
+无论哪种，**留 3—5 分钟涂卡 + 通读**。
+
+---
+
+## 1. 完形填空（10 分，性价比最低）
+
+- 20 题、每题 0.5 分，**不值得为一道题死磕超过 1 分钟**。
+- 首句通常不设空，**先读首句和首段抓主题**，全文基调定下来再选。
+- 优先判断四类：
+  1. **固定搭配 / 介词**（占分最稳，会就秒选）；
+  2. **逻辑关系**（however / therefore / moreover / by contrast，看前后句褒贬与因果）；
+  3. **复现**（原词复现、同义复现、代词指代，答案常在上文里）；
+  4. **词义辨析**（放到最后，靠语感 + 搭配排除）。
+- 全部选完**通读一遍**，看语义是否连贯；不要边做边大改。
+- 时间到就按已选填卡，别空着。
+
+---
+
+## 2. 阅读理解 Part A（40 分，最大战场）
+
+**固定流程（每题 4 步）：**
+
+```
+① 读题干，划出定位词（专有名词、数字、年份、大写词、特殊名词）
+② 回原文定位到那一句 / 那一段
+③ 把选项与原文逐个比对：正确答案几乎都是「同义改写」
+④ 排除四类干扰项，剩下再二选一
+```
+
+**四类干扰项**：偷换概念（换了主语/范围）、无中生有（原文没提）、绝对化（`always / never / only / all`，原文往往有 `may / some`）、张冠李戴（把 A 的观点安到 B 身上）。
+
+**分题型要点：**
+
+| 题型 | 抓手 |
+|---|---|
+| 细节题 | 定位句 + 同义替换，别用常识脑补 |
+| 主旨题 | 首段末句、末段首句、各段首句串起来；选项太窄或太宽都排除 |
+| 态度题 | 找形容词、副词、转折词；`objective / neutral` 常是干扰项 |
+| 词义 / 句意题 | 看上下文和并列/转折关系，不是考词汇量 |
+| 推断题 | 只推一步，别推两步；原文有明确表述的反而常不是答案 |
+
+**精读 vs 刷题**：一篇精读（长难句 + 生词 + 错因）胜过三篇对答案。错因只记一类：`定位错 / 同义替换没认出 / 被干扰项带跑`。
+
+---
+
+## 3. 新题型 Part B（10 分，真题确认的两种形式）
+
+2017、2018 真题 Directions 原文可确认这两种：
+
+| 形式 | 真题依据 | 题目要求 |
+|---|---|---|
+| **多项对应**（信息匹配） | 2017 Part B | `match each of the numbered items in the left column to its corresponding information in the right column. There are two extra choices... (10 points)` |
+| **小标题对应** | 2018 Part B | `choosing the most suitable subtitles from the list A-G for each numbered paragraph (41-45)... (10 points)` |
+
+> 其他形式以当年大纲和真题为准，别凭押题准备。
+
+**多项对应步骤：**
+1. 先读左栏 5 个编号项，划出**专有名词 / 人名 / 年份**（定位最快）；
+2. 回原文把每个人的观点句标出来；
+3. 读右栏 7 个选项，找**同义改写**（不是原词照搬）；
+4. 先做最确定的，用掉的选项划掉；**注意有两个多余项**；
+5. 全部填完通读一遍，检查有没有把 A 的观点配给 B。
+
+**小标题对应步骤：**
+1. 只读该段**首句、末句、转折句**，归纳成一句中文；
+2. 把这句中文压成 1 个名词短语，再去比对 A—G；
+3. 先做段落主题最明显的两段，缩小剩余选项；
+4. 标题往往覆盖**整段**，不是段里某个例子；含具体例子的选项通常是干扰项。
+
+**时间**：15 分钟，不要因为一个选项反复回读全文。
+
+---
+
+## 4. 翻译 Section III（15 分，英译汉）
+
+英语是一段约 150 词的英文译成汉语；评分看**准确、完整、通顺**，按意群给分。
+
+**五步流程：**
+
+```
+① 通读全段，抓主题和时态，别一上来就逐字译
+② 断句：按连词、介词短语、从句、分词结构把长句切开
+③ 逐句译：先主干（主谓宾），再补修饰成分
+④ 中文润色：拆长句、调整语序、补上被省略的逻辑
+⑤ 回核对：有没有漏译、有没有把否定/比较级译反
+```
+
+**五种常见处理：**
+
+| 英文 | 中文处理 |
+|---|---|
+| 定语从句太长 | 拆成独立小句，重复先行词，别硬套「……的……的」 |
+| 被动语态 | 转主动或译成「据…… / 人们……」，少用「被」 |
+| 代词 it / they / this | 还原成具体名词，别让读者猜 |
+| 抽象名词（development / awareness） | 具体化成「发展」「意识到……」 |
+| 状语 / 插入语 | 按中文习惯前置，别照搬英文语序 |
+
+**最容易丢分的三件事**：漏译一整个意群、主干理解反了、中文写成英式长句（一口气 60 字没标点）。
+
+**时间**：20—25 分钟，留 2 分钟通读中文，读着别扭就改顺。
+
+---
+
+## 5. 你手上有哪些资料（上级「英语」文件夹）
+
+| 需求 | 文件 |
+|---|---|
+| 阅读真题（英语 10—24） | `英语阅读真题合集(10-24).pdf` |
+| 阅读合集（英一二通用 05—09） | `05-09阅读合集（英一二通用）.pdf` |
+| 整套真题（含完整 Directions、分值） | `2017年考研英语真题.pdf`、`2018年考研英语真题.pdf` |
+| 完形 / 翻译专项（11—20 真题） | `【大道至简loru】英语模板（全）/往年/2011-2020完型PDF完整版.pdf`、`2011-2020翻译PDF完整版.pdf` |
+| 阅读真题词汇 | `往年/1_2011-2020阅读真题单词-带背版.pdf`、`1_2011-2024阅读真题单词-详细版.pdf` |
+| 三小门精读 | `27刘琦《三小门真题精读讲义》.pdf` |
+| **新增**阅读单词表（10—26） | `英语10-26阅读单词带汉语.txt`、`英语10-26阅读单词不带汉语.txt` |
+| 作文历年真题（大小作文原题） | `考研英语 大作文+小作文历年真题合集（2010-2025）.pdf` |
+
+**两份新单词表怎么用**：先用「不带汉语」版按年份自测，把不认识的词标出来；再对「带汉语」版核对，只抄错词到错题本。别整表背诵。
+
+**关于刘琦《三小门》**：这本是**篇章精读**讲义（每篇：英文原文 → 词汇预复习 → 全文参考翻译 → 长难句解析 → 篇章结构梳理），不是方法论讲义，里面没有分值、题量、解题步骤。用它练精读和长难句；分值与题型以本文件第 0 节（真题 Directions）为准。
+
+---
+
+## 6. 最后提醒
+
+- 小题型靠**真题 + 精改**，不靠看技巧；每周 2—3 篇精读就够，别摊开五套资料。
+- 阅读 40 分里，**同义替换**是核心能力，和作文的「换主题词」是同一件事，练的时候可以互相借力。
+- 写作仍是这 39 天里最该守住的分：**每天 35—50 分钟，先抄、再背、再默、最后套真题**（00 原件），别被小题型挤掉。
+- 所有原件都在，我没动过。需要我把这套资料转成可打印的 Word 或排成 A4 一页纸，说一声就行。
+</script>
+<script type="text/plain" id="md-6"># 英语大作文 · 六类完整成篇（含混用红线）
+
+**15 分｜150—165 词｜10 句（P1 3 + P2 4 + P3 3）｜三段｜不写标题｜与 `01` 同一套骨架，没有第二套模板**
+
+> 这份回答两个问题：**① 英语大作文到底有几种？② 动态图和静态图的模板能混用吗？**
+> 结论先放前面：**P2/P3 的 7 句六类一字不改、完全共用；P1 的 4 句必须按类换，一个词都不能串。**
+> 本文件把 `01` 里只有 P1 模块的 **D 双图表、E 图画文字**补成完整成篇，六类凑齐，每类一篇可直接默写的 150 词全文。
+
+---
+
+## 0. 先说结论：不是六套模板，是一套骨架 + 六种第一段
+
+你感觉"种类好多、准备不够"，其实是把**三种不同的分类**叠在一起了：
+
+| 分类维度 | 有几种 | 要不要分别背模板 |
+|---|---|---|
+| **图表题型**（本文讲的） | **6 类**：A 动态 / B1 饼图 / B2 多选柱状 / C 表格 / D 双图表 / E 图画文字 | **只换 P1 的 4 句**，P2/P3 完全不用换 |
+| 文章主题 | 7 类：教育 / 就业 / 科技 / 消费 / 健康 / 文化 / 环境 | **不换句子**，只换【】里的主题词（见 `01` 第 6 节填词矩阵） |
+| 小作文书信目的 | 9 类：邀请 / 建议 / 感谢 / 投诉 / 询问 / 通知 / 推荐 / 道歉 / 申请 | **只换 3 句**（目的句 + 2 个细节句），见 `04` |
+
+所以真正的背诵量是：**10 句骨架 × 1 套 + 6 种 P1 写法 + 若干填空词**。不是 6 套、更不是 6×7 套。
+
+**16 年真题分布（`01` 第 1 节）：100% 是图表，图画/文字一次没考过。** D 双图表（26 英一首考，英语留权重）和 E 兜底都按 10% 精力准备，认得写法即可，**不要为它们挤掉 A / B2 的训练时间**。近两年（2024、2025）连着考 **B2 静态多选柱状**，这才是眼下的重心。
+
+---
+
+## 1. 六类一页速查（打印贴墙，和 `02` 放一起）
+
+| 判型信号 | 类 | P1 模块 | 时态 | P2 主题句 | P3 观点句 | 数据公式 | 绝对禁用 |
+|---|---|---|---|---|---|---|---|
+| 有时间轴 / from…to… / 多个年份 | **A 动态** | A | **过去** | this **trend** | this **trend** | rose / fell from A to B | `accounts for`、`ranks first` |
+| 百分比且**加起来 = 100%**（饼图） | **B1** | B1 | **现在** | this **pattern** | this **pattern** | accounts for …%；`The remaining X%` | `rose`、`from…to…` |
+| 百分比且**加起来 > 100%**（多选柱状） | **B2** ★ | B2 | **现在** | this **pattern** | this **pattern** | ranks first at …%；`only X% chose` | `The remaining X%`、`respectively` |
+| 行列交叉表格 | **C** | C / C 特例 | 看题目 | this **situation** | this **situation** | 最大差异 + 反向对比 | `rose / declined`（2012 特例） |
+| 两幅图并排 | **D** | D | 各图各判 | this **trend** | this **trend** | 每图各报 1 个数据 | 只描述其中一幅 |
+| 图画 / 一句话文字 | **E** | E | 现在 | this **phenomenon** | this **phenomenon** | 无数据 | 硬写数字 |
+
+> **判型口诀：看时间轴，不看图形。** 柱子 + 年份 = A 动态；柱子 + 百分比 = B2 静态。
+> **一致性口诀：P2 和 P3 用同一个词。** trend / pattern / situation / phenomenon 全篇只能出现一个，混着写像两套模板拼起来的。
+
+---
+
+## 2. 混用红线表（直接回答"能不能混用"）
+
+| 部位 | 六类能不能共用 | 说明 |
+|---|---|---|
+| **P2 第 5—8 句**（主题句 + 2 原因 + 1 例子） | ✅ **完全共用，一个字不改** | 这是"一套骨架"的核心，换题只换【】里的主题词 |
+| **P3 第 8—10 句**（观点 + 2 建议 + 展望） | ✅ **完全共用，一个字不改** | 只有观点句里的 trend/pattern/situation 跟着判型换 **1 个词** |
+| **P1 第 1—4 句** | ❌ **绝对不能混** | 六类各写各的，见下表 |
+| 时态 | ❌ 不能混 | A/D 动态过去；B1/B2/E 现在；C 看题目 |
+| 主题词 trend / pattern / situation / phenomenon | ❌ 不能混 | 一篇里只能有一个，且 P2 与 P3 必须一致 |
+| 数据公式 | ❌ 不能混 | 见右侧"绝对禁用"列 |
+
+**六种最常见的串味，串了就扣分：**
+
+| ✘ 错法 | 为什么会错 | ✔ 改成 |
+|---|---|---|
+| 静态柱状写 `rose from 90.8% to 68.3%` | 那 5 个数是 5 个选项各自的选中率，不是同一指标随时间变化 | `ranks first at 90.8%, followed by … at 68.3%` |
+| B2 写 `The remaining 18.4% is made up of other activities` | 2024/2025 是**多选题**，各项加起来远超 100%，不存在"剩余" | `By contrast, only 18.4% chose playing chess.` |
+| B2 写 `…accounted for 91.3%, 84.8% and 54.4% respectively` | `respectively` 隐含各项构成一个整体 | `ranks first at 91.3%, followed by … at 84.8%` |
+| 饼图用 `climbing from … to …` / 过去时 | 没有时间轴，写不出"爬升" | `accounts for the largest share, at 59.5%`（现在时） |
+| 2012 表格写 `satisfaction rose in both groups` | 该表格是**纯横截面**，毫无趋势 | `The most striking feature is that … while …` |
+| P2 写 `this trend`、P3 写 `this pattern` | 通篇两个主题词，阅卷看着像拼了两套模板 | 两处统一成判型对应的同一个词 |
+
+> 一句话记住：**能混的是后 7 句，不能混的是前 4 句 + 时态 + 那个主题词。**
+
+---
+
+## 3. 六类完整成篇（每类一篇，10 句，150—165 词，不写标题）
+
+**用法**：不要六篇全背。A / B1 / B2 / C 四篇与 `03_真题套用示范.md` 相同（同一套定稿骨架，放这里是为了**一份文件自带六类、不用来回翻**）；D / E 是本次补齐的兜底成篇。**只看"哪些句子没变"，然后拿任意真题换【】里的词。**
+
+---
+
+### 【A】动态图 · 2023 真题（健康素养 2012—2021）
+
+**判型**：有时间轴 → A｜过去时｜this **trend**｜公式 `rose from A to B`
+**数据**（真题原件）：8.80%（2012）、11.58%（2016）、25.40%（2021）
+
+```
+The line chart illustrates changes in the health literacy level of Chinese residents from 2012 to 2021. Overall, the figure maintained a steady upward trajectory, climbing from about 8.8% in 2012 to 11.58% in 2016 and then surging to around 25.4% in 2021. This trend clearly reflects the growing public attention to health education and disease prevention.
+
+Several factors may account for this trend. For one thing, the growing supply of health information online has made medical knowledge more accessible. For another, with living standards improving, residents are increasingly willing to spend time on exercise and check-ups. For instance, many communities now offer free health lectures, which has further encouraged healthier habits.
+
+In my view, this trend is largely positive. It is important for individuals to turn knowledge into action, while the government should improve public health services. Only in this way can we turn rising health literacy into real health outcomes.
+```
+
+**词数：152｜10 句（3+4+3）** ｜ **本篇红线**：10 个年份只写首、中、尾 3 个数据，合并成一句；`trajectory` / `surged` 保留；不能把 `accounts for` 或 `ranks first` 写进来。
+
+---
+
+### 【B1】饼图 · 2020 真题（手机阅读目的，总和 = 100%）
+
+**判型**：百分比且加起来 100% → B1｜现在时｜this **pattern**｜公式 `accounts for …%` + `The remaining X%`
+**数据**（真题原件）：学习知识 59.5%、消磨时间 21.3%、获取信息 17.0%、其他 2.2%
+
+```
+The pie chart illustrates the main purposes of mobile reading among college students. Acquiring knowledge accounts for the largest share at 59.5%, followed by killing time at 21.3%, obtaining information at 17.0% and other purposes at 2.2%. This distribution clearly suggests that mobile reading is mainly used for learning rather than for pure entertainment.
+
+Several factors may account for this pattern. For one thing, the growing supply of e-books and academic apps has made learning materials more accessible. For another, with academic pressure increasing, students are increasingly willing to use fragmented time for study. For instance, many students now read articles between classes, which has further blurred the line between study and leisure.
+
+In my view, this pattern is largely positive. It is important for individuals to limit passive screen time, while universities should provide better digital learning resources. Only in this way can we make mobile reading a genuine aid to learning.
+```
+
+**词数：153｜10 句（3+4+3）** ｜ **本篇红线**：饼图四个扇区加起来正好 100%，所以 `accounts for the largest share` 和 `The remaining 2.2%` 只有这里能写；`respectively` 也只在 B1 合法。全篇现在时，不能出现 `rose`。
+
+---
+
+### 【B2】静态多选柱状 · 2025 真题（老年人休闲活动，总和 > 100%）★ 最该练
+
+**判型**：百分比但各项独立、加起来远超 100% → B2｜现在时｜this **pattern**｜公式 `ranks first at …%`
+**数据**（真题原件）：看电视 90.8%、散步 68.3%、养花 34.7%、阅读 31.8%、下棋 18.4%
+
+```
+The bar chart illustrates the daily leisure activities of elderly residents in one community. Watching television ranks first at 90.8%, followed by taking walks at 68.3%, tending flowers at 34.7%, reading at 31.8% and playing chess at 18.4%. This distribution clearly suggests that most elderly people prefer light, familiar activities at home.
+
+Several factors may account for this pattern. For one thing, limited mobility and few nearby facilities have made indoor activities more accessible. For another, with family members often away from home, many elderly people are increasingly willing to choose solitary activities. For instance, a short walk after dinner has become a daily routine for many retirees, which has further reduced their interest in group activities.
+
+In my view, this pattern is understandable but deserves attention. It is important for families to visit the elderly more often, while the community should offer more group activities. Only in this way can we help older residents lead a richer social life.
+```
+
+**词数：160｜10 句（3+4+3）** ｜ **本篇红线**：**柱子 ≠ 动态**，不能写 `from…to…`、不能用过去时；**绝对不能写 `The remaining X%`**；**五类必须全列**——旧稿只写 90.8 / 68.3 / 18.4，中间的 34.7 和 31.8 凭空消失，这是最隐蔽的丢分点。P2 和 P3 都用 `this pattern`（最容易漏的一致性）。
+
+> 2024（劳动实践课收获 91.3 / 84.8 / 54.4 / 32.6%）是同一模块、只换填空词，见 `03` 示范 5。把两篇并排抄一遍，就能体会"一套骨架 + 只换主题词"。
+
+---
+
+### 【C】表格 · 2012 真题（工作满意度，唯一特例）
+
+**判型**：行列交叉 → C｜本表**毫无趋势** → 现在时｜this **situation**｜公式「最大差异 + 反向对比」
+**数据**（真题原件）：≤40 岁 满意 16.7% / 不清楚 50.0% / 不满意 33.3%；41—50 岁 0.0% / 36.0% / 64.0%；>50 岁 40.0% / 50.0% / 10.0%
+
+```
+The table compares job satisfaction among different age groups in a company. The most striking feature is that employees aged 41–50 reported the highest dissatisfaction, at 64.0%, while none of them chose "satisfied". By contrast, 40.0% of those over 50 were satisfied, the highest of the three groups, which suggests that job satisfaction varies considerably with age.
+
+Several factors may account for this situation. For one thing, the pressure of mid-career competition has made work less satisfying for employees in their forties. For another, with senior staff nearing retirement, they are increasingly willing to value a stable environment. For instance, many firms now offer flexible schedules to senior staff, which has further improved their satisfaction.
+
+In my view, this situation deserves attention. It is important for employers to offer clearer career paths, while individuals should maintain a healthy work-life balance. Only in this way can we ease the mid-career pressure shown in the table.
+```
+
+**词数：157｜10 句（3+4+3）** ｜ **本篇红线**：27 版讲义点名的唯一特例——**不写 rose / declined**；表格题把「反向对比」和「点题」压进同一句（第 3 句末尾的 `which suggests`），否则 P1 会到 4 句。P2 与 P3 都用 `this situation`。若表格里带年份、确有变化，才改用过去时（`01` 第 4 节 C 模块）。
+
+---
+
+### 【D】双图表 · 模拟练习（本次补齐成篇）⚠️ 非真题
+
+> **数据说明**：英语 16 年真题从未考过双图表（26 英一首考）。下面这道题是**为练骨架自编的模拟题**，图中数字是示范用，不是真题数据；**考场上按题目实际图表替换，不要凭记忆填**。
+
+**模拟题面**：左图饼图「大学生使用 AI 学习工具的目的」（查资料 46%、练写作 32%、做翻译 14%、其他 8%，合计 100%）；右图柱状「主要顾虑」（担心准确性 71%、依赖性强 58%、隐私 33%，多选 > 100%）。
+**判型**：两幅图 → D｜左静 B1 + 右静 B2，**两幅各按各的公式**｜this **trend**（按 `01` 判型表）｜每图各报 1 个数据
+
+```
+The chart on the left illustrates why college students use AI learning tools, while the chart on the right presents their major concerns. Overall, learning-oriented uses dominate, whereas worries about reliability remain widespread: looking up information accounts for 46%, while 71% worry about accuracy. Taken together, the two charts clearly reflect both the promise and the limits of AI in study.
+
+Several factors may account for this trend. For one thing, the wide availability of AI tools has made information retrieval more efficient. For another, with academic tasks growing more demanding, students are increasingly willing to seek instant help. For instance, many undergraduates now draft outlines with AI before writing, which has further raised concerns about over-reliance.
+
+In my view, this trend is understandable but deserves attention. It is important for students to verify AI outputs, while universities should offer clear guidance on academic integrity. Only in this way can we enjoy the efficiency of AI without weakening independent thinking.
+```
+
+**词数：163｜10 句（3+4+3）** ｜ **本篇红线**：两幅图**都要描述**，而且必须写在**同一句**里（第 2 句用 `whereas` 并列）；左图（=100%）用 `accounts for`，右图（>100%）用 `71% worry about`，两者公式不串；P2/P3 原样照抄 A 的 7 句，只换填空词。
+
+> 另两个首句备选见 `01` 第 4 节 D 模块。27 版原话：「静静 / 动静 / 动动结合不换骨架，只换每幅图内的主题用词」。
+
+---
+
+### 【E】图画 / 文字兜底 · 模拟练习（本次补齐成篇）⚠️ 非真题
+
+> **数据说明**：图画/文字在英语 16 年真题里**一次没考过**（大纲允许，权重约 10%）。这是自编的图画模拟题，只用来认写法，**不必花时间背**。
+
+**模拟题面**：两个学生备考，一个每天背一小张单词表，另一个考前一晚通宵突击；画面文字 "Little by little, one goes far."
+**判型**：图画 → E｜现在时｜this **phenomenon**｜无数据可写
+
+```
+As is vividly depicted in the picture, two students are preparing for the same exam in very different ways. The caption reads, "Little by little, one goes far." While one reviews a short vocabulary list every day, the other crams through the night before the test. This picture clearly reflects the value of steady effort over last-minute rushes.
+
+Several factors may account for this phenomenon. For one thing, regular practice has made knowledge easier to retain and easier to recall under pressure. For another, with exam pressure mounting and results judged by a single score, students are increasingly willing to look for shortcuts. For instance, many candidates now rely on crash courses in the final week, which has further weakened long-term retention.
+
+In my view, this phenomenon deserves attention. It is important for individuals to keep a daily review schedule, while schools should discourage last-minute cramming. Only in this way can we turn steady effort into lasting progress.
+```
+
+**词数：156｜11 句（4+4+3）——全篇唯一允许 11 句的题型** ｜ **本篇红线**：图画**没有数据可报**，P1 必须用 `While …, …` 补一句画面细节才够字数（第 3 句），所以 P1 是 4 句；其余 7 句与 A 完全一致，只把 `this trend` 换成 `this phenomenon`。**不要硬编数字**，也不要为了凑 10 句把画面细节删掉——图画题删了细节就只剩议论。
+
+**文字题只换前两句**（`01` 第 4 节 E 模块）：
+```
+The saying "【原句】" conveys a simple truth: 【寓意】.
+What it emphasizes is that 【展开一句】.
+```
+
+---
+
+## 4. 混用辨析 8 题（做完就不用再纠结能不能混）
+
+先自己判，再看答案。**每题都只错在一个地方。**
+
+| # | 句子 | 错在哪 | 正确写法 |
+|---|---|---|---|
+| 1 | `Watching television rose from 90.8% to 68.3% among the elderly.` | 把 B2 多选数据当成时间趋势 | `Watching television ranks first at 90.8%, followed by walking outdoors at 68.3%.` |
+| 2 | `The remaining 18.4% is made up of other leisure activities.`（2025 数据） | B2 用了 B1 的"剩余"公式，各项加起来 >100% | `By contrast, only 18.4% chose playing chess.` |
+| 3 | `Knowledge, skills and cooperation accounted for 91.3%, 84.8% and 54.4% respectively.`（2024 数据） | `respectively` 只适用于构成比 | `Acquiring relevant knowledge ranks first at 91.3%, followed by improved practical skills at 84.8%.` |
+| 4 | P2 `…account for this trend.` / P3 `In my view, this pattern is largely positive.` | 一篇里两个主题词 | 按判型统一成一个；静态图统一 `this pattern` |
+| 5 | `Job satisfaction rose in both groups in 2012.` | 2012 表格是横截面，无趋势 | `The most striking feature is that employees aged 41–50 reported the highest dissatisfaction.` |
+| 6 | `Acquiring knowledge accounted for the largest share at 59.5%…`（2020 饼图） | 静态图误用过去时 | `accounts for the largest share, at 59.5%` |
+| 7 | `The pie chart … climbing from 8.80% to 25.40%.` | 把 A 的趋势公式套到静态图 | 饼图改写 `accounts for …`，或确认题目其实是折线图再用 A |
+| 8 | D 双图表 P2 写 `Several factors may account for this situation.` | 双图表按判型表用 trend，不是 situation | `Several factors may account for this trend.` |
+
+**判分口径**：错 0—1 题 → 可以进真题套用了；错 2—3 题 → 把第 1 节速查表抄一遍；错 ≥4 题 → 先回 `02_一页纸速背卡` 把 10 句骨架默到闭卷，别急着换题。
+
+---
+
+## 5. 这份资料怎么用（不增加背诵量）
+
+1. **不新增模板。** 六篇用的是同一套 10 句骨架，前四篇就是 `03` 里的定稿范文。**背的仍然只有 `02` 那一页。**
+2. **练习顺序**（覆盖 27 版给英语的全部重点）：`A(2023) → B2(2025) → B2(2024 换词) → B1(2020) → C(2012) → D → E`。D/E 各练 1 次认写法即可。
+3. **每次只改 3 类错**：时态、主谓一致、拼写。不要把整篇重抄。
+4. **复习节奏 1-2-4-7**：当天、第 2 天、第 4 天、第 7 天各默 1 次（`01` 第 10 节）。
+5. **练法借鉴**：把「看模板」和「练词句」分开——先读成篇（本文件第 3 节），再做辨析 8 题（第 4 节），最后合上资料套一篇真题。这比反复通读模板有效。
+
+---
+
+## 6. 资料来源与边界
+
+- A（2023 健康素养 8.80 / 11.58 / 25.40%）、B1（2020 手机阅读 59.5 / 21.3 / 17.0 / 2.2%）、B2（2025 老年人休闲 90.8 / 68.3 / 34.7 / 31.8 / 18.4%）、C（2012 满意度表格）：均来自上级目录《考研英语 大作文+小作文历年真题合集 2010—2025》真题原件，与 `01`/`03` 一致。
+- **D、E 为自编模拟题**，图中数字仅作填句示范，**不是真题数据**，考场上以题目图表为准，别凭记忆填数字。
+- 六篇英文是**套用演示，不是官方范文**；词数按 140—170 控制，考场以"写对、不超 170"为准。
+- 判型表、时态规则、主题词一致性、P1 模块均沿用 `01_英语大作文_最终定稿模板.md`，**没有引入外部模板或第二套骨架**（三条铁律第 1 条）。
+- 参考网站里需要登录才能看到的作文模板内容，本文件**未采用、也未转述**；借鉴的只是"模板与词句练习分栏"的练习组织方式。
+</script>
+<script type="text/plain" id="md-7"># 英语作文 · 分类速记总表（英语专属）
+
+**2027 考研英语（二）｜写作 25 分｜大作文 15 分约 150 词 / 小作文 10 分约 100 词｜共用 50—55 分钟**
+
+> 这份是把你刚下载到 `研考/英语/` 的 **13 份作文模板 PDF** 全部看完后做的**查缺补漏 + 英语裁剪**。
+> **一句话结论：那 13 份不是 13 套模板，是「一套英语一骨架 + 13 种第一段」。**
+> 它的 P2/P3 是英语一 200 词体量（三点论证 + 四句收尾），**一句都不能进英语定稿**；
+> 真正能拿的是它的**分类体系**和少数**起首句**。本文只做两件事：把缺口补上，把能背的东西压到最少。
+
+---
+
+## 0. 背之前先记牢：英语和英语一不一样
+
+| 项目 | **英语（你考的）** | 英语一（下载的模板按这个设计） |
+|---|---|---|
+| 写作总分 | **25 分**（小 10 + 大 15） | 30 分 |
+| 大作文 | **约 150 词**（140—170 安全） | 160—200 词 |
+| 小作文 | **约 100 词**（90—110） | 约 100 词（这项相同） |
+| 大作文提示信息 | **17 年真题 100% 是图表**，图画/文字一次没考 | 图表 + 图画 + 文字并重 |
+| 论证段 | **2 个原因 + 1 个例子**（4 句） | 3 点论证（Firstly / Secondly / Thirdly） |
+| 结尾段 | **观点 + 2 条具体建议 + 具体展望**（3 句） | 4 句，`All in all…` + 空泛收尾 |
+| 时态 | **动态过去 / 静态现在，判型决定** | 模板里未区分 |
+
+**三条铁律不变（沿用你 00 原件）**：① 只背一套骨架，其他资料只取句子不混搭；② 先写对再写高级；③ 英语绝不套英语一 160—200 词模板。
+
+---
+
+## 1. 13 份下载模板 · 处置清单（全部看完后逐份判定）
+
+| # | 文件 | 类别 | 英语考过吗 | 怎么用 | 判定 |
+|---|---|---|---|---|---|
+| 1 | 图表·通用结构 | 大作文 P1 | 通用 | 首句 `The 【图表类型】 above presents 【统计主题】, offering a clear picture of the overall situation.` 可作 A 的**备选首句** | 备选，不背 |
+| 2 | 图表·动态·单方向 | A | ✅ 2010/2014/2022/2023 | 我们 `01` 的 A 模块已覆盖，且更短 | **跳过** |
+| 3 | **图表·动态·多方向** | **A2** | ✅ **2010/2014/2017/2019** | **我们原来缺！** 见第 3 节，已补成 P1 模块 | ★ **本次补入** |
+| 4 | 图表·静态 | B1/B2 | ✅ 2015/2016/2018/2020 + 2024/2025 | 它的 `The proportions of … were … respectively` **只对 B1 成立**；B2 用了就错 | 部分取，标红线 |
+| 5 | 双图表 | D | ❌ 英语未考（26 英一首考） | 首句 `The 【左图类型】 on the left illustrates …, while the 【右图类型】 on the right presents …` 与 `01` 的 D 一致 | 已有 |
+| 6 | 图画·单幅 | E | ❌ 英语 17 年未考 | 只认 `Simple as the drawing is, it conveys the message that …` | 认得，不背 |
+| 7 | 图画·双幅 | E | ❌ | 只认 `In the first picture, …, whereas in the second, …` | 认得，不背 |
+| 8 | 图画＋图表 | E | ❌ | 只认 `Referring to the statistics in the chart, …` | 认得，不背 |
+| 9 | 文字材料 | E | ❌ | `The author believes that … / I agree with the author's viewpoint.` 是英语一观点作文写法 | **不采用** |
+| 10 | 主动写信 | 小作文 | ✅ | 完整书信格式，与 `04` 骨架一致（它是邀请信专用版） | 已有 |
+| 11 | 回复来信 | 小作文 | ✅ 2017/2018 | `Thank you for your email about …` 去自我介绍——`04` 已有此规则 | 已有 |
+| 12 | 通知／告示 | 小作文 | ✅ 2020 邮件通知 | **格式与 `04` 冲突**（详见 4.1），按 `04` 冻结，不混搭 | 只标差异 |
+| 13 | 会议纪要 | 小作文 | ❌ 英语 17 年未考（**已进 2025/2026 大纲**） | 认字段 + 全篇过去时即可 | 认得，不背 |
+
+**净结果：只有 1 处真缺口（A2 动态多方向），4 处格式补充（通知/纪要/回复信成篇），其余都是"已有"或"英语不考不必背"。** 你的定稿资料不是不够，是没把"哪些不用背"写清楚。
+
+---
+
+## 2. 英语一 → 英语 裁剪对照表（最重要的一张）
+
+下载的模板 P2/P3 长这样，逐句对照我们的定稿：
+
+| 部位 | 网站模板（英语一 200 词） | 我们的英语定稿（150 词） | 为什么必须换 |
+|---|---|---|---|
+| P2 首句 | `Several factors contribute to this phenomenon.` | `Several factors may account for this trend / pattern / situation.` | 主题词要按题型换，网站一律 `phenomenon` 会串味 |
+| P2 论证 | `Firstly … Secondly … Thirdly, if we ignored the importance of …, we might …`（3 点） | `For one thing … For another … For instance …, which …`（2 原因 + 1 例子） | 三点 + 反面假设会冲到 180—200 词；英语只写 2 个原因 |
+| P3 首句 | `All in all, greater attention should be paid to 【论证主题】.` | `In my view, this trend is largely positive.` | 网站是空泛"应予重视"，英语要给明确观点 |
+| P3 措施 | `For one thing, 【实施方一】 should … For another, 【实施方二】 should …` | `It is important for individuals to …, while the government should …` | 结构可借鉴，但主体必须具体、用 `while` 合并成 1 句 |
+| P3 结尾 | `These measures could help address the problems discussed above.` | `Only in this way can we 【具体展望】.` | `01` 明令禁止空喊口号；倒装句是现成的语言分 |
+| 词数 | 约 180—200 | **140—170** | 英语写超 170 有风险 |
+| 时态 | 模板未区分 | **动态过去 / 静态现在** | 不区分就会在 2024/2025 静态柱状上写 `rose` |
+
+> **执行口径：网站的 P2/P3 一句都不进定稿。** 只取它的分类思路和几个 P1 起首句，其余全部用 `02` 那一页。
+
+---
+
+## 3. 大作文 · 分门别类速记（15 分）
+
+### 3.1 唯一要背的：10 句骨架（3+4+3）
+
+```
+P1  The 【bar chart】 illustrates 【话题】 in / among 【范围】.
+    Overall, the figure maintained a steady upward trajectory: 【指标1】 rose from 【A】 to 【B】, while 【指标2】 surged from 【C】 to 【D】.
+    This trend clearly reflects 【点题】.
+
+P2  Several factors may account for this trend.
+    For one thing, 【原因1】 has made 【主题】 more 【adj】.
+    For another, with 【背景 + doing】, 【人群】 are increasingly willing to 【do】.
+    For instance, 【例子】, which has further 【结果】.
+
+P3  In my view, this trend is largely 【positive】.
+    It is important for individuals to 【建议1】, while the government should 【建议2】.
+    Only in this way can we 【具体展望】.
+```
+
+**第 2 句是全篇唯一长句**：静态图数类别（四类五类全列），动态图写首中尾。这一句写对，内容分就稳了。
+
+**自带 4 个复杂句**（`which` 定语从句 / `with + doing` / `while` 对比 / `Only in this way` 倒装），语言分够了，**不要再往里塞从句**。完整版见 `02_一页纸速背卡.md`。
+
+### 3.2 判型 → 七类 P1（只换这 3 句）
+
+> **判型口诀：看时间轴，不看图形。** 柱子 + 年份 = 动态；柱子 + 百分比 = 静态。
+
+| 类 | 判型信号 | 时态 | P2/P3 主题词 | 真题年份 | 绝对禁用 |
+|---|---|---|---|---|---|
+| **A1 动态单方向** | 有时间轴、单指标一路升/降 | 过去 | `trend` | 2023、2022 | `accounts for` / `ranks first` |
+| **A2 动态多方向** ★新增 | 有时间轴、**两条线/两组数据方向不同** | 过去 | `trend` | **2010、2014、2017、2019** | 只写一条线 |
+| **B1 饼图** | 百分比、**加起来 = 100%** | 现在 | `pattern` | 2015、2016、2018、2020 | `rose` / `from…to…` |
+| **B2 多选柱状** ★★ | 百分比、**加起来 > 100%** | 现在 | `pattern` | 2013、2021、**2024、2025、2026（三年连考）** | `The remaining X%` / 只报前两名 |
+| **C 表格** | 行列交叉 | 看题目 | `situation` | 2012 | 2012 特例禁写 `rose` |
+| **D 双图表** | 两幅图并排 | 各图各判 | `trend` | 英语未考（英一 26） | 只描述一幅 |
+| **E 图画/文字** | 图画或一句话 | 现在 | `phenomenon` | **英语 17 年未考** | 硬编数字 |
+
+#### 【B2】2026 真题 · 三年连考的证据（11/15 增补）
+
+2026 真题原件 Part B（图表页 OCR 核对）：**某项关于儿童户外活动看法的调查** —— 促进观察力 54.6%、满足好奇心 54.5%、强身健体 37.2%、增强亲子互动 33.2%，**合计 179.5% > 100%**，典型 B2 多选占比柱状。加上 2024（劳动实践课收获）、2025（老年人休闲活动），**连续三年 B2**。
+
+按定稿 B2 写法只换数据、骨架不变（**P1 三句**）：
+
+```
+The bar chart above presents the results of a survey on views about children's outdoor activities.
+Improving observation skills ranks first at 54.6%, followed by satisfying curiosity at 54.5%, building physical fitness at 37.2% and stronger parent-child interaction at 33.2%.
+This distribution clearly suggests that parents value the cognitive benefits of outdoor activities most.
+```
+
+> 红线照旧：不写 `The remaining X%`、不写 `from…to…`、不写过去时 `rose`、**四类必须全列**。
+> `respectively` 本身不算错，但它要求前后数量一一对应，基础一般就别用——每个数字前重复 `at` 一样得分，且不会配错。
+> **备考含义**：A1 动态与 B2 静态是唯一要练的两种，B2 排第一。别再花时间背图画/文字类 P1。
+
+#### 【A2】动态多方向 · 本次补入（原来缺）
+
+```
+The 【bar / line chart】 illustrates changes in 【指标A】 and 【指标B】 in 【范围】 from 【Y1】 to 【Y2】.
+Overall, 【指标A】 maintained a steady upward trajectory from 【A1】 to 【A2】, whereas 【指标B】 fell from 【B1】 to 【B2】.
+This trend clearly reflects 【点题：两者背离 / 差距扩大】.
+```
+
+**为什么必须补**：2010（发达国家 vs 发展中国家手机用户）、2014（城乡人口 20 年）、2017（博物馆数量 + 参观人数双指标）、2019（2013 / 2018 届毕业生去向对比）都是**两组数据、方向不同**，用原来 A1 的"一路上升"会写错。
+**要点**：`while / whereas` 做对比（骨架里已有 `while`，不新增句型）；仍只写 2—3 个数据；过去时；不写 `respectively`。
+
+#### 【B1 / B2 / C / D / E】完整成篇范文
+
+**六类各一篇 150 词完整成篇，见 `06_英语大作文_六类完整成篇.md`**（含混用红线表 + 辨析 8 题），那里 A/B1/B2/C 是真题数据，D/E 是明确标注的模拟题。
+
+### 3.3 三秒判型流程（写在题旁）
+
+```
+图里有没有时间轴？
+├─ 有 → 单指标一路走？→ A1 ｜ 两组方向不同？→ A2
+└─ 没有
+   ├─ 两幅图并排          → D
+   ├─ 行列交叉表格        → C
+   ├─ % 且合计 = 100%     → B1
+   ├─ % 且合计 > 100%     → B2  ★ 近两年连考
+   └─ 图画 / 一句话        → E（英语不考，认得即可）
+```
+
+---
+
+## 4. 小作文 · 分门别类速记（10 分）
+
+### 4.1 四种格式（**格式分最容易丢**，比语言分好拿）
+
+**① 主动写信**（书信，最常用）
+```
+Dear 【Mr. Smith / Professor / Sir or Madam】,
+
+I am 【Li Ming】, and I am writing to 【目的】.
+【要点①：时间/地点/原因】. 【要点②：安排/请求】.
+
+I would appreciate it if you could 【行动】.
+Thank you for your time and consideration. I look forward to hearing from you.
+
+Yours sincerely,
+Li Ming
+```
+称呼用**逗号**；不写地址、不写日期；**署名以 Directions 为准**。
+> ⚠️ **11/15 勘误（已用真题原件核对）**：不是「只有 2012 是 Zhang Wei」——**2010、2011、2012 三年都是 Zhang Wei，2013 起才是 Li Ming**（2010/2011/2012 Directions 原文均写 `Use "Zhang Wei" instead`）。考场上先看 Directions 末尾，别背年份。
+
+**② 回复来信**（2017、2018 真题）
+```
+Dear 【收信人】,
+
+Thank you for your email about 【来信内容】. I am writing to 【目的】.
+【要点①】. 【要点②】.
+
+I would appreciate it if you could 【行动】.
+Thank you for your time and consideration. I look forward to hearing from you.
+
+Yours sincerely,
+Li Ming
+```
+> **唯一差别：首句不写 `I am Li Ming`——回信对方知道你是谁。** 下载的「回复来信.pdf」用的正是 `Thank you for your email about …`，和 `04` 的规则一致。
+
+**③ 通知／告示**（按 `04` 冻结版，2020 邮件通知同类）
+```
+NOTICE
+【日期】
+
+We are pleased to announce that 【通知事项】.
+The 【活动名称】 will be held at 【地点】 on 【日期】.
+Activities such as 【具体环节】 will be held to 【目的】.
+Those who are interested should 【报名/联系方式】 before 【截止】.
+
+Student Union / Li Ming
+```
+> ⚠️ **格式冲突提示**：下载的「通知／告示.pdf」是 `Notice` + 正文 + **署名在上、日期在下**，且没有 `Dear`；我们 `04` 定稿是 `NOTICE` + **日期在上** + 正文 + 落款。两者都能用，但**必须选一个冻结**——按 `00` 原件的决定沿用 `04`，考场按题目 Directions 微调，绝不混搭。
+
+**④ 会议纪要**（英语 17 年未考（**已进 2025/2026 大纲**），认格式即可）
+```
+Minutes of Meeting
+Date: 【日期】    Time: 【时间】    Location: 【地点】
+Objective: 【主题】    Attendees: 【参会人】
+
+The meeting aimed to 【讨论事项】. The speaker expressed the opinion that 【观点】.
+The meeting decided that 【决定】.
+
+Recorded by: 【署名】
+```
+全篇**过去时**（`aimed / expressed / decided`）；不用 `Dear`、不用 `Yours sincerely`。下载的「会议纪要.pdf」多了 `Objective` 字段，认得即可，不必逐字段背。
+
+### 4.2 九类目的句（3 秒选一行，**只背前 6 行**）
+
+| 类型 | 目的句 | 类型 | 目的句 |
+|---|---|---|---|
+| 邀请 ★ | `I am writing to invite you to ___` | 询问 ★ | `I am writing to inquire about ___` |
+| 建议 ★ | `I am writing to offer some suggestions on ___` | 通知 ★ | `This is to inform you that ___` |
+| 感谢 ★ | `I am writing to express my sincere gratitude for ___` | 推荐 | `I am writing to recommend ___ to you` |
+| 投诉 ★ | `I am writing to complain about ___` | 道歉 | `I am writing to apologize for ___` |
+| | | 申请 | `I am writing to apply for ___` |
+
+> 细节句与收尾句的完整组合见 `04_英语小作文_定稿模板.md` 第 2 节；9 篇可抄的完整范文在原件 `04_英语大小作文模板库_直接背.docx`。
+
+### 4.3 近年都是组合题（内容分主要来源）
+
+| 年份 | 情景 | 两个要点 | 组合 |
+|---|---|---|---|
+| 2020 | 带国际学生参观历史遗址 | 介绍遗址 + 给建议 | 介绍 + 告知 |
+| 2023 | David 问艺术展/机器人展 | 给建议 + 说理由 | 建议 + 理由 |
+| 2024 | 古镇老房子保护调查 | 提计划 + 征询意见 | 计划 + 征询 |
+| 2025 | 改编小说排短剧 | 介绍短剧 + 邀请参加 | 介绍 + 邀请 |
+| **2026** | Jack 分享全家在中国旅行的视频 | 谈感受 + 希望了解更多 | **反馈 + 询问** |
+
+**做法**：目的句写主功能，P2 第一句写要点①、第二句写要点②，**骨架一个字不改**。别指望只换一句目的句就完事。
+
+> **11/15 增补｜柴荣 2010—2026 小作文年份表**：17 年几乎全是「A + B」组合题（感谢+邀请、祝贺+建议、通知+号召、建议+询问、反馈+询问…），**历年平均只有 4.85 / 10**。这条数据说明：丢分主要丢在**漏写第二个要点**，不是句子不够高级。交卷前 60 秒专门数一遍「两个要点是否各有一句」。
+
+---
+
+## 5. 快速记忆路线（今天 11/12 → 考试 12/19，剩 37 天）
+
+沿用你 00/01 原件的计划，**资料顺序 ≠ 复习顺序，备考仍按先小后大**：
+
+| 阶段 | 做什么 | 目标 |
+|---|---|---|
+| **今天—11/16** | 每天 10 分钟抄 + 默 `02` 一页纸，把 **10 句骨架背到闭卷** | 骨架不卡壳 |
+| **11/17（D29）骨架冻结** | 之后只微调 1—2 个词，**不加句、不换骨架** | 防止临考改节奏 |
+| **11/17—11/23** | 小作文 4 种格式 + 前 6 类目的句；套 Part A 真题 8 篇 | 稳拿 10 分里前 7—8 分 |
+| **11/24—12/5** | 大作文按 `A1(2023) → B2(2025) → B2(2024换词) → B1(2020) → C(2012) → A2(2017)` 套 8—10 篇 | 六类 P1 见题能判 |
+| **12/6—12/15** | 50—55 分钟整卷模考 3 次；每次只改 3 类错：时态、主谓一致、拼写 | 时间控制 |
+| **12/16—12/18** | 只看 `02` 一页纸 + `06` 红线表 + 错题本 | 不新增任何东西 |
+
+**复习节奏 1-2-4-7**：当天、第 2 天、第 4 天、第 7 天各默 1 次。
+
+### 拿高分的 6 个动作（都不需要多背）
+
+1. **判型写在题旁**（A1/A2/B1/B2/C/D/E），再动笔——静态柱状写成 `from…to…` 是最常见的失分点。
+2. **数据只写 2—3 个**，静态图最多"最高 2 项 + 最低 1 项"。
+3. **主题词全篇只用一个**：P2 和 P3 都用 `trend` 或都用 `pattern`，不混。
+4. **图表类型词写具体**：bar / line / pie / table，别通篇 `chart`。
+5. **展望句写具体**（`turn rising health literacy into real health outcomes`），不写 `have a better future`。
+6. **小作文两个要点各写一句**，格式（称呼逗号、署名、通知无 Dear）交卷前 60 秒专门查一遍。
+
+### 判型的本质（11/15 增补，换一种说法更好记）
+
+石雷鹏英语大作文笔记 3.2 给的原理，与我们「看时间轴，不看图形」是同一条规律：
+
+> **固定时间段 + 相同事物 → 写变化（动态 A）；固定时间点 + 不同事物 → 写对比 / 排序（静态 B）。**
+
+配套「重点数据四选」：**起点、终点、拐点、极值（最高/最低）**；仍只挑 2—3 个写，静态图最多「最高 2 项 + 最低 1 项」。
+石雷鹏 3.3/3.4 的上升下降词、程度副词、排序句式只当**替换词表**：换成你确定会拼的那个词，不要为了「高级」硬塞。
+
+---
+
+## 6. 资料边界与来源
+
+- 13 份模板 PDF 是你本机下载到 `研考/英语/` 的资料，**只读查看，未改动**；本文件只引用其分类与少量起首句，**未采用其 P2/P3 英语一骨架**。
+- 大作文 A/B1/B2/C 的真题数据来自《考研英语 大作文+小作文历年真题合集 2010—2025》，与 `01`/`03`/`06` 一致；**D/E 及 A2 的填空为示范，不是真题数据**，考场按题目图表填。
+- 判型、时态、主题词一致性、唯一骨架均沿用 `01`/`02`/`04`/`06`，**没有引入第二套模板**（三条铁律第 1 条）。
+- 图画作文（单幅/双幅/图画＋图表）、文字材料、会议纪要：**英语 17 年真题从未考过**，只列"认得"，不占背诵时间。
+- 工作区 00—05 六份原件未改动；本文件与 `06` 为新增定稿资料。
+
+### 11/15 新到资料的处置（详见 `10_新增资料集成与英语取舍.md`）
+
+| 资料 | 处置 |
+|---|---|
+| 柴荣《27英语强化大小作文讲义》《历年真题汇总 + 参考范文》 | 只取 2026 真题、大纲、年份表与评分档；**它的三段式模板不并入** |
+| 石雷鹏《大/小作文笔记（英语·小谭）》 | 只取「数据本质」「审题三事项」「七步法」「替换词表」；功能句体系不并入 |
+| Monkey《图画类➕图表类大作文》《思路进阶与金句扩展》《26 模板入门讲义》 | 只取「判型四问」和 P2 原因的两个角度；**图画模板、马克思金句、三点论证一律不采用**（英语一 200 词体量） |
+| 柴荣 / 石雷鹏英语一讲义、Monkey 语法词汇外刊、橙啦《少背单词》、冲刺背诵 20 篇 | 英语一专属或与主线重复，**存档不看** |
+
+> ⚠️ Monkey 入门讲义写「英一英语都要同时掌握图画、图表两种模板」，那是**大纲允许**，不是**英语考过**。17 年真题 100% 图表，图画保持「认得，不背」。
+</script>
+<script type="text/plain" id="md-10"># 新增资料集成与英语取舍
+
+**2027 考研英语（二）｜整理 2026-11-15｜考试 2026-12-19，剩 34 天**
+
+> **一句话结论**：这一批新增 598 个文件、约 5.1 GB（真题库 + 柴荣 / 石雷鹏 / Monkey 三位老师全年班）。
+> 真正要进备考体系的只有 **6 份英语讲义 + 1 套真题库**，产出的知识增量是 **7 条结论 + 3 处勘误**。
+> **01/02/04 定稿骨架一个字没改**，铁律仍是「只背一套骨架、其他资料只取句子、英语不套英语一 160—200 词模板」。
+> 去重只做「知识层面不重复看」，**不删、不移动、不改名任何原件**。
+
+---
+
+## 0. 先划边界：我们是英语
+
+| 排除项 | 具体 | 理由 |
+|---|---|---|
+| **英语一专属** | `02.考研英语真题/考研英语（一）历年真题及答案…/`、`英语一/`、`英语真题（题型分类）/英语一真题分类汇总/`；柴荣「英一强化/基础」全套讲义、英一课堂笔记；石雷鹏「英语一」笔记、牛南山「英一」、冲刺背诵 20 篇（英一）；石雷鹏笔记里 05 年英一「辞职+道歉」例题 | 分值、字数、题型都不通用；英语一 30 分写作 / 160—200 词 / 翻译 10 分，与英语不同 |
+| **早年通用卷** | 1980—2009 真题（含 Word 版、答案速查、合集） | 2010 才分英一英语；34 天里不做早年卷 |
+| **基础阶段 / 打卡** | 柴荣 Day1—Day150 每日打卡 docx（300+ 份）、语法课 13 节笔记、词根思维导图、课表 jpg、打印指南 | 基础期资料，冲刺阶段投入产出比最低 |
+| **超大扫描书** | 橙啦《少背单词》849 MB、《少背单词艾宾浩斯打卡本》、石雷鹏《冲刺背诵 20 篇（英语）》392 MB、Monkey《词汇速记》49 MB、《锐读外刊》34 MB、Monkey 语法/介词/百句实战 7 份 | 多为纯图片（无文本层）；词汇已有「单词大观 2868 词 + 词汇站 1772 真题词」主线，作文已有唯一骨架；再开一套必然混搭 |
+| **押题 / 预测** | 石雷鹏「模拟预测」、Monkey 外刊题源 | 时间紧，只练真题 |
+
+> ⚠️ 一处容易带偏的地方：Monkey《26 考研作文模板入门讲义》写明「23 考研大纲改了，英一英语同学要**同时掌握图画、图表两种模板**」。
+> 大纲确实允许图画，但**英语 2010—2026 共 17 年真题 100% 是图表**，一次图画都没考。
+> 按你的目标（40—50 分过线）和剩 34 天：**图表练到不卡壳，图画只认得，不额外背一套**。现有 07 的 E 类保持「认得，不背」。
+
+---
+
+## 1. 去重清单（内容级，比哈希更严）
+
+哈希比对没有发现字节级完全相同的文件，但**内容重复**不少。以下每组只保留右列一份：
+
+| # | 重复组 | 只打开这一份 | 说明 |
+|---|---|---|---|
+| 1 | 根目录 `柴荣《大小作文模板》（英一二）.pdf`（12.6 MB） vs `柴荣/柴荣《大小作文模板》英一英语/…`（13.3 MB） | 根目录那份 | OCR 确认是同一本书（小作文三段式 + 英一 2005—2025 类别整合），只是导出/扫描不同；且它按英语一 8—9 句设计，**只当字典** |
+| 2 | 真题卷三套：`【2】2010-2025…/01、真题部分`、`英语/03、2010-2024考研英语真题+解析/…`、`英语/2025年…` | `【2】…/01、真题部分/*可复制搜索查词*.pdf` | 同一批卷子的不同扫描；可复制版便于查词、搜 Directions，另两套只作备份 |
+| 3 | `【大道至简loru】/往年/2011-2020完型（翻译）PDF完整版` vs `英语真题（题型分类）/英语真题分类汇总/01、04` | 题型分类汇总版 | 后者从 2010 起、可复制可搜索、还带参考译文 |
+| 4 | 根目录《考研英语 大作文+小作文历年真题合集（2010-2025）》 vs 柴荣《27英语大小作文历年真题汇总》 | 根目录合集（题目）；柴荣《参考范文》只作字典 | 题目完全重复；柴荣版多的只是「黄皮书版参考范文」，与定稿范文不混用 |
+| 5 | 石雷鹏同一门课的 3 个整理版（小谭学长 / 牛南山 / 考研斯基，共 9 份） | **小谭学长「英语」大、小作文笔记 2 份** | 同一课程内容重复三遍；牛南山/考研斯基版是纯图片无文本层，且混了英语一。只留有文本层、英语专属的那套 |
+| 6 | 柴荣《考研英语大纲词汇乱序版》2 份（5.5 MB / 4.9 MB）、石雷鹏《高频词汇汇总》、橙啦《少背单词》 | 都不新开 | 与「单词大观 2868 词 + 词汇站 1772 真题词 + 531 高频词」主线重复；词表只留词汇站一份 |
+| 7 | 柴荣「其他总结好的资料」里塞的英一真题与答案（20 余份） | 不打开 | 与英语一排除项重复 |
+
+**净结果**：从 598 份里筛出 6 份要读的英语讲义 ——
+`柴荣阅读做题避坑指南`、`柴荣阅读方法论六大题型总结`、`27英语强化阅读讲义`、`27英语强化新题型/完型/翻译/大小作文讲义`（合为一组）、`27英语大小作文历年真题汇总+参考范文`、`石雷鹏大/小作文笔记（英语·小谭）`、`英语阅读做题步骤.docx`、`图画类➕图表类大作文monkey.docx`、`作文思路结构进阶与金句扩展monkey.docx`。
+
+---
+
+## 2. 3.4 GB 真题库：只开这 4 个入口
+
+| 场景 | 只打开 | 用法 |
+|---|---|---|
+| **模考 / 查词 / 核 Directions** | `考研英语（二）历年真题及答案（1980-2026年）/【2】2010-2025年…/01、真题部分/`（2010—2024 可复制版） | 名字带「可复制搜索查词」，搜题、抄 Directions、核对署名最快 |
+| **最新一年** | `【3】2026年英语真题及答案/`（试题 + 参考答案，2 份） | **本轮已逐页核对**（见第 3 节勘误）。剩 34 天里最值得限时做的一套 |
+| **精读 / 长难句** | `补充英语：解析册+逐词逐句册(全考研真相)/YYYY年逐词逐句精讲册/`、`YYYY年真题逐题细解/` | 2004—2024 逐年；一篇精读胜过三篇对答案 |
+| **分题型专项** | `英语真题（题型分类）/英语真题分类汇总/` 5 份（完型 / 阅读 / 新题型 / 翻译 / 写作，均 2010—2020） | 哪块弱补哪块；可复制可搜索 |
+| 对答案 | `【2】…/02、解析部分/速查版/`；要过程看 `详细版/` | 速查版够用，详细版动辄 100 MB，不必每套都开 |
+
+**不用打开**：英语一全部目录、1980—2009 早年卷、Word 版（除非要编辑）、`英语一真题分类汇总`、各类 jpg 广告/课表。
+
+---
+
+## 3. 真正吸收的内容：7 条结论 + 3 处勘误
+
+### 3.1 阅读（40 分，补进 `05`）
+
+1. **英语六大题型的题量分布**（柴荣《阅读方法论六大题型总结》，扫描件已 OCR）：语义 0—1、**细节 3—4**、推理 1—2、例证 0—1、态度 0—1、主旨 0—1。**细节题是绝对主战场**，练定位与同义替换，别把时间花在猜词题上。
+2. **英一/英语的方法差异（最容易混的一条）**：英语一阅读**侧重段落概括**（抓原文逻辑 + 用选项定位）；**英语侧重细节**（用选项定位、一一比对）。别把英一的「段落归纳」技巧搬过来。
+3. **避坑五条**（柴荣《阅读做题避坑指南》，全文有文本层，质量最高）：① 定位要穷尽题干限定词（时间、范围、因果）；② 长难句先看 `and/but/so` 逻辑信号，不要逐字死译；③ 二选一**圈出两个选项的差异词**再回原文找依据；④ 因果题注意英语「先果后因」，`is a reflection of / is born of / a response to` 谁是因谁是果；⑤ 分清「作者观点 vs 他人观点」——转折、否定、情态动词、感情色彩词是作者观点信号，人名 + 观点词是他人观点。
+4. **题文同序**（`英语阅读做题步骤.docx`）：题目顺序与文章行文顺序一致，第 1 题基本在第一段（最多第二段）；**不要跨段找**。二选一排除不掉时，往主旨靠——例子正着靠、反例反着靠。
+5. **态度题先排除极端词**：`indifferent / ambiguous / biased / puzzled` 直接划掉；`objective` 极少是答案。
+
+> 与 05 原有「四类干扰项」合并后，错因本仍只记三类：`定位错 / 同义替换没认出 / 被干扰项带跑`，**不新增第四类**。
+
+### 3.2 小题型（补进 `05`）
+
+6. **柴荣英语强化讲义给的分数账**（2010—2026 历年平均分，已核对 2026 真题卷）：
+
+| 题型 | 分值 | 历年平均 | 判断 |
+|---|---|---|---|
+| 翻译 | 15 | **7.76** | 小题型里性价比最高，值得练「准确+通顺」 |
+| 新题型 | 10 | 6.49 | 2026 考的是**小标题对应**（森林恢复），2017 是多项对应，两种都要认 |
+| 完型 | 10 | **4.77** | 最低，放最后；保底技巧 = 红花词优先（`however / although / yet / while / because / for example`） |
+| 小作文 | 10 | **4.85** | 失分主要在**要点没覆盖全**，不是语言不高级 |
+| 大作文 | 15 | 7.17 | 判型错一次就掉档 |
+
+> 2026 真题卷实测：完型=自我价值与认知误区、新题型=小标题对应（森林恢复）、翻译=服装对心理的影响、小作文=视频反馈+询问（Li Ming）、大作文=儿童户外活动看法调查。与柴荣讲义年份表**逐项吻合**，可放心用。
+
+### 3.3 作文（补进 `07`，**不动 01/02/04 骨架**）
+
+7. **判型的本质**（石雷鹏英语大作文 3.2，与我们「看时间轴不看图形」是同一条规律，换个说法更好记）：
+   **固定时间段 + 相同事物 → 写变化（动态）；固定时间点 + 不同事物 → 写对比/排序（静态）。**
+   配套「重点数据四选」：起点、终点、拐点、极值（最高/最低）；仍只写 2—3 个数据。
+
+#### ⚠️ 三处勘误（已用真题原件核对，旧资料里的口径要改）
+
+| # | 旧口径 | 更正 | 依据 |
+|---|---|---|---|
+| **1** | 「署名以 Directions 为准，2012 是 Zhang Wei，**其余 Li Ming**」 | **2010、2011、2012 三年都是 Zhang Wei；2013 起才是 Li Ming**。考场仍一律先看 Directions 末尾 | 真题库 2010/2011/2012/2013 真题 Directions 原文 + 柴荣《27英语小作文历年真题汇总》 |
+| **2** | 「2024、2025 连续两年静态占比柱状」 | **2024 / 2025 / 2026 连续三年 B2 静态多选占比柱状**。**B2 是第一优先级，A1 其次**，其余认得 | 2026 真题原件 Part B（图表页 OCR）+ 柴荣《27英语大作文历年真题》把它编入「静态图练习」 |
+| **3** | 「会议纪要英语至今未考，认格式即可」 | **纪要（minutes）已写进 2025/2026 大纲应用文类型**（柴荣大纲解读 + 石雷鹏笔记一致），但 2010—2026 真题仍未考 → 结论不变：**认格式、不背**，但别再说它「超纲」 | 柴荣《27英语强化大小作文讲义》大纲要求（2025）；石雷鹏小作文笔记「新增考查类型」 |
+
+**2026 真题图表数据（已 OCR 图表页核对）**：某项关于儿童户外活动看法的调查 —— 促进观察力 54.6%、满足好奇心 54.5%、强身健体 37.2%、增强亲子互动 33.2%，**合计 179.5% > 100%**，正是 B2 多选占比柱状。
+按定稿 B2 写法示范（只换数据，骨架不变）：
+
+```
+The bar chart above presents the results of a survey on views about children's outdoor activities.
+Overall, the pattern suggests that parents value cognitive benefits most.
+Specifically, fostering observation skills ranks first at 54.6%, closely followed by satisfying curiosity at 54.5%.
+By contrast, only 37.2% and 33.2% of respondents mention physical fitness and stronger parent-child interaction.
+```
+
+> 红线照旧：**不写 `respectively`、不写 `The remaining X%`、不写 `from…to…`、不写过去时 `rose`**。这组数据是三年连考最直接的证据，套题时优先用它。
+
+**其他只取「思路」，不进骨架的部分：**
+
+- **P2 两个原因怎么想**（Monkey《思路进阶与金句扩展》的「大三元」）：`世界怎么了 → 这样好不好 → 我们怎么办`。对英语图表只用前两层，填进现成的 `For one thing / For another`：
+  - `For one thing` ← 经济/社会发展、技术进步、政策投入（客观背景）；
+  - `For another` ← 相关人群的偏好、兴趣、价值观变化（主观选择）。
+  **金句（马克思、爱伦·坡、倒装长句）一句都不进**——那是英语一 200 词体量，且很多你不会拼。
+- **Monkey 图表讲义的「判型四问」**（数字还是百分比 / 是否与人有关 / 有没有年份变化 / 趋势还是偏好）可作为 07「三秒判型」的交叉检查，但它的模板 P2 三点论证 + `As is numerically illustrated…` 起首句**不采用**。
+- **石雷鹏「审题三事项」+「七步法」**：题目读三遍（背景 / 体裁+内容要求 / 语域+格式）；抄→英译汉→汉译英→比差异→背错处→背全文→举一反三。这替换不了定稿模板，但可以替换你「抄 2 遍」里的第 2 遍。
+- **石雷鹏数据词库**（3.3/3.4 上升下降、程度副词、排序句式）只作**替换词表**：`rose / surged / climbed` 换成你确定会拼的那个；`ranks first at …%` 仍是 B2 唯一写法，别用 `respectively / The remaining X%`。
+- **一处不冲突但要点破**：石雷鹏写「写给陌生人或机构要自我介绍」，定稿 04 写「回信不写自我介绍」。两者是不同情景（**主动写信** vs **回复来信**），按 04 冻结，别混。
+
+---
+
+## 4. 融会贯通：三条主线其实是一件事
+
+```
+① 同义替换（阅读细节题 3—4 题）  ⇄  换主题词（作文 P2/P3 全篇只用一个 trend / pattern）
+   ⇄  词汇站 1772 真题词 + 柴荣《同义替换+逻辑关系+熟词僻义》（查用字典）
+② 判型：看时间轴（07）  ⇄  数据本质：时间 vs 对象（石雷鹏 3.2）
+   ⇄  2010—2026 十七年真题表（柴荣讲义 + 2026 原件）
+③ 小作文平均分只有 4.85  ⇄  「两个要点各写一句」（07）  ⇄  审题三事项（石雷鹏）
+   → 结论：内容要点覆盖 > 高级语言。这也是「先写对，再写高级」的数据依据。
+```
+
+**词汇资料的定位**：柴荣《同义替换+逻辑关系+熟词僻义》《阅读不同话题词汇+英美政法背景》《词频统计版》、石雷鹏《高频词汇汇总》、阅读步骤 docx 附的 40 个政法/态度词 —— 全部是**查用字典**，不新增背诵任务；要背的仍只有词汇站那一份。
+
+---
+
+## 5. 挂进 09 的 36 天方案（不新增计划，只加「≤10 分钟」的嵌入点）
+
+| 09 阶段 | 原本做什么 | 新资料只在这里插一下 |
+|---|---|---|
+| 一 · 11/13—11/19 骨架闭卷 | 默 10 句 + 6 个目的句 | 把**勘误 1（署名）**抄进一页纸边角；拿 **2026 大作文题**做 1 次 3 秒判型（答案：B2 静态） |
+| 二 · 11/20—11/29 真题套用 | 大 5 篇 + 小 5 篇 | 大作文三篇 B2 换成 **2024 / 2025 / 2026**（三年连考）；小作文从柴荣年份表挑 2 道**组合题**（如 2023 推荐、2024 建议+询问） |
+| 三 · 11/30—12/10 限时连写 | 每周 2 套 | 用 2026 整套真题做 1 次限时；写完按柴荣评分档自评（A 节 7—8 分档 = 要点基本全、格式语域恰当）；阅读错因用**避坑五条**归类 |
+| 四 · 12/11—12/18 只看不写 | 一页纸 + 红线表 + 错题本 | **不新增任何东西**。12/15 起不加句、不换模板 |
+
+> 阅读若还有余力：每周 2 篇精读，用真题库「逐词逐句精讲册」，不要摊开柴荣 6 节技巧笔记 + 石雷鹏语法 + Monkey 百句实战。
+
+---
+
+## 6. 全量处置清单（四组）
+
+| 组 | 内容 | 动作 |
+|---|---|---|
+| **A · 已并入** | 柴荣《避坑指南》《六大题型总结》、英语强化 4 本讲义、英语大小作文真题汇总；石雷鹏英语大/小作文笔记（小谭）；Monkey 两份作文 docx；`英语阅读做题步骤.docx`；2026 真题卷 | 结论已写进本文件 + `05` + `07`，原件只读 |
+| **B · 查用字典** | 柴荣《同义替换》《话题词汇+背景》《词频统计版》《大纲词汇乱序版》《参考范文（黄皮书版）》；石雷鹏《高频词汇汇总》《语法&长难句精讲》；真题库详细解析/逐词逐句册/题型分类 5 份 | 卡住再翻，不排进每日计划 |
+| **C · 存档不看** | 柴荣 Day1—Day150 打卡 docx、语法课笔记、英一全套课堂笔记；石雷鹏牛南山/考研斯基版、冲刺背诵 20 篇（英一/英语）、少背单词 849 MB；Monkey 全心全意班 7 份讲义 + 26 模板入门讲义；《26考研作文模板入门讲义》 | 与主线重复或纯图片，留文件不打开 |
+| **D · 英语一/无关** | 真题库英语一全部、1980—2009 早年卷、英语一题型分类汇总、课表 jpg、打印广告 jpg、打印指南 docx | 明确排除，不进复习 |
+
+---
+
+## 7. 本轮改了哪些文件（可追溯）
+
+| 文件 | 改动 |
+|---|---|
+| `10_新增资料集成与英语取舍.md`（新） | 本文件：去重、取舍、7 条结论、3 处勘误、34 天嵌入点 |
+| `10_新增资料集成地图.html`（新） | 排版版，可离线打开 / 打印 |
+| `05_英语小题型速查.md` | 补英语六大题型分布、英一英语方法差异、避坑五条、题文同序、分数账、真题库索引 |
+| `07_英语作文_分类速记总表.md` | 补 2026 真题与三年连考、署名勘误、纪要进大纲、判型本质、新资料处置 |
+| `00_先看这里.md` | 加 10 号入口与三条勘误提示 |
+| `01` / `02` / `04` | **未改动**（唯一骨架 + 一页纸 + 小作文定稿模板） |
+| 工作区 00—05 六份原件 | **未改动**（沿用你「不要更改」的要求） |
+
+**最后一句**：资料变多了，计划不变。剩 34 天真正要做的仍是把那 10 句骨架写到不卡壳，把 B2 静态柱状写对，把小作文两个要点写全。这一轮的全部价值，就是让你**不用再打开另外 590 份文件**。
+</script>
+<script type="text/plain" id="md-11"># 27 大作文一页纸 · 拆解与英语取舍
+
+**来源：南萧极简考研《27 考研大作文一页纸（大作文大观）》｜本地 4 份 PDF｜2026-11-16 拆解**
+**结论：英语套写 28 份（2020—2026 × 4 档）已全部取得并逐份实测；原版一律 9 句、174—215 词。本站最终定稿取它「P1 一句话列全数据」的做法，保留自己的 P2 真分析与 P3 具体建议，合成 10 句（3+4+3）、150—165 词，作为唯一骨架。**
+
+> 版权声明：该资料允许转载与二创，需标明来源为「b站 up 主南萧时刻自信冷静」。本文只做拆解与取舍，不复制其语料库。
+
+---
+
+## 0. 它是什么、给谁用
+
+| 项目 | 内容 |
+|---|---|
+| 全称 | 27 考研大作文一页纸（大作文大观） |
+| 组成 | 完整版大观（50 页：方法论 + 思路详解）／模版部分（7 页：三档模板）／语料库（14 页：价值观分类语料）／使用说明（方法论 + 步骤） |
+| 覆盖题型 | 图画、图表（动态/静态）、文字材料；也讲双图/多图 |
+| 核心主张 | 作文考的是「宏大叙事」：所有题目都归到一个正面价值观，用一套模板 + 语料填空，不按题型背多套 |
+| 适合谁 | 不会审题立意、背了模板套不上、想要「一个中心 + 万能句」的人；英一、英语都有对应版本 |
+| 不适合谁 | **直接拿通用模版段落套英语**（200 词体量，见第 5 节）；英语请用下面 0.1 的套写版 |
+
+**它解决的痛点**（完整版 P4—P8 原意）：背几十篇范文仍写不好、套模板卡住、课时长吸收差。它的方案是「一套模板 + 语料库 + HTML 引导套写」，把「审题立意」变成「选价值观 → 填六类语料」。
+
+---
+
+## 0.1 英语专属套写：28 份已全部取得并实测
+
+2026-11-16 用文档密码进入语雀「历年英一英语真题套写文件（2020—2026）」核实，目录分英语一 / 英语两栏，每栏 7 年 × 4 档。**本地已下载全部 28 份英语 HTML**：
+
+| 档位 | 已取得 | 缺失 |
+|---|---|---|
+| 满分版 | 2020—2026 共 7 份 | — |
+| 简化版 | 2020—2026 共 7 份 | — |
+| 速通·标准 | 2020—2026 共 7 份 | — |
+| 速通·无脑 | 2020—2026 共 7 份 | — |
+
+**逐份解析 `<script id="lesson-data">` 的实测结果（不是看文件名）**：
+
+| 年份 | 判型 | 满分 | 简化 | 速通标准 | 速通无脑 | 本站定稿 |
+|---|---|---|---:|---:|---:|---:|---:|
+| 2020 | B1 饼图 | 183 | 174 | 190 | 198 | 153 |
+| 2021 | B2 多选柱状 | 186 | 176 | 191 | 196 | 152 |
+| 2022 | A 动态双列 | 180 | 176 | 189 | 186 | 154 |
+| 2023 | A 动态折线 | 188 | 177 | 189 | 186 | 152 |
+| 2024 | B2 多选柱状 | 197 | 181 | 207 | 201 | 152 |
+| 2025 | B2 多选柱状 | 203 | 192 | 214 | 215 | 160 |
+| 2026 | B2 多选柱状 | 184 | 179 | 197 | 204 | 154 |
+
+**四条硬结论：**
+
+1. 原版四档**全是 9 句**（P1 2 + P2 5 + P3 2），174—215 词。四档的差别**不是句数，是每句里塞了多少政策 / 战略修饰和从句**——「速通·无脑」反而最长（215 词），因为它把套话写满了。
+2. **简化版 174—192 词，还是超英语 24—42 词**。也就是说：作者并没有为英语做到 150 词，他只是把句子换简单了，没减量。
+3. 本站定稿 **10 句、152—160 词**（P1 3 + P2 4 + P3 3）。
+4. 2024—2026 的 B2 原版仍写 `accounts for the largest share` 并配 `respectively`；本站改用 `ranks first` + **四类五类全列**（见第 0.2 节）。
+
+**2026 口径差异**：原版把 54.6% 写成「满足好奇心」、54.5% 写成「促进观察力」，与真题相反；本站统一为 **促进观察力 54.6%、满足好奇心 54.5%、强身健体 37.2%、亲子互动 33.2%**。
+
+> 逐句对照与套写练习已接入站点 `/essay/practice/`：7 年 × 四档原文 + 10 句定稿，逐段揭示。
+
+---
+
+## 0.2 最终裁定：为什么是 10 句（3+4+3），不是 9 句也不是 11 句
+
+三个候选摆在一起看，差别其实只有一处：**P1 怎么处理数据、P2 那几句是分析还是套话。**
+
+| | 原版 9 句 | 旧稿 11 句 | **定稿 10 句** |
+|---|---|---|---|
+| 结构 | P1 2 + P2 5 + P3 2 | P1 4 + P2 4 + P3 3 | **P1 3 + P2 4 + P3 3** |
+| 词数 | 174—215 | 152—162 | **152—160** |
+| P1 数据 | 一句话列全 ✅ | 只报前两三名，再用 `By contrast, only` ❌ | 一句话列全 ✅ |
+| P2 内容 | 五句全是「受关注 / 政策 / 社会 / 战略」套话 ❌ | 两个真原因 + 一个具体例子 ✅ | 同旧稿 ✅ |
+| P3 | `holistic development` 大词 ❌ | 观点 + 具体建议 + 具体展望 ✅ | 同旧稿 ✅ |
+| 单句长度 | 20—36 词，长句多 | 8—19 词，短句多 | 8—30 词 |
+| 主要风险 | 长句写崩、内容空泛 | **静态图漏类别** | 第 2 句要写长 |
+
+**为什么不用 9 句（原版）**
+
+- 174 词起，英语只要求 150 词，多写的 24—65 词不加分，只增加出错面。
+- 它的 P2 五句里，第 3—5 句（`has attracted attention` / `National policies ... empowering individuals` / `a ripple effect`）是纯套话，对「为什么儿童户外活动以观察力为主」这个具体问题**一个字都没答**。英语阅卷看 P2 有没有实质分析，堆套话最多给到中等档。
+- 它的 P3 落到 `holistic development` 这种大词上，和图表毫无关系，一眼模板。
+
+**为什么不用 11 句（旧稿）**
+
+- P1 只有 4 句却只写了 2—3 个类别：2025 真题**五类**只写三类、2024 与 2026 **四类**只写三类、2021 **四类**只写三类。中间那几个类别凭空消失，最后还用 `By contrast, only X%` 硬造一个对比——**这是旧稿最硬的伤**，因为阅卷对着图一眼就能看出来。
+- 11 句到 152 词，平均每句 14 词，句子碎，语言分上不去。
+
+**为什么 10 句正好**
+
+- P1 压成 3 句（总起 / 一句话列全数据 / 点题），把漏类别的问题从结构上消灭了——**一句话必须列完，你没法跳过中间项**。
+- P2 保持 4 句真分析，第 4 句是具体例子（`many communities now organize nature walks`），这是英语最容易拿内容分的地方。
+- 字数 152—160，比 150 线高 2—10 词，紧但不危险。
+- 比旧稿少一句、比原版少 20—60 词，**背诵量最小，覆盖面最全**。
+
+**结论一句话**：取它的 P1，留我们的 P2 / P3。
+
+---
+
+## 0.3 从原版真正吸收的三件事（已写进骨架）
+
+1. **P1 一句话列全数据。** 原版那句 `... ranks first at A%, followed by B, C and D at ...` 是整套资料里最值钱的东西——它逼你把图读全。本站改写为「每个数字前重复 `at`、不用 `respectively`」，把配对错误也一并解决。
+2. **双线一句写完。** `..., while that of 【B】 fell from ... to ...` 补上了我们 2022 这类双系列题的写法。
+3. **多图只写一个中心。** 「两幅图分开写不同观点就上当了」——这条直接进了 D 模块和判型表。
+
+**明确不吸收**：五层 P2、研究引用、`holistic development`、把国家战略硬套生活类图表、`accounts for the largest share` 用于多选。
+
+---
+
+## 1. 方法论：4 条，能直接用在英语
+
+1. **立意必须正面积极。** 无论图画/图表/文字，无论题目展示的是正面、负面还是利弊兼有，都往「正确合理的做法」上写。图片显示乱扔垃圾 → 主题词写「保护环境」；显示逃避就业去考研 → 写「积极就业」。
+2. **先想国家视角。** 看到题目先问：国家做了什么才有这个结果？国家看到这个现象会做什么？这一步决定 P2 的原因往「政策/社会」靠，而不是只写个人。
+3. **多图不分散。** 双图/多图/图表+图画，不分开写不同观点；按单图写，只提炼一个中心。资料原话：「命题人想要你表达的立意都是有一个大主题大中心的，你要真的分开写不同观点那你就上当了。」
+4. **语料按价值观归类，不按题型背模板。** 同一个价值观的语料可以套多个年份（如「和谐」覆盖英语 2014/2015/2018/2020/2021/2022）。
+
+> **英语怎么用**：第 1 条直接收进 P3（观点句永远积极或「理解但需关注」，不写消极抱怨）；第 3 条收进判型（双图只写一个中心）；第 2、4 条只取「个人 → 政策 → 社会」的递进思路，不取整套语料。
+
+---
+
+## 2. 核心结构：三段 + 三档难度
+
+### 2.1 三段（以图表为例）
+
+| 段 | 功能 | 原模板要点 |
+|---|---|---|
+| **P1** | 描述 + 点题 | 图表总起句 → 动态双线 / 静态排序 → 点出主题词 |
+| **P2** | 中心段落，五层递进 | ① 主题词受关注（影响深远）② 个人层面：具体行为 → 可见成果 ③ 国家政策：相关领域 → 个人能力 ④ 社会层面：社会效果 → 可持续进步 ⑤ 国家战略：相关战略 → 社会变化 |
+| **P3** | 总结 + 倡导 | 「理性共识」+「不仅可取，而且必要」 |
+
+### 2.2 四档难度（同一套骨架，删的不是句数是修饰）
+
+| 档位 | P2 写法 | 实测词数 | 适合 |
+|---|---|---|---|
+| **满分版** | 五层全写，句子最长 | 183—203 | 英语一、基础好、冲 18+ |
+| **简化版** | 五层保留，固定后半句（`personal development and well-being` / `achieve their full potential`） | 174—192 | 英语一、想少背语料 |
+| **速通·标准 / 无脑** | 5 句编号〔1〕—〔5〕：现象归因 → 不意外 → 转折 → 国家战略 → 研究支持 | 186—215 | 英语一、考前速成 |
+
+> **英语判断**：四档都超过 150 词（最少的简化版也有 174），且都是 9 句。**一档都不整段搬**，只取句子——具体取哪几句见 0.2、0.3。
+
+---
+
+## 3. 可复用句式（原样引用 + 英语改造）
+
+### ① 图表总起（可作 A/B2 的备选首句）
+
+```
+The figures in the bar chart / line chart / pie chart / table reveal notable
+changes / differences concerning 【主题词】.
+```
+- 比我们现在的 `illustrates changes in ...` 更凝练，适合开头不想重复 `illustrates` 时换用。
+- **英语用法**：只换首句，后面仍接我们的「总体趋势 + 2—3 个数据 + 点题」。
+
+### ② 动态双线（补我们 A2 的缺口）
+
+```
+Between 【起始时间】 and 【终止时间】, the number / proportion of 【类别一】
+rose / fell from about 【数据1】 to around 【数据2】, while that of 【类别二】
+increased / decreased slightly / sharply from roughly 【数据3】 to approximately 【数据4】.
+```
+- 价值最高的一句：`while that of ...` 避免重复主语，`from about ... to around ...` 是「约数」写法，适合图表没有精确刻度时。
+- **英语用法**：只写两组数据；`that of` 指代前一类，单复数别错；仍不写 `respectively`。
+
+### ③ 稳定项（第三条线/没变化的那项）
+
+```
+By contrast, the figure for 【类别三】 remained broadly stable at around 【数据5】.
+```
+- `remained broadly stable at around ...` 比 `didn't change` 高级且安全。
+- **英语用法**：只在图里真有一项基本不变时用；没有就删。
+
+### ④ 静态排序（只对 B1 成立）
+
+```
+【类别一】 accounts for the largest share, at 【最大比例】, followed by 【类别二】,
+【类别三】 and 【类别四】 at 【第二比例】, 【第三比例】 and 【第四比例】 respectively.
+```
+- **红线**：`respectively` 只在「各项合计 = 100%」的构成比里合法。**B2 多选柱状禁用**（2024/2025/2026 都是 B2）。
+- **英语用法**：B1 饼图想写四项时用；B2 仍用 `ranks first at ...%, followed by ... at ...%`。
+
+### ⑤ 结论句（改造后可用）
+
+```
+原句：In conclusion, a rational consensus has emerged that both individuals and
+communities benefit immeasurably when 【主题词】 guides action. Promoting this
+principle is therefore not merely advisable but essential for holistic development.
+```
+- 太长、太「大词」，英语不整句搬。
+- **英语改造**：`Only in this way can we 【具体结果】.`（我们定稿第 10 句），或折中：
+  `It is therefore advisable for individuals to 【建议】, while the government should 【建议】.`
+
+---
+
+## 4. 语料库：六字段，比「七类主题词」更好用
+
+原资料按价值观/政策主题分类，每类给六种字段：
+
+| 字段 | 原文标签 | 英语怎么用 |
+|---|---|---|
+| 具体行为 | 【具体行为】个人行为 | 填 P2 句 7 的「人群愿意做什么」 |
+| 可见成果 | 【可见成果】个人成果 | 填例子句 `which has further ...` 的结果 |
+| 相关领域 | 【相关领域】政策领域 | 填 P3 建议句的政府动作（教育/医疗/住房/就业） |
+| 个人能力 | 【个人能力/行为】政策能力 | 填「政策让个人能够做什么」 |
+| 社会效果 | 【社会效果】社会效果 | 填 P2 原因 2 的「社会层面结果」 |
+| 相关战略 | 【相关战略】相关战略 | **英语慎用**：只有题目真涉及国家政策时才写，否则空泛 |
+
+> **用法**：不要背整库。每类只取 1 个「具体行为」+ 1 个「社会效果」，够填两句。这正好对应我们 P2 的「个人原因 + 社会原因」。
+
+---
+
+## 5. 不能用的部分（红线，写清楚免得混搭）
+
+| 不能搬 | 原因 |
+|---|---|
+| P2 五层递进（个人→政策→社会→战略→变化） | 英语 150 词装不下；写到 200 词反而扣分 |
+| `not least because of` / `laying the groundwork for` / `holistic development` | 长句 + 大词，基础一般容易写错、拼错 |
+| 「研究/权威期刊支持」句 | 英语图表作文不需要引研究，容易跑题 |
+| 把「国家战略」硬套到生活类图表 | 2025 老年人休闲活动、2024 劳动实践课，硬写国家战略会立意过高 |
+| 用它的 `respectively` 写 B2 | 各项合计 > 100%，`respectively` 不成立 |
+| 另起一套「价值观模板」 | 违反「只背一套骨架」铁律，考场两套必混 |
+
+---
+
+## 6. 融入现有站点的方案（页面 + 模块 + 步骤）
+
+### 6.1 本地记忆卡网页（`英语作文记忆卡.html`）
+
+| 位置 | 改什么 | 具体内容 |
+|---|---|---|
+| 卡片页 · 卡组 | 新增 `onepage` 组「27 一页纸精华」8 张 | 4 张句式卡（总起 / 双线 / 稳定项 / 静态排序）+ 3 张方法论卡（正面立意 / 多图一个中心 / 六字段）+ 1 张红线卡 |
+| 讲义页 | 文档列表从 6 份扩到 10 份 md + 2 条外链 + 1 条占位 | 00—07、10、11 内嵌；08/09 用新窗口打开；「小作文 27 版（待更新）」占位 |
+| 首页 | 今日建议加一行 | 「本周只碰 11 号的 4 个句式，不背语料库」 |
+| 判型练习 | 题目解析补一条 | B2 解析里加「不要用 respectively（一页纸的静态句只对 B1 成立）」 |
+
+### 6.2 线上站点（`本站演示版/library`）
+
+`build_portal.py` 现在读 9 份 md（00—07、10）。加入 11 号只需改 3 处：
+
+```python
+# ① DOCS 列表末尾加一条
+("11-onepage-analysis", "11_大作文一页纸_拆解与取舍.md",
+ "27 大作文一页纸 · 拆解与取舍",
+ "英语一宏大叙事模板 · 只取 4 个句式 + 1 条立意原则 · 小作文占位规范",
+ "今天看一遍", "约 12 分钟"),
+
+# ② 门户统计（build_portal_data 的 stats）
+{"value": "113", "label": "作文卡", "note": "英语记忆卡"},
+{"value": "10", "label": "份讲义", "note": "作文定稿资料"},
+
+# ③ 记忆卡入口描述
+{"title": "作文记忆卡", "desc": "113 张 · 自动复习排期 · 判型小游戏", ...}
+```
+
+步骤：改完 → `python build_portal.py` → 检查 `site/data/portal.json` 是否多出 11 号 → 部署 → 确认门户入口 / 上下篇导航 / 离线清单三处都出现 → `sw.js` 的缓存版本按内容哈希自动变，不用手改版本号。
+
+> 以上 3 处补丁已执行：`DOCS` 加 11 号、统计改 113 / 10、门户加练习页入口。构建与部署见 6.4。
+
+### 6.4 本轮落地（已完成）
+
+1. 28 份 HTML 全部解析，四档句数 / 词数 / 段落分布入表（0.1）；
+2. 裁定 10 句（3+4+3），01 / 02 / 03 / 06 / 07 全部改口径，七篇定稿 152—160 词；
+3. `onepage` 卡组第 1、10 张改为「以英语套写版为准」；`skeleton` 卡组重排为 10 句（仍是 11 张，静态/动态数据句各一张）；
+4. 记忆卡网页的「骨架拼装」游戏由 11 步改 10 步，讲义 7 份重新注入；
+5. `/essay/practice/` 上线四档对照；11 号讲义、门户入口、SW 预缓存一并更新。
+
+### 6.3 口径同步（顺手要改的）
+
+- `09` 里「2012 是 Zhang Wei，其余 Li Ming」→ 改为 **2010/2011/2012 都是 Zhang Wei，2013 起 Li Ming**（依据 10 号勘误 + 真题 Directions）。
+- 判型优先级：**B2（2024/2025/2026 三年连考）> A1 > 其余**。
+
+---
+
+## 7. 小作文 27 版未更新：预留扩展位怎么做
+
+### 7.1 文件与数据结构（先定规范，资料到了直接填）
+
+| 项目 | 约定 |
+|---|---|
+| 文件名 | `12_小作文一页纸_27新版.md`（当前 11 号之后） |
+| 章节 | 0 结论 / 1 四种格式 / 2 六类目的句 / 3 组合题写法 / 4 与 04 的差异 / 5 红线 |
+| 卡片组 id | `small27`，卡片 id 前缀 `s27-` |
+| 卡片字段 | 与现有 `C(deck, q, a, note)` 完全一致，不新增结构 |
+| 网页 DOCS | 预留 `{t:"12 · 小作文一页纸（27 版·待更新）", pending:true}` |
+| 线上 portal | 预留 `status:"pending"`，前端显示「待更新」，不生成空链接 |
+
+### 7.2 页面上的占位表现
+
+- **讲义页**：列表里显示灰色「待更新」条目，点开是一页说明：预计包含什么、当前先用 04 的哪几节、更新后替换哪一条。
+- **卡片页**：`small27` 组显示 0 张，但按钮不报错，点开提示「27 版小作文资料到位后，这里会出现 9 类目的句 + 4 种格式卡」。
+- **首页**：今日建议不引用占位内容，避免空任务。
+
+### 7.3 资料到位后的合并规则
+
+1. 只增补**差异**：27 版与 04 不同的目的句、格式、组合题写法，逐条列「旧 → 新」；
+2. 不覆盖 04 的六类目的句，除非 27 版明确更优且更短；
+3. 通知格式仍按 04 冻结（NOTICE + 日期 + 正文 + 落款），不与新版混搭；
+4. 合并后跑一次 `#selftest`，确认卡片总数、答案索引、讲义注入都正常。
+
+---
+
+## 8. 阅卷口径与 AI 批改闭环（2026-11-17 新增）
+
+来源：南萧开源汇总页 `yuque.com/nanxiao_fighters/qnwmlk/pe6v4kixsvhx3aa3` 的「关于作文批改」。原文按英语一 20 分制写，下面已改成英语 15 分制。
+
+### 8.1 两条阅卷口径（比多背一套模板有用）
+
+1. **官方考试分析的立意口径**：大作文「立足于新时代经济社会发展」「弘扬社会主义核心价值观」「讲好中国故事」——落到一个**正面、积极、有社会意义**的做法上。本站的 `P1 第 3 句点题` 和 `P3 观点句` 就是这个口径的落点；负面现象也写「应该怎么做」，不写抱怨。
+2. **真实阅卷是动态的**：标准按当年大盘水平定；绝大多数考生是模板化备考、水平不高，**所以对模板宽容，不会因为用了模板就降档**。别再为「像模板」焦虑，把力气放在写对、写全、写够字数——这正好支撑我们「一套骨架 + 只换 P1」和 50+ 过线的策略。
+
+> **边界**：宽容 ≠ 可以硬套。本站红线继续有效——不给生活类图表硬塞国家战略，不写研究引用，不写 `holistic development` 这类大词。**正面立意是给 P3 用的，不是给每个句子塞大词。**
+
+### 8.2 英语批改四看（按实际影响排序）
+
+| 看什么 | 具体查 | 本站对应 |
+|---|---|---|
+| 内容切题 | 数据有没有读全、点题有没有答「为什么」 | P1 第 2 句全列 + 第 3 句点题；P2 真原因 |
+| 结构连贯 | 三段清楚、主题词全篇一致 | 10 句 3+4+3；`trend` / `pattern` 不混用 |
+| 语言质量 | 主谓一致、时态、拼写、从句是否正确 | 4 个自带复杂句写对就够，不加新从句 |
+| 字数 | **低于 150 词会扣分** | 定稿 152—160，写完必须数一遍 |
+
+### 8.3 可直接复制的批改指令（英语 15 分版）
+
+```
+角色：考研英语（二）大作文阅卷老师，15 分制。
+
+先记住两条口径：
+1. 官方考试分析：立意立足新时代经济社会发展、弘扬社会主义核心价值观、
+   讲好中国故事等宏大叙事；
+2. 真实阅卷标准按当年大盘水平浮动，多数考生模板化备考，
+   对模板宽容，不因为用了模板就降档。
+
+按四个维度批改：内容切题（数据读全、点题到位）/ 结构连贯（三段、主题词一致）/
+语言质量（语法、词汇、句式）/ 字数（不少于 150 词）。
+
+严格按这个顺序输出：
+1. 分数：[0—15]
+2. 关键问题：▲内容 / ▲结构 / ▲语言，每点不超过 10 字
+3. 修改行动清单：原句 → 修改句 → 为什么这么改
+4. 提分点睛：★只给 1 件最该做的事
+5. 字数：达标 / 不足（说明扣几分）
+
+题目要求：〈粘贴 Directions 和图表数据〉
+我的作文：〈粘贴自己写的作文〉
+```
+
+> 原作者建议用 DeepSeek API、Kimi 付费版或海外主流模型批改，别用免费网页版。本站不绑定工具，按上面指令贴给任意模型都能用；**改完只改 3 类错：时态、主谓一致、拼写**。
+
+---
+
+## 9. 本轮改动清单
+
+| 文件 | 改动 |
+|---|---|
+| `11_大作文一页纸_拆解与取舍.md` | 新增（本文，作为数据源） |
+| `英语作文记忆卡.html` | 讲义新增第 11 条（内嵌本文）、第 12 条小作文占位；新增 `onepage` 卡组 10 张；讲义导航从 6 条扩到 13 条（10 份 md + 2 条排版页外链 + 1 条占位）；首页加「本周只碰 11 号的 4 个句式」 |
+| `09_作文精华定稿与36天方案.html/.pdf` | 修正署名口径：2010—2012 都是 Zhang Wei，2013 起 Li Ming |
+| `00_先看这里.md` | 加 11/16 定稿说明（10 句）；记忆卡说明改为 113 张 / 11 份讲义 |
+| 线上 `build_portal.py` | `DOCS` 加 11 号；统计改 113 / 10；门户加练习页入口；`update_sw()` 收录练习页资源 |
+| 语雀英语套写 | 2020—2026 × 4 档共 **28 份已全部取得并解析**（见 0.1） |
+| 开源汇总页 `pe6v4kixsvhx3aa3` | 2026-11-17 新增第 8 节：两条阅卷口径 + 英语批改四看 + 可复制的 AI 批改指令（原版 20 分制已改 15 分制） |
+| 原件 00—05 | **未改动** |
+
+> 本文没有单独做 HTML/PDF：它已内嵌在记忆卡网页的「讲义」第 11 条，打开网页即可读，也可用网页右上角 🖨 一并打印。
+
+**最后一句**：这份一页纸的价值不在「再背一套」，而在三件事——**立意永远正面、两幅图只写一个中心、原因可以按「个人 → 政策 → 社会」想**。句式取 4 句就够，语料一句都别整库背。
+</script>
+<script type="text/plain" id="md-14"># 英语大作文 · 最终定稿（以南萧简化版为准）
+
+**一句话：唯一骨架 = 南萧《27 大作文一页纸》英语「简化版」9 句（P1 2 + P2 5 + P3 3）。不另造句子，不混搭。**
+
+**依据**：完整版大观 50 页 / 使用说明 31 页 / 模版 7 页 / 语料库 14 页 / 英语套写实操 94 页（七年 × 四档 + 逐句解析）/ 28 份交互 HTML，已全部通读。
+**来源**：B 站 UP 主「南萧时刻自信冷静」/ 南萧极简考研，开源可二创，转载需注明来源。本站做英语取舍与数据校正。
+
+---
+
+## 0. 为什么选「简化版」，不选满分版或速通版
+
+| 档位 | 填空数 | 特点 | 适不适合我们（50+） |
+|---|---|---|---|
+| 满分版 | **9 类** | 语料最丰富，句子最长 | ❌ 要背 9 类语料，性价比低 |
+| **简化版** | **5 类** | 后半句全部固定，只填 5 个空 | ✅ **就是为备考成本低的人做的** |
+| 速通·标准 / 无脑 | 5 类但含【权威机构/期刊】 | 要写研究出处、国家战略，句子最长（197—215 词） | ❌ 基础一般编不出机构名，容易露怯 |
+
+作者原话：「简化满分版本所需背诵/填写的语料」「模板本身保证了一个下限分数，语料库并不需要完全背诵，甚至你可以背下空白处该写什么内容然后在考场上自己用大白话来填充，这样只会扣一点点分」。
+
+**对我们的意义**：5 个空里 2 个自己写（图表数据、主题词），3 个从语料库抄（具体行为、相关领域、社会效果）。实在背不下来，考场上用大白话填也保底。
+
+---
+
+## 1. 唯一骨架（9 句，闭卷默写）
+
+```
+P1｜总起 + 数据（2 句）
+1 The figures in the 【bar / line / pie chart】 reveal notable 【changes / differences】
+  concerning 【主题词】.
+2 【图表数据句：动态用 Between…and…；静态用…accounts for the largest share, at A%,
+  followed by B, C and D at B%, C% and D% respectively.】
+
+P2｜主题 → 个人 → 政策 → 社会（5 句，全篇共用，一字不改）
+3 【主题词】 has attracted attention, not least because of its far-reaching implications.
+4 At the individual level, it is reflected in the way people 【具体行为】,
+  ultimately contributing to personal development and well-being.
+5 National policies on 【相关领域】 likewise focus on empowering individuals to
+  achieve their full potential.
+6 Beyond personal advancement, this principle can strengthen communities by
+  【社会效果】, laying the groundwork for sustainable progress.
+7 As this principle takes root across society, it creates a ripple effect that
+  benefits social harmony and long-term prosperity.
+
+P3｜共识 + 倡导（2 句，全篇共用，一字不改）
+8 In conclusion, a rational consensus has emerged that both individuals and
+  communities benefit immeasurably when 【主题词】 guides action.
+9 Promoting this principle is therefore not merely advisable but essential for
+  holistic development.
+```
+
+**只有 5 个空要填：**
+
+| 空 | 在哪一句 | 从哪来 |
+|---|---|---|
+| 【主题词】 | 1、3、8（**三处必须同一个词**） | 7 类核心价值观里选，见第 3 节 |
+| 【图表数据句】 | 2 | 第 2 节公式 + 真题数据 |
+| 【具体行为】 | 4 | 语料库「个人行为」 |
+| 【相关领域】 | 5 | 语料库「政策领域」 |
+| 【社会效果】 | 6 | 语料库「社会效果」 |
+
+---
+
+## 2. 第一段：三种数据句（只背这三个公式）
+
+**动态图**（有年份，过去时）
+```
+Between 【Y1】 and 【Y2】, the number / proportion of 【类别1】 rose / fell from about
+【A】 to around 【B】, while that of 【类别2】 increased / decreased sharply from
+roughly 【C】 to approximately 【D】.
+```
+没有稳定项就到此结束；确实有一类没大变化，再加 `By contrast, the figure for 【类别3】 remained broadly stable at around 【E】.`
+类别名不会写 → 直接写 `the first category / the second category`，宁可笼统也别硬拼。
+
+**静态图**（只有百分比，现在时）
+```
+In a survey of 【调查对象】, 【类别1】 accounts for the largest share, at 【A%】,
+followed by 【类别2】, 【类别3】 and 【类别4】 at 【B%】, 【C%】 and 【D%】 respectively.
+```
+- 多选调查（各项相加 > 100%，如 2021/2024/2025/2026）作者仍用这个写法；若担心 `share` 不准确，把 `accounts for the largest share` 换成 **`has the highest percentage`**（作者在使用说明 P7 明确给了这个替换）。
+- 类别四项就写四项，五项就写五项，**不要跳过中间项**。
+- 类别名不会写 → `The largest share is 59.5%, while the second-largest is 21.3%.`
+
+**图画 / 文字**（英语 17 年没考过，认得即可）
+```
+Though deceptively simple, this scene conveys a meaningful message: 【画面描述】.
+It serves as a compelling testament to the significance of 【主题词】.
+```
+
+---
+
+## 3. 语料库：七类核心价值观（只重点背 3 类）
+
+作者要求：**至少背熟 3 个价值观（文明、和谐、敬业）**，每个记 2—3 个【具体行为】。
+
+### 主题词怎么选（最关键的判断）
+
+看到题目先问一句：**国家做了什么才有这个结果？国家看到这个现象会做什么？**
+- 正面话题 → 直接写它的正面做法
+- 负面话题 → 写"应该怎么做"（乱扔垃圾 → 保护环境；不赡养老人 → 关爱父母）
+- 利弊兼有、文本评论 → 一律正面赞同
+- **立意过高就往下找**：2020 手机阅读写「敬业」太拔高，往下写「终身学习 / 脚踏实地」就贴切
+
+### 三类必背语料
+
+| | 文明 Civilization | 和谐 Harmony | 敬业 Dedication |
+|---|---|---|---|
+| 适用 | 教育、读书、文化、全面发展 | 人际、健康、民生、生活品质 | 工作态度、行动力、坚持、务实 |
+| 主题词 | `lifelong learning` / `fostering well-rounded development` / `comprehensive quality education` | `greater health awareness` / `building a healthy China` | `dedication to work` / `career development` |
+| 具体行为 | learn through observation and hands-on practice / read consistently and study classic works | make use of public services and facilities / conserve resources and protect the environment | turn plans into action and replace excuses with effort / fulfill their duties and pursue excellence |
+| 相关领域 | quality education / cultural-ethical development | public health and well-being / livable city development | talent development / vocational training |
+| 社会效果 | developing practical skills and a cooperative spirit / enriching cultural life | creating livable environments and improving quality of life / fostering neighborhood ties | promoting professional excellence / enhancing productivity |
+
+**另外三类了解即可**：富强（经济发展、乡村振兴）、友善（亲子、关爱）、爱国。
+
+### 填空速查（真题七年覆盖）
+
+| 年份 | 主题词 | 具体行为 | 相关领域 | 社会效果 |
+|---|---|---|---|---|
+| 2020 | lifelong learning | use mobile phones to acquire knowledge through reading | quality education | enriching cultural life and fostering creative expression |
+| 2021 | greater health awareness | exercise alone or with others to maintain their health | public health and well-being | fostering neighborhood ties and mutual support |
+| 2022 | rural revitalization | use delivery services to buy and sell goods in rural areas | urban-rural integration | improving productivity and service quality |
+| 2023 | building a healthy China | acquire health knowledge and develop healthy habits | public health and well-being | promoting healthy lifestyles |
+| 2024 | comprehensive quality education | take part in labor practice to acquire practical skills | quality education | developing practical skills and a cooperative spirit |
+| 2025 | greater health awareness | take part in light outdoor activities regularly | elderly care and well-being | creating livable environments and improving quality of life |
+| 2026 | fostering children's well-rounded development | take children outdoors to explore and exercise | quality education | developing practical skills and a cooperative spirit |
+
+> **2026 数据校正**：观察力 54.6%、好奇心 54.5%、强身健体 37.2%、亲子互动 33.2%。原版套写把前两项写反了，本站按已核对真题口径。
+
+---
+
+## 4. 字数：听作者的，写到 175—190
+
+Directions 写 "about 150 words"，但作者明确要求「无论英一英语，尽可能写到 180—220 这个区间」，理由是卷面扫描后不写满显得很空，阅卷只有几十秒，第一眼定档。
+
+**折中做法：175—190 词。** 九年简化版实测 174—192 词，正好这个区间。低于 150 会扣分，写到 175—190 既安全又不显空。
+
+---
+
+## 5. 红线（别改作者的句子）
+
+1. P2、P3 七句**一个字不改**，三年共用。作者靠这个保证下限分。
+2. 【主题词】在第一段、第三段、第二段总起**必须同一个词**。
+3. 静态类别**全部列全**，不跳过中间项。
+4. 不写 `The remaining X%`（多选调查合计 >100%）。
+5. 不写【权威机构/期刊】、不编造研究——那是速通版的内容，我们不用。
+6. 正文不写标题。
+
+---
+
+## 6. 七篇成篇（他的简化版原文，2026 已校正数据）
+
+见 `essay_practice_drafts_v2.json`，或站点 `/essay/practice/` 的「定稿套写」。
+
+---
+
+## 7. 改动记录（2026-11-17）
+
+| 变更 | 说明 |
+|---|---|
+| 骨架 | 由本站自缝 10 句（3+4+3）改为**南萧简化版 9 句（2+5+3）**，完全以原资料为准 |
+| 语料 | 由本站六类主题词改为**作者七类核心价值观**，重点背文明 / 和谐 / 敬业 |
+| 字数 | 152—160 → **175—190**（依作者"写满不显空"策略，保留 150 底线） |
+| 数据 | 2026 观察力 / 好奇心按真题校正（原版写反） |
+| 原件 00—05 与南萧 PDF | **未改动** |
+</script>
+
+<script>
+"use strict";
+/* ================= 数据 ================= */
+const DOCS = [
+  {t:"00 · 先看这里", f:"md-0"},
+  {t:"01 · 大作文最终定稿模板", f:"md-1"},
+  {t:"02 · 一页纸速背卡", f:"md-2"},
+  {t:"03 · 真题套用示范", f:"md-3"},
+  {t:"04 · 小作文定稿模板", f:"md-4"},
+  {t:"05 · 小题型速查", f:"md-5"},
+  {t:"06 · 六类完整成篇", f:"md-6"},
+  {t:"07 · 分类速记总表", f:"md-7"},
+  {t:"08 · 极简作战图", href:"/kaoyan/essay/08-essay-map.html"},
+  {t:"09 · 精华定稿与 36 天方案", href:"/kaoyan/essay/09-plan.html"},
+  {t:"10 · 新增资料集成与取舍", f:"md-10"},
+  {t:"11 · 大作文一页纸拆解", f:"md-11"},
+  {t:"14 · 最终定稿（南萧简化版 9 句）", f:"md-14"},
+  {t:"12 · 小作文一页纸（27 版）", pending:true}
+];
+const DECKS = [
+  {id:"skeleton",n:"🧱 唯一骨架 9 句",c:"#5b6bb5"},
+  {id:"judge",n:"🧭 3 秒判型",c:"#d98a45"},
+  {id:"p1",n:"📊 P1 六模块",c:"#3e9e8a"},
+  {id:"corpus",n:"📚 核心价值观语料",c:"#9a7b3f"},
+  {id:"tools",n:"🧰 句型 & 替换词",c:"#8a63c9"},
+  {id:"p2",n:"💡 P2 原因 & 语料",c:"#cf6b8c"},
+  {id:"p3",n:"🎯 P3 观点 & 展望",c:"#c7564a"},
+  {id:"trap",n:"⚠️ 避坑红线",c:"#b8524a"},
+  {id:"small",n:"✉️ 小作文",c:"#4a90b8"},
+  {id:"minor",n:"🧩 小题型",c:"#7a8b4a"},
+  {id:"real",n:"📅 真题速记",c:"#6b7a99"},
+  {id:"onepage",n:"📄 27 一页纸精华",c:"#5b7a8c"}
+];
+const CARDS=[];
+function C(deck,q,a,note){CARDS.push({id:"c"+CARDS.length,deck:deck,q:q,a:a,note:note||""});}
+
+/* --- 唯一骨架 --- */
+C("skeleton","P1 · 句 1｜图表总起","The figures in the 【bar / line / pie chart】 reveal notable 【changes / differences】 concerning 【主题词】.","【主题词】在第 1、3、8 句必须是同一个词。动态写 changes，静态写 differences。");
+C("skeleton","P1 · 句 2之一｜静态数据句","In a survey of 【调查对象】, 【类别1】 accounts for the largest share, at 【A%】, followed by 【类别2】, 【类别3】 and 【类别4】 at 【B%】, 【C%】 and 【D%】 respectively.","多选调查可把 accounts for the largest share 换成 has the highest percentage。类别全部列全，不写 The remaining。");
+C("skeleton","P1 · 句 2之二｜动态数据句","Between 【Y1】 and 【Y2】, the number / proportion of 【类别1】 rose / fell from about 【A】 to around 【B】, while that of 【类别2】 increased / decreased sharply from roughly 【C】 to approximately 【D】.","类别名不会写就写 the first category / the second category，别硬拼。");
+C("skeleton","P2 · 句 3｜主题总起","【主题词】 has attracted attention, not least because of its far-reaching implications.","这一段六类题型一字不改。");
+C("skeleton","P2 · 句 4｜个人层面（填具体行为）","At the individual level, it is reflected in the way people 【具体行为】, ultimately contributing to personal development and well-being.","【具体行为】从语料库抄，用动词原形。后半句固定，不改。");
+C("skeleton","P2 · 句 5｜政策层面（填相关领域）","National policies on 【相关领域】 likewise focus on empowering individuals to achieve their full potential.","【相关领域】从语料库抄：quality education / public health and well-being / urban-rural integration。后半句固定。");
+C("skeleton","P2 · 句 6｜社会层面（填社会效果）","Beyond personal advancement, this principle can strengthen communities by 【社会效果】, laying the groundwork for sustainable progress.","【社会效果】用动名词短语，从语料库抄。后半句固定。");
+C("skeleton","P2 · 句 7｜宏观收束（固定句）","As this principle takes root across society, it creates a ripple effect that benefits social harmony and long-term prosperity.","整句固定，一个字不改。");
+C("skeleton","P3 · 句 8｜共识（填主题词）","In conclusion, a rational consensus has emerged that both individuals and communities benefit immeasurably when 【主题词】 guides action.","【主题词】与第 1、3 句保持一致——这是最容易错的地方。");
+C("skeleton","P3 · 句 9｜倡导（固定句）","Promoting this principle is therefore not merely advisable but essential for holistic development.","整句固定，一个字不改。");
+C("skeleton","5 个空分别在哪？","① 主题词 → 句 1 / 3 / 8（同一个词）\n② 图表数据句 → 句 2\n③ 具体行为 → 句 4\n④ 相关领域 → 句 5\n⑤ 社会效果 → 句 6","其余七句完全固定。语料忘了用大白话填，作者说只扣一点点分。");
+C("skeleton","字数要写多少？","175—190 词。Directions 写 about 150，但作者要求写满 180—220，理由是卷面不写满显空、阅卷几十秒第一眼定档。","九年简化版实测 174—192 词。绝不低于 150。");
+
+/* --- 判型 --- */
+C("judge","题目里有 from...to... / 多个年份 → ？","【动态图】过去时 rose / fell；第 2 句用 Between…and… 公式","看时间轴，不看图形。柱子 + 年份 = 动态。");
+C("judge","只有百分比 → ？","【静态图】现在时 accounts for the largest share / has the highest percentage","柱状也可能是静态。相加 =100% 或 >100% 都用同一句公式。");
+C("judge","多项相加 >100%（多选柱状）→ ？","各项是独立比例，不是份额；可把 accounts for the largest share 换成 has the highest percentage","2021 / 2024 / 2025 / 2026 都是多选。禁写 The remaining X%。");
+C("judge","图画或文字 → ？","【兜底】Though deceptively simple, this scene / this passage conveys a meaningful message: ...","英语 17 年没考过，认得即可，不专门练。");
+C("judge","主题词怎么选？（最重要）","先问：国家做了什么才有这结果？国家会怎么做？\n负面题写正面做法：乱扔垃圾→保护环境；不赡养老人→关爱父母。\n立意太高就往下找：2020 手机阅读写 lifelong learning，不写敬业。","主题词选 7 类核心价值观之一，选完三处统一。");
+C("judge","判型口诀","看时间轴，不看图形。柱子 + 年份 = 动态；柱子 + 百分比 = 静态。","这 4 个字最容易丢分。");
+
+/* --- P1 五模块 --- */
+C("p1","【动态图】第一句 + 数据句","The figures in the bar / line chart reveal notable changes concerning 【主题词】.\nBetween 【Y1】 and 【Y2】, the number of 【类别1】 rose from about 【A】 to around 【B】, while that of 【类别2】 surged from roughly 【C】 to approximately 【D】.","2022 双线：nationwide 51→83 billion，rural 12→30 billion。2023 单线：8.8%→11.58%→25.4%。");
+C("p1","【静态图】第一句 + 数据句","The figures in the bar / pie chart reveal notable differences concerning 【主题词】.\nIn a survey of 【对象】, 【类别1】 accounts for the largest share, at 【A%】, followed by 【B项】, 【C项】 and 【D项】 at 【B%】, 【C%】 and 【D%】 respectively.","类别全部列全：2021 四项、2024 四项、2025 五项、2026 四项。漏中间项就是内容不完整。");
+C("p1","2020 饼图数据句","In a survey of mobile reading purposes among students at one university, acquiring knowledge accounts for the largest share, at 59.5%, followed by passing time, obtaining information and other purposes at 21.3%, 17.0% and 2.2% respectively.","这是饼图（合计 100%），accounts for 用得准确。");
+C("p1","2026 数据句（已按真题校正）","Improving observation skills accounts for the largest share, at 54.6%, followed by satisfying curiosity, building physical fitness and increasing parent-child interaction at 54.5%, 37.2% and 33.2% respectively.","原版把 54.6 给好奇心、54.5 给观察力，与真题相反；本站按真题口径。");
+C("p1","图画 / 文字首句（兜底）","Though deceptively simple, this scene / this passage conveys a meaningful message: 【描述】. It serves as a compelling testament to the significance of 【主题词】.","英语没考过，认得即可。");
+
+
+/* --- 核心价值观语料（南萧语料库重点） --- */
+C("corpus","文明 Civilization · 主题词","lifelong learning / fostering well-rounded development / comprehensive quality education","适用：教育、读书、文化、全面发展。真题：英语 2016 / 2017 / 2020 / 2024 / 2026。");
+C("corpus","文明 · 具体行为（句 4）","learn through observation and hands-on practice\nread consistently and study classic works\npursue knowledge actively and think critically","接 the way people 后，用动词原形。");
+C("corpus","文明 · 相关领域（句 5）","quality education / cultural-ethical development / cultural heritage preservation","接 National policies on 后。后半句 achieve their full potential 固定。");
+C("corpus","文明 · 社会效果（句 6）","developing practical skills and a cooperative spirit\nenriching cultural life and fostering creative expression","接 by 后，动名词短语。");
+C("corpus","和谐 Harmony · 主题词","greater health awareness / building a healthy China / livable city development","适用：人际、健康、民生、生活品质。真题：英语 2014 / 2015 / 2018 / 2021 / 2022。");
+C("corpus","和谐 · 具体行为（句 4）","make use of public services and facilities\nconserve resources and protect the environment\nbalance competing demands and maintain healthy relationships","用动词原形。");
+C("corpus","和谐 · 相关领域（句 5）","public health and well-being / livable city development / sustainable urban development","");
+C("corpus","和谐 · 社会效果（句 6）","creating livable environments and improving quality of life\nfostering neighborhood ties and mutual support\nreducing conflicts and fostering cooperation","");
+C("corpus","敬业 Dedication · 主题词","dedication to work / career development / professional excellence","适用：工作态度、行动力、坚持、务实。真题：英语 2019 / 2024。");
+C("corpus","敬业 · 具体行为（句 4）","turn plans into action and replace excuses with effort\nfulfill their duties and pursue excellence\npersist through obstacles and refine their skills consistently","");
+C("corpus","敬业 · 相关领域（句 5）","talent development / vocational training and skill enhancement","");
+C("corpus","敬业 · 社会效果（句 6）","promoting professional excellence / enhancing productivity / fostering a culture of diligence","");
+C("corpus","富强 Prosperity · 了解即可","主题：economic development / rural revitalization\n行为：pursue opportunities enabled by national development\n领域：infrastructure development / urban-rural integration","适用：经济发展、基础设施、科技、乡村振兴。英语 2023。");
+C("corpus","友善 Kindness · 了解即可","主题词可用 strengthening family education\n行为：care for family members and support one another","适用：亲子、关爱、家庭。英语 2026 相关战略用它。");
+C("corpus","至少背熟 3 个价值观","作者要求：文明、和谐、敬业，每个记 2—3 个【具体行为】。","其余了解即可。语料忘了用大白话填，作者说只扣一点点分。");
+
+/* --- 工具箱 --- */
+C("tools","P1 首句：四种图形怎么说？","The bar chart illustrates ...\nThe line chart shows changes in ... over the period from ... to ...\nThe pie chart illustrates the composition of ... among ...\nThe table compares ... across ... in terms of ...","别一律写 chart；图表类型词要具体。");
+C("tools","数据公式 ① 动态升降","X rose / fell from A in 20XX to B in 20XX.","rise / fall 不及物，别写成 raise。");
+C("tools","数据公式 ② 对比","X was B in 20XX, compared with A in 20XX, an increase of C.","是 compared with，不是 comparing with。");
+C("tools","数据公式 ③ 倍数","X was almost twice / three times that in 20XX.","that 指代前面的数量，不能漏。");
+C("tools","数据公式 ④ 占比（仅 B1）","X, Y and Z accounted for A%, B% and C% respectively.","仅适用于各项加起来 = 100% 的构成比；B2 多选柱状禁用。");
+C("tools","数据公式 ⑤ 最高 / 最低","X topped the list at A%, followed by Y at B%. / X ranks first at A%.","B2 用 ranks first / tops the list / was chosen by X%。");
+C("tools","替换词：升 / 降","升：rise / climb / increase / grow / jump / surge / soar\n降：fall / drop / decline / decrease / diminish","挑自己会拼的，别贪多。");
+C("tools","替换词：幅度 / 趋势名词 / 占比","幅度大：sharply / markedly / significantly / dramatically\n幅度小：slightly / gradually / steadily / modestly\n趋势：trend / trajectory / upward trend / downward trend\n占比：account for / make up / constitute；proportion / percentage / share","相邻两句动词错开，别重复 climbed / climbing。");
+C("tools","替换词：衔接","while / whereas / by contrast / in contrast / meanwhile\nSpecifically / To be specific / As the data show","引出具体数据用 Specifically 或 As the data show。");
+C("tools","P1 四条语法红线","✘ comparing with → ✔ compared with\n✘ raise（及物）→ ✔ rise / fall\n✘ occupy 30% → ✔ account for 30%\n✘ the number of ... were → ✔ the number of ... was","主谓一致：the percentage of ... was。");
+C("tools","介词 / 点题 / 拼写","among + 人群或机构（among college students）；in + 国家或地区（in China）。\n点题句别写 This is a very interesting chart.\n拼写：environment / government / phenomenon / respectively / percentage / literacy。","拿不准介词短语就删掉，句子照样成立。");
+
+/* --- P2 --- */
+C("p2","原因句 ①（可换句 6）","The primary reason is that 【X】 has become more accessible / affordable.","一篇只选 2 个原因，第 2 个优先用骨架的 with + doing 句式。");
+C("p2","原因句 ②","Another factor is the growing awareness of 【X】.","");
+C("p2","原因句 ③","This is partly driven by the rapid development of 【X】.","");
+C("p2","原因句 ④","People are increasingly willing to 【do X】 because 【X】.","");
+C("p2","原因句 ⑤","Policy support has also played a role: 【X】.","");
+C("p2","原因句 ⑥","For many people, 【X】 is no longer a luxury but a necessity.","");
+C("p2","万能填词矩阵：六类原因","技术便利：mobile payment / the Internet / digital devices / express delivery → convenient, time-saving\n经济收入：rising incomes / higher living standards → pursue a better quality of life\n观念意识：health / environmental protection / lifelong learning → pay more attention to ...\n政策供给：policy support / public services / community facilities → easier access to ...\n压力时间：academic pressure / busy work schedules → relieve stress / seek relaxation\n社会文化：changing lifestyles / social media / cultural confidence → stay connected","卡壳时按主题挑一行，直接塞进句 6、句 7。");
+C("p2","例子句三种写法（选 1，不写名人）","For instance, many young people now buy daily necessities online, which has further boosted the market.\nFor instance, many communities now organize free health lectures, which has further encouraged residents to adopt healthier habits.\nFor instance, a growing number of students use mobile phones to read academic articles, which makes learning more flexible.","生活化、可泛化，别写具体名人事例。");
+C("p2","主题词 7 类（上）","教育学习：acquire knowledge, practical skills, hands-on ability, academic pressure, lifelong learning\n就业职业：employment pressure, further study, entrepreneurship, career planning, job satisfaction\n科技生活：digitalization, online shopping, mobile payment, express delivery, social media, artificial intelligence\n消费经济：consumption upgrading, purchasing power, disposable income, domestic brands, rational consumption","考前中英互译一遍即可。");
+C("p2","主题词 7 类（下）","健康社会：health literacy, mental health, aging population, elderly care, work-life balance, public services\n文化休闲：cultural confidence, museum visits, cultural heritage, tourism, leisure activities, spiritual life\n环境可持续：environmental awareness, low-carbon lifestyle, plastic waste, sustainable development, green travel","和阅读的「同义替换」是同一件事，可互相借力。");
+C("p2","历年真题主题词：2010—2017","2010 mobile-phone subscriptions｜2011 market share / domestic car brands｜2012 job satisfaction｜2013 part-time jobs｜2014 urbanization｜2015 Spring Festival presents｜2016 sightseeing / relieve pressure｜2017 museums / cultural heritage","套真题时直接换【主题】。");
+C("p2","历年真题主题词：2018—2025","2018 restaurant service / dining environment｜2019 further study / start a business｜2020 acquire knowledge / obtain information / kill time｜2021 exercise alone / group activities｜2022 express delivery volumes｜2023 health literacy｜2024 practical skills / cooperation capacity｜2025 watch television / gardening / play chess","来自《英语历年主题词汇总及拓展》。");
+
+/* --- P3 --- */
+C("p3","观点句 · 积极","In my view, this trend is largely positive.","健康素养上升、博物馆增加、快递增长。");
+C("p3","观点句 · 中性 / 提醒","In my view, this distribution is understandable but deserves attention.","休闲活动单一、消费结构。");
+C("p3","观点句 · 消极","This phenomenon deserves attention.","手机依赖、过度消费、满意度低。");
+C("p3","观点句 · 辩证","While 【X】 brings convenience, it also calls for 【Y】.","科技、网购、社交媒体。");
+C("p3","一致性细节（最容易漏）","静态图 B1/B2：观点句用 this pattern；表格：this situation；兜底：this phenomenon。\n必须和 P2 主题句用同一个词。","否则通篇 trend / pattern 混着写，阅卷看着像两套模板拼起来的。");
+C("p3","建议句「谁做什么」词库","individuals → shop rationally / limit screen time / turn knowledge into action\nfamilies → create more opportunities for face-to-face communication\nschools → offer more practical courses / organize more extracurricular activities\nemployers → improve working conditions / provide staff training\nthe government → protect consumers' rights / improve public health services / invest in rural infrastructure\nsociety → raise public awareness of ...","把第 10 句两个空填具体，别只写 we should。");
+C("p3","展望句正误 ①","✘ Only in this way can we have a better future.\n✔ Only in this way can we enjoy the convenience of e-commerce without exposing ourselves to unnecessary risks.","「自用 Pro 版」原句，来自 04 原件。");
+C("p3","展望句正误 ②","✘ Only in this way can we be happy.\n✔ Only in this way can we turn rising health literacy into real health outcomes.","把主题词具体化成结果。");
+C("p3","展望句正误 ③","✘ Let's work together!\n✔ Only in this way can we reduce the financial burden on ordinary families.","倒装句不能换成祈使句。");
+
+/* --- 避坑 --- */
+C("trap","✘ 图里只有占比，却写成过去时 rose","✔ 静态用现在时：accounts for / ranks first / was chosen by X%。","判型看时间轴，不看图形。");
+C("trap","✘ 多选占比柱状写 The remaining X%...","✔ 各项加起来 > 100% 时不构成整体，改用 By contrast, only X% chose ...","2024—2026 真题陷阱。");
+C("trap","✘ 动态图把所有年份抄一遍","✔ 只留 2—3 个数据；静态图最多写最高的 2 项 + 最低 1 项。","抄光数字不是「描述充分」，是没看懂图。");
+C("trap","✘ 所有图都写 chart","✔ 写 bar / line / pie / table。","");
+C("trap","✘ comparing with","✔ compared with","固定搭配。");
+C("trap","✘ the number of ... were / the percentage of ... were","✔ ... was","主谓一致。");
+C("trap","✘ 全篇时态统一成过去时","✔ 描述用过去、原因用现在完成/现在、建议用 should，这是正常的。","不要反过来把时态统一。");
+C("trap","✘ This is a very interesting chart.","✔ This trend clearly reflects 【具体点题】。","点题句不能是空话。");
+C("trap","✘ 照搬英语一 200 词模板","✔ 英语约 150 词；删掉第 3 个原因、删掉重复后半句。","27 版讲义是按 200 词设计的。");
+C("trap","✘ 写标题 / 抄错单位 / 涂黑卷面","✔ 不写标题；看清 %、十万人次、家、yuan；错字一条横线划掉。","Directions 若明确要 title 再补。");
+
+/* --- 小作文 --- */
+C("small","唯一骨架（书信，闭卷默写）","Dear 【Name】,\n\nI am 【Li Ming】, and I am writing to 【purpose】.\n【Detail 1: time / place / reason】. 【Detail 2: arrangement / request】.\n\nI would appreciate it if you could 【action】.\nThank you for your time and consideration. I look forward to hearing from you.\n\nYours sincerely,\nLi Ming","约 55—65 词；把两个细节句写满，就到 90—100 词。");
+C("small","目的句 · 邀请","I am writing to invite you to ______.","细节：It will take place at ___ on ___. / It will last about ___... 收尾：confirm your attendance by ___.");
+C("small","目的句 · 建议","I am writing to offer some suggestions on ______.","细节：First, ___. Second, ___. These changes would make ___ more ___. 收尾：I hope you will find them helpful.");
+C("small","目的句 · 感谢","I am writing to express my sincere gratitude for ______.","细节：Without your guidance, I could not have ___. 收尾：Please accept my sincere thanks.");
+C("small","目的句 · 投诉","I am writing to complain about ______.","细节：I was disappointed to find that ___. I contacted ___, but have not received a satisfactory reply.");
+C("small","目的句 · 询问","I am writing to inquire about ______.","细节：I would like to know ___. Could you please also tell me ___? 收尾：I look forward to your early reply.");
+C("small","目的句 · 通知","This is to inform you that ______. / In order to ______, the Student Union will hold ______ at ______ in ______.","收尾：Those who are interested should sign up before ___. 只背前 6 行就够。");
+C("small","格式硬差异 · 书信","不写标题｜Dear Mr. Smith,（逗号，不是冒号）｜不写日期、不写地址｜Yours sincerely, + 署名","");
+C("small","格式硬差异 · 通知 / 告示","NOTICE 居中｜不写 Dear｜写日期｜落款 Student Union / Li Ming，不写 Yours sincerely","你的 04 原件是「NOTICE + 日期 + 正文 + 落款」；27 版是「Notice + 署名 + 日期 + 正文」。选一个冻结，别混搭。");
+C("small","格式硬差异 · 纪要","Meeting Minutes / Minutes of Meeting｜无称呼｜Date: / Time: 等字段｜Recorded by: 署名｜全篇过去时","英语至今没考过纪要，认识格式即可。");
+C("small","回复信不要自我介绍","Thanks for your email. I am pleased to hear that ______.","2017（回复 Williams 教授邀请）、2018（向 Smith 教授道歉取消行程）都是回信，套原骨架会多写一句自我介绍。");
+C("small","署名以 Directions 为准","多数年份 Li Ming；2012 年要求 Zhang Wei。","Directions：Do not use your own name. Use \"Li Ming\" instead. Do not write the address.");
+C("small","称呼按已知信息细分","只知道姓：Dear Mr. Lee / Dear Ms. Lee｜只知道名：Dear Paul｜只知道职位：Dear Professor / Dear Manager｜都不知道：Dear Sir or Madam","");
+C("small","近 4 年真题的规律","几乎都不是单一类型，而是「介绍 + 邀请」「建议 + 理由」「计划 + 征询」的组合。\n两个要点 ① ② 必须各写到一句，这是内容分主要来源。","目的句写主功能，P2 第一句写要点①，第二句写要点②，收尾照常。");
+C("small","小作文数字 & 高频错误","10 分 / 约 100 词（90—110）/ 15—18 分钟 / 3 段。\n✘ Dear Mr. Smith:　✘ Your sincerely　✘ You must / You should　✘ 写到 150 词　✘ sincerly / appriciate / convinience","小作文写越长错越多。");
+C("small","考场 15 分钟","审题 + 编号要点 2 min → 提纲 1 min → 成文 10 min → 检查格式 2 min。","先小后大，不要临考改节奏。");
+
+/* --- 小题型 --- */
+C("minor","英语试卷结构（分值）","完形 10（20×0.5）｜阅读 Part A 40（4×5×2）｜新题型 Part B 10（5×2）｜翻译 15｜小作文 10｜大作文 15 = 100 分 / 180 分钟","别记错：英语写作 25 分、大作文约 150 词；英语一 30 分、160—200 词。");
+C("minor","完形填空（性价比最低）","首句通常不设空，先读首句和首段抓主题。\n优先判断：① 固定搭配 / 介词 ② 逻辑关系 ③ 复现 ④ 词义辨析。\n全部选完通读一遍；别为一道题死磕超过 1 分钟。","15 分钟，时间到按已选填卡，别空着。");
+C("minor","阅读 Part A 每题 4 步","① 读题干，划定位词（专有名词、数字、年份、大写词）\n② 回原文定位到那一句 / 那一段\n③ 选项与原文逐个比对：正确答案几乎都是「同义改写」\n④ 排除四类干扰项，剩下再二选一","");
+C("minor","阅读四类干扰项","偷换概念（换了主语/范围）｜无中生有（原文没提）｜绝对化（always / never / only / all，原文往往有 may / some）｜张冠李戴（把 A 的观点安到 B 身上）","一篇精读胜过三篇对答案；错因只记一类。");
+C("minor","新题型 Part B 两种形式（真题确认）","2017 多项对应：match each of the numbered items in the left column to its corresponding information in the right column（有两个多余项）。\n2018 小标题对应：choosing the most suitable subtitles from the list A-G for each numbered paragraph (41-45)。","多项对应先划人名/年份，小标题只读首句、末句、转折句。15 分钟。");
+C("minor","翻译五步流程","① 通读全段抓主题和时态\n② 断句：按连词、介词短语、从句、分词结构切开\n③ 逐句译：先主干，再补修饰\n④ 中文润色：拆长句、调语序、补逻辑\n⑤ 回核对：漏译 / 否定与比较级译反","评分看准确、完整、通顺，按意群给分；约 150 词英译汉，20—25 分钟。");
+C("minor","小题型资料索引","阅读真题：英语阅读真题合集(10-24).pdf｜整套真题：2017/2018 年考研英语真题.pdf｜阅读单词表：英语10-26阅读单词带汉语.txt / 不带汉语.txt｜三小门精读：27刘琦《三小门真题精读讲义》.pdf","刘琦讲义是篇章精读，没有分值/技巧结论；分值以真题 Directions 为准。");
+
+/* --- 真题速记 --- */
+C("real","16 年题型 · 2010—2017","2010 柱状（动态 A）｜2011 柱状（看时间轴）｜2012 表格（C 特例）｜2013 柱状（静态占比）｜2014 柱状（动态 A）｜2015 饼状（B1）｜2016 饼状（B1）｜2017 线状（动态 A，双指标）","16 年 100% 是图表，图画 / 文字一次没考。");
+C("real","16 年题型 · 2018—2025","2018 饼状（B1）｜2019 柱状（A / C 两组对比）｜2020 饼状（B1）｜2021 柱状（静态 B2）｜2022 柱状（动态 A）｜2023 线状（动态 A）｜2024 柱状（静态多选 B2）｜2025 柱状（静态多选 B2）","2024—2026 连续三年 B2：柱子 ≠ 动态。");
+C("real","精力分配（英语专属）","动态 35% ｜静态 35% ｜表格 10% ｜双图表 10% ｜图画·文字 10%","改编自 27 版，别为 10% 的可能挤掉 90% 的训练。");
+C("real","练习顺序（覆盖全部重点）","2023 折线（A）→ 2020 饼（B1）→ 2025 多选柱（B2）→ 2024 多选柱（B2 换词）→ 2012 表格（C 特例）→ 双图表（D）","每篇套完只改 3 个错：时态、主谓一致、拼写。不要把整篇重抄一遍。");
+C("real","2023 真题数据（A 动态）","2012—2021 居民健康素养水平：8.80%（2012）→ 11.58%（2016）→ 25.40%（2021）。","10 个年份只写 3 个数据。");
+C("real","2025 真题数据（B2 静态多选）","某社区老年人日常休闲活动：看电视 90.8%｜散步 68.3%｜养花 34.7%｜阅读 31.8%｜下棋 18.4%。","各项之和远超 100%，是多选题；禁写 The remaining X% 和 respectively。");
+C("real","2024 真题数据（B2 静态多选）","某高校劳动实践课收获：学习相关知识 91.3%｜提升动手能力 84.8%｜心情舒畅 54.4%｜增强合作能力 32.6%。","和 2025 只换【】里的词，10 句骨架一个没动。");
+C("real","2020 与 2012 真题数据","2020 手机阅读目的（B1）：学习知识 59.5%｜消磨时间 21.3%｜获取信息 17.0%｜其他 2.2%（合计 100%）。\n2012 员工满意度（C 特例）：≤40 岁 16.7/50.0/33.3；41—50 岁 0.0/36.0/64.0；>50 岁 40.0/50.0/10.0（满意/不清楚/不满意）。","2012 毫无趋势，不能写 rose / declined。");
+C("real","考场 30 分钟分配","0—3 审题（在题旁写下 A / B1 / B2 / C / D）→ 3—5 提纲 → 5—15 P1 → 15—24 P2 → 24—28 P3 → 28—30 自查。","自查重点：时态、数据、拼写。");
+C("real","冻结节奏 & 三条铁律","11/17 前骨架冻结，之后只微调 1—2 个词；复习用 1-2-4-7；考前 3 天只看一页纸 + 错题本。\n铁律：只背一套骨架｜先写对再写高级｜英语不套英语一 160—200 词模板。","150 词，写对，比写高级重要。");
+
+/* --- 27 一页纸精华（英语一模板，只取句式与方法） --- */
+C("onepage","这份「一页纸」到底是什么？","通用部分是英语一「宏大叙事」模板；但语雀目录另有英语专属套写（2020—2026，满分 / 简化 / 速通四档）。","英语以英语套写版为准；通用模版只取 4 个句式 + 1 条立意原则。套写正文待取得后核对。");
+C("onepage","方法论 ①：立意必须怎样？","正面积极。无论题目展示正面、负面还是利弊兼有，都写「正确合理的做法」。","乱扔垃圾 → 保护环境；逃避就业 → 积极就业。");
+C("onepage","方法论 ②：看到题目先问什么？","国家做了什么才有这个结果？国家看到这个现象会做什么？","这一问决定 P2 原因往「政策 / 社会」靠，不只写个人。");
+C("onepage","方法论 ③：两幅图 / 多幅图怎么写？","只写一个中心，不分开写不同观点；按单图处理，多图要么都是表面现象，要么一张是本质。","原话：分开写不同观点就上当了。");
+C("onepage","句式 ① 图表总起（可换用）","The figures in the 【bar chart】 reveal notable changes concerning 【主题词】.","比 illustrates changes in 更凝练；后面仍接我们的趋势 + 2—3 个数据 + 点题。");
+C("onepage","句式 ② 动态双线（补 A2）","Between 【Y1】 and 【Y2】, the proportion of 【A】 rose from about 【a1】 to around 【a2】, while that of 【B】 fell from roughly 【b1】 to approximately 【b2】.","while that of 避免重复主语；from about...to around... 是约数写法。");
+C("onepage","句式 ③ 稳定项","By contrast, the figure for 【C】 remained broadly stable at around 【c】.","只在图里真有一项基本不变时用；没有就删。");
+C("onepage","句式 ④ 静态排序（只对 B1）","【A】 accounts for the largest share, at 【a%】, followed by 【B】, 【C】 and 【D】 at 【b%】, 【c%】 and 【d%】 respectively.","respectively 只在各项合计 = 100% 时合法；B2 多选柱状禁用（2024/2025/2026 都是 B2）。");
+C("onepage","语料六字段怎么用在英语？","【具体行为】→ 句 7 人群愿意做什么；【可见成果】→ 例子句 which 的结果；【相关领域】→ P3 政府动作；【社会效果】→ 原因 2 的社会结果。","【相关战略】慎用：题目不涉及国家政策就别写，容易空泛。");
+C("onepage","它的五层 P2 能直接搬吗？","通用模版不能：五层递进是 200 词英语一体量；英语只留「个人 + 社会/政策」两层。","英语套写版若已裁剪层数，以套写版为准；此判断针对通用模版。");
+
+/* --- 题库 --- */
+const JUDGE_OPTS=["A 动态","B1 饼图","B2 多选柱状","C 表格","D 双图表","E 兜底"];
+const JUDGE_TIPS=[
+ "过去时 + this trend。柱子 + 年份 = 动态。",
+ "现在时 + this pattern。各项合计 100%，可写 The remaining X%。",
+ "现在时 + this pattern。各项合计 >100%，禁写 remaining / respectively。",
+ "纯横截面用现在时 + this situation。2012 不能写 rose / declined。",
+ "各图各按时态，只换 P1 首句，结尾用 Taken together...",
+ "现在时 + this phenomenon。16 年真题从没考过。"
+];
+const JUDGE_QUIZ=[
+ ["2025 真题：某社区老年人主要日常休闲活动。看电视 90.8%、散步 68.3%、养花 34.7%、阅读 31.8%、下棋 18.4%。柱子，无年份。",2],
+ ["2023 真题：2012—2021 年我国居民健康素养水平，8.80% → 25.40%。",0],
+ ["2020 真题：某高校学生手机阅读目的，59.5% / 21.3% / 17.0% / 2.2%，合计 100%。",1],
+ ["2012 真题：某公司不同年龄组员工工作满意度，行列交叉表，没有时间轴。",3],
+ ["题目给两幅图：左边饼图是消费者态度，右边柱状图是主要担忧。",4],
+ ["柱状图，横轴是 2013 和 2018 两个年份，比较本科毕业生去向。",0],
+ ["柱状图，横轴是 5 项活动，各自标百分比，加起来远超 100%（多选）。",2],
+ ["一幅漫画，画面下有一句英文 caption。",5],
+ ["2015 真题：春节假期花销构成饼图，各项加起来 100%。",1],
+ ["2017 真题：折线图显示博物馆数量与参观人数随年份变化。",0],
+ ["2024 真题：劳动实践课收获，91.3% / 84.8% / 54.4% / 32.6%，无年份。",2],
+ ["2014 真题：柱状图显示 20 年间城乡人口变化。",0],
+ ["表格，两组数据跨 2013 与 2018 两个年份，有升有降。",3],
+ ["题目只有一句英文名言，要求就此作文。",5]
+];
+const POINT_QUIZ=[
+ {q:"静态多选柱状（B2），P2 主题句该用哪个词？",o:["this trend","this pattern","this situation","this phenomenon"],a:1,e:"B1/B2 用 this pattern，且 P3 观点句也要用同一个词；动态才用 this trend。"},
+ {q:"B2 多选柱状里，哪一句绝对不能写？",o:["ranks first at 90.8%","By contrast, only 18.4% chose ...","The remaining X% is made up of ...","This distribution clearly suggests that ..."],a:2,e:"各项是独立比例、合计 >100%，不构成整体，没有「剩余」可言。也不写 respectively。"},
+ {q:"2012 表格特例，P1 不能出现哪类词？",o:["the most striking feature","by contrast","rose / declined","varies considerably"],a:2,e:"表格毫无趋势，改成「最大差异 + 反向对比」的纯横向比较。"},
+ {q:"英语大作文要求多少词？",o:["约 100 词","约 150 词","160—200 词","200 词以上"],a:1,e:"英语约 150 词（140—170 安全）；160—200 词是英语一。小作文约 100 词。"},
+ {q:"英语大作文要不要写标题？",o:["必须写","不写","写不写都行","写 Chart Analysis"],a:1,e:"沿用「自用 Pro 版」的标注；近年 Directions 没要求 title，题目若明确要再补。"},
+ {q:"下面哪句展望句合格？",o:["Only in this way can we have a better future.","Let's work together!","Only in this way can we turn rising health literacy into real health outcomes.","Only in this way can we be happy."],a:2,e:"展望必须具体化到主题词的结果，不能空喊口号。"},
+ {q:"固定搭配哪个对？",o:["comparing with A in 2012","compared with A in 2012","compare to A in 2012","compared of A in 2012"],a:1,e:"X was B in 20XX, compared with A in 20XX, an increase of C."},
+ {q:"2012 年小作文 Directions 要求署名谁？",o:["Li Ming","Zhang Wei","自己的名字","不署名"],a:1,e:"多数年份 Li Ming，2012 是 Zhang Wei。署名一律以 Directions 为准。"},
+ {q:"书信称呼后面的标点？",o:["Dear Mr. Smith:","Dear Mr. Smith,","Dear Mr. Smith.","Dear Mr. Smith"],a:1,e:"逗号，不是冒号。且不写日期、不写地址。"},
+ {q:"通知 / 告示的正确格式？",o:["Dear Sir + Yours sincerely","NOTICE 居中 + 日期 + 落款，不写 Dear","和普通书信完全一样","写标题 + Yours sincerely"],a:1,e:"沿用你 04 原件的「NOTICE + 日期 + 正文 + 落款」，别和 27 版混搭。"},
+ {q:"回复别人来信时，首句应该怎么写？",o:["I am Li Ming, and I am writing to ...","Thanks for your email. I am pleased to hear that ...","Dear Sir or Madam, I am Li Ming","Allow me to introduce myself"],a:1,e:"回信对方知道你是谁，不要自我介绍。2017、2018 都是这一类。"},
+ {q:"英语写作部分总分是多少？",o:["20 分","25 分（小 10 + 大 15）","30 分","15 分"],a:1,e:"英语一才是 30 分（小 10 + 大 20）。写作是投入产出比最高的一块。"},
+ {q:"小作文词数控制在？",o:["90—110 词","140—170 词","160—200 词","越多越好"],a:0,e:"小作文写越长错越多；细节句写满两个就够 90—100 词。"},
+ {q:"P3 的语气一致性，哪组说法对？",o:["P2 用 pattern、P3 用 trend 显得词汇丰富","全篇统一用 trend 最保险","P2 与 P3 必须用同一个词","看心情"],a:2,e:"trend / pattern 混着写，阅卷看着像两套模板拼起来的。"},
+ {q:"下面哪个是 P1 数据描述的正确写法？",o:["the number of ... were","the percentage of ... was","occupy 30%","raise from A to B"],a:1,e:"主谓一致 + 不及物 rise/fall + account for，别写 occupy / raise。"},
+ {q:"近 7 年小作文 Directions 的共同结构？",o:["只有一个要点","一个情景 + ①② 两个要点","三个要点","只要写目的句"],a:1,e:"两个要点必须各写到一句，这是内容分主要来源。"}
+];
+const RUSH_BANK = JUDGE_QUIZ.map(x=>({q:x[0],o:JUDGE_OPTS,a:x[1],e:JUDGE_TIPS[x[1]]})).concat(POINT_QUIZ);
+const ORDER_ITEMS=[
+ ["句1 图表总起","The figures in the ... reveal notable ... concerning ..."],
+ ["句2 一句话列全数据","... accounts for the largest share, at A%, followed by B, C ..."],
+ ["句3 主题总起","【主题词】 has attracted attention ..."],
+ ["句4 个人层面","At the individual level, it is reflected in the way people ..."],
+ ["句5 政策层面","National policies on ... focus on empowering individuals ..."],
+ ["句6 社会层面","Beyond personal advancement, this principle can strengthen communities by ..."],
+ ["句7 宏观收束","As this principle takes root across society, it creates a ripple effect ..."],
+ ["句8 共识","In conclusion, a rational consensus has emerged that ..."],
+ ["句9 倡导","Promoting this principle is therefore not merely advisable but essential ..."]
+];
+const BADGES=[
+ {id:"first",ico:"🌱",n:"第一张卡",d:"完成第一次翻卡评分",t:s=>s.reviews>=1},
+ {id:"day10",ico:"📅",n:"今日达标",d:"一天内完成 10 张卡",t:(s,c)=>(s.dayCount[today()]||0)>=10},
+ {id:"streak3",ico:"🔥",n:"连续三天",d:"连续打卡 3 天",t:s=>s.streak>=3},
+ {id:"skel",ico:"🧱",n:"骨架闭环",d:"南萧简化版 9 句全部达到「记得」以上",t:(s,c)=>CARDS.filter(x=>x.deck==="skeleton").every(x=>(c[x.id]?.box||0)>=3)},
+ {id:"m30",ico:"🧠",n:"三十张稳了",d:"30 张卡进入长期记忆",t:(s,c)=>Object.values(c).filter(x=>x.box>=3).length>=30},
+ {id:"combo8",ico:"⚡",n:"连击 8",d:"练习连续答对 8 题",t:s=>s.bestCombo>=8},
+ {id:"quiz30",ico:"🎯",n:"刷题 30",d:"累计答对 30 道练习题",t:s=>s.quizCorrect>=30},
+ {id:"rev50",ico:"📚",n:"五十次回看",d:"累计翻卡评分 50 次",t:s=>s.reviews>=50},
+ {id:"level4",ico:"🏅",n:"闭卷级",d:"累计 XP 达到 600",t:s=>s.xp>=600},
+ {id:"allDeck",ico:"🗂",n:"全卡组扫过",d:"10 个卡组各至少评过 1 张",t:(s,c)=>DECKS.every(d=>CARDS.some(x=>x.deck===d.id&&c[x.id]))},
+ {id:"exam",ico:"🎓",n:"考前冲刺",d:"累计 XP 达到 1500",t:s=>s.xp>=1500},
+ {id:"perfect",ico:"💯",n:"判型满分",d:"判型速测一轮全对",t:s=>s.perfectJudge>=1}
+];
+const LEVELS=[[0,"起步"],[120,"上手"],[300,"稳了"],[600,"闭卷"],[1000,"考场级"],[1500,"稳拿分"]];
+const QUOTES=[
+ "150 词，写对，比写高级重要。",
+ "判型看时间轴，不看图形：柱子 + 年份 = 动态，柱子 + 百分比 = 静态。",
+ "只背一套骨架，其他资料只取句子，不混搭。",
+ "2024—2026 连考静态多选柱状，别写 The remaining X%。",
+ "P2 与 P3 的主题词要用同一个：trend / pattern / situation / phenomenon。",
+ "展望句要具体，别喊 have a better future。",
+ "先写对，再写高级；不写自己不会拼的词。",
+ "写作是英语里投入产出比最高的 25 分。",
+ "小作文先写，大作文后写，别临考改节奏。",
+ "每篇套完只改 3 个错：时态、主谓一致、拼写。"
+];
+
+/* ================= 状态 ================= */
+const KEY="kaoyan_e2_cards_v1";
+const EXAM=new Date(2026,11,19);
+const PLAN_START=new Date(2026,9,20);
+const PRINT_MODE=location.hash.indexOf("print")>=0;
+function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function addDays(ds,n){const d=new Date(ds+"T12:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function diffDays(a,b){return Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/86400000);}
+function blank(){return {cards:{},stats:{xp:0,reviews:0,streak:0,lastActive:"",days:[],dayCount:{},quizTotal:0,quizCorrect:0,bestCombo:0,combo:0,quizBest:0,perfectJudge:0,achievements:[]},settings:{theme:"light",goal:12,sound:true},favs:{}};}
+let S=blank(), memoryOK=true;
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw){const o=JSON.parse(raw);S=Object.assign(blank(),o);S.stats=Object.assign(blank().stats,o.stats||{});S.settings=Object.assign(blank().settings,o.settings||{});S.cards=o.cards||{};S.favs=o.favs||{};}
+  }catch(e){memoryOK=false;}
+  const t=today();
+  if(S.stats.lastActive!==t){
+    const gap=S.stats.lastActive?diffDays(S.stats.lastActive,t):999;
+    S.stats.streak=gap===1?(S.stats.streak||0)+1:1;
+    S.stats.lastActive=t;
+    if(!S.stats.days.includes(t))S.stats.days.push(t);
+    save();
+  }
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){memoryOK=false;}}
+function xp(n){S.stats.xp+=n;save();}
+function toast(msg){const el=document.getElementById("toast");if(!el)return;el.textContent=msg;el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show"),2200);}
+function confetti(){
+  const cols=["#e07a55","#4a5aa8","#3f9d7c","#d99a35","#cf6b8c"];
+  for(let i=0;i<40;i++){const d=document.createElement("div");d.className="confetti";d.style.left=Math.random()*100+"vw";d.style.background=cols[i%cols.length];d.style.animationDuration=(1.6+Math.random()*1.4)+"s";d.style.animationDelay=(Math.random()*.5)+"s";document.body.appendChild(d);setTimeout(()=>d.remove(),3600);}
+}
+function checkBadges(){
+  let got=[];
+  for(const b of BADGES){if(!S.stats.achievements.includes(b.id)&&b.t(S.stats,S.cards)){S.stats.achievements.push(b.id);got.push(b);}}
+  if(got.length){save();confetti();toast("🏆 解锁成就："+got.map(b=>b.n).join("、"));}
+}
+function masteredCount(){return Object.values(S.cards).filter(c=>c.box>=3).length;}
+function deckOf(id){return DECKS.find(d=>d.id===id)||DECKS[0];}
+function dueCards(){
+  const t=today(), due=[], fresh=[];
+  for(const c of CARDS){const st=S.cards[c.id];if(!st)fresh.push(c.id);else if(st.due<=t)due.push(c.id);}
+  return {due:due,fresh:fresh};
+}
+function buildQueue(filter){
+  const {due,fresh}=dueCards();
+  let ids=due.concat(fresh);
+  if(filter&&filter!=="all")ids=ids.filter(id=>CARDS.find(c=>c.id===id).deck===filter);
+  return ids;
+}
+
+/* ================= Markdown 渲染 ================= */
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function inline(s){
+  s=esc(s);
+  s=s.replace(/`([^`]+)`/g,"<code>$1</code>");
+  s=s.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
+  s=s.replace(/(^|[^*])\*([^*]+)\*/g,"$1<em>$2</em>");
+  return s;
+}
+function renderMD(md){
+  const lines=md.replace(/\r/g,"").split("\n");let out=[],i=0;
+  const isSpecial=l=>/^#{1,4}\s/.test(l)||l.startsWith("|")||l.startsWith(">")||l.startsWith("```")||/^---+\s*$/.test(l.trim())||/^\s*[-*]\s+/.test(l)||/^\s*\d+\.\s+/.test(l);
+  while(i<lines.length){
+    const L=lines[i];
+    if(L.startsWith("```")){const b=[];i++;while(i<lines.length&&!lines[i].startsWith("```")){b.push(lines[i]);i++;}i++;out.push("<pre><code>"+esc(b.join("\n"))+"</code></pre>");continue;}
+    if(/^---+\s*$/.test(L.trim())){out.push("<hr>");i++;continue;}
+    const h=L.match(/^(#{1,4})\s+(.*)$/);
+    if(h){const n=h[1].length;out.push("<h"+n+">"+inline(h[2])+"</h"+n+">");i++;continue;}
+    if(L.startsWith("|")){
+      const rows=[];while(i<lines.length&&lines[i].startsWith("|")){rows.push(lines[i]);i++;}
+      const cells=r=>r.replace(/^\||\|$/g,"").split("|").map(x=>x.trim());
+      let start=1;if(rows[1]&&/^[\s|:-]+$/.test(rows[1]))start=2;
+      let htm='<div class="tablewrap"><table><thead><tr>'+cells(rows[0]).map(c=>"<th>"+inline(c)+"</th>").join("")+"</tr></thead><tbody>";
+      for(let r=start;r<rows.length;r++)htm+="<tr>"+cells(rows[r]).map(c=>"<td>"+inline(c)+"</td>").join("")+"</tr>";
+      out.push(htm+"</tbody></table></div>");continue;
+    }
+    if(L.startsWith(">")){const b=[];while(i<lines.length&&lines[i].startsWith(">")){b.push(lines[i].replace(/^>\s?/,""));i++;}out.push("<blockquote>"+inline(b.join(" "))+"</blockquote>");continue;}
+    if(/^\s*[-*]\s+/.test(L)){const b=[];while(i<lines.length&&/^\s*[-*]\s+/.test(lines[i])){b.push(lines[i].replace(/^\s*[-*]\s+/,""));i++;}out.push("<ul>"+b.map(x=>"<li>"+inline(x)+"</li>").join("")+"</ul>");continue;}
+    if(/^\s*\d+\.\s+/.test(L)){const b=[];while(i<lines.length&&/^\s*\d+\.\s+/.test(lines[i])){b.push(lines[i].replace(/^\s*\d+\.\s+/,""));i++;}out.push("<ol>"+b.map(x=>"<li>"+inline(x)+"</li>").join("")+"</ol>");continue;}
+    if(L.trim()===""){i++;continue;}
+    const b=[L];i++;
+    while(i<lines.length&&lines[i].trim()!==""&&!isSpecial(lines[i])){b.push(lines[i]);i++;}
+    out.push("<p>"+inline(b.join(" "))+"</p>");
+  }
+  return out.join("\n");
+}
+const MD=DOCS.map(d=>d.f?document.getElementById(d.f).textContent:"");
+
+/* ================= 视图切换 ================= */
+let curView="home";
+function go(v){
+  curView=v;
+  document.querySelectorAll(".view").forEach(x=>x.classList.toggle("active",x.id==="view-"+v));
+  document.querySelectorAll("#tabs .tab").forEach(x=>x.classList.toggle("active",x.dataset.v===v));
+  window.scrollTo({top:0,behavior:"smooth"});
+  if(v==="home")renderHome();
+  if(v==="cards")renderDecks();
+  if(v==="play")renderPlay();
+  if(v==="docs")renderDocs();
+  if(v==="badges")renderBadges();
+}
+document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest(".tab");if(b)go(b.dataset.v);});
+
+/* ================= 今日 ================= */
+function renderHome(){
+  const t=today(),goal=S.settings.goal||12;
+  const done=S.stats.dayCount[t]||0;
+  const pct=Math.min(100,Math.round(done/goal*100));
+  document.getElementById("ring").style.setProperty("--p",pct+"%");
+  document.getElementById("ringPct").textContent=pct+"%";
+  document.getElementById("ringSub").textContent=done+" / "+goal+" 张";
+  const dleft=Math.max(0,Math.ceil((EXAM-new Date(t+"T12:00:00"))/86400000));
+  const day=Math.max(1,diffDays("2026-10-20",t)+1);
+  document.getElementById("countdown").innerHTML="距考试 <b>"+dleft+"</b> 天 · Day "+day;
+  document.getElementById("greet").textContent=pct>=100?"今天的目标完成了，漂亮 👏":"今天也把这一套写到不卡壳";
+  document.getElementById("todayLine").textContent=pct>=100?"超额部分算赚的；别忘了原件里的 1-2-4-7 复习节奏。":"资料顺序 ≠ 复习顺序，备考仍按「先小作文、后大作文」执行。";
+  document.getElementById("stStreak").textContent=S.stats.streak||0;
+  document.getElementById("stMastered").textContent=masteredCount();
+  document.getElementById("stXp").textContent=S.stats.xp;
+  const acc=S.stats.quizTotal?Math.round(S.stats.quizCorrect/S.stats.quizTotal*100):0;
+  document.getElementById("stQuiz").textContent=acc+"%";
+  let li=0;for(let i=0;i<LEVELS.length;i++)if(S.stats.xp>=LEVELS[i][0])li=i;
+  const cur=LEVELS[li],next=LEVELS[li+1];
+  document.getElementById("levelName").textContent="Lv."+(li+1)+" "+cur[1];
+  const lb=next?Math.min(100,Math.round((S.stats.xp-cur[0])/(next[0]-cur[0])*100)):100;
+  document.getElementById("levelBar").style.width=lb+"%";
+  document.getElementById("levelTip").textContent=next?"再攒 "+(next[0]-S.stats.xp)+" XP 升级到「"+next[1]+"」。翻卡、评分、答题都能攒 XP。":"已经满级，剩下的交给考场。";
+  const rec=S.stats.achievements.slice(-6).reverse();
+  document.getElementById("recentBadges").innerHTML=rec.length?rec.map(id=>{const b=BADGES.find(x=>x.id===id);return '<span class="badge-mini">'+b.ico+" "+b.n+"</span>";}).join(""):'<span style="font-size:12.5px;color:var(--muted)">还没有成就，翻第一张卡就能解锁 🌱</span>';
+  const {due,fresh}=dueCards();
+  document.getElementById("planBox").innerHTML=
+    "<p style='margin:0 0 10px'>今日待复习 <b style='color:var(--accent)'>"+due.length+"</b> 张，未学过 <b style='color:var(--brand)'>"+fresh.length+"</b> 张。</p>"+
+    "<ol style='padding-left:20px;margin:0;font-size:13px;line-height:1.9'>"+
+    "<li>先花 5 分钟看 <b>02 · 一页纸速背卡</b>（讲义页可切换）</li>"+
+    "<li>把到期卡片过一轮，按真实掌握度评分，别全点「记得」</li>"+
+    "<li>做一轮 <b>判型速测</b>，重点盯 2024—2026 的 B2</li>"+
+    "<li>有余力再默 1 遍 9 句骨架，然后收工</li>"+
+    "<li>本周只碰 <b>11 号</b>的 4 个句式，不背整库语料</li></ol>";
+  document.getElementById("goalSel").value=String(goal);
+  document.getElementById("quote").textContent="💡 "+QUOTES[new Date().getDate()%QUOTES.length];
+  const dot=document.getElementById("dueDot");dot.textContent=due.length+fresh.length;dot.style.display=(due.length+fresh.length)?"inline-block":"none";
+  document.getElementById("dReviews").textContent=S.stats.reviews;
+  document.getElementById("dDue").textContent=due.length+fresh.length;
+  document.getElementById("dCombo").textContent=S.stats.bestCombo;
+  document.getElementById("dQuiz").textContent=S.stats.quizTotal;
+}
+document.getElementById("startToday").onclick=()=>{startSession("all",buildQueue("all").slice(0,S.settings.goal||12));go("cards");};
+document.getElementById("random5").onclick=()=>{const ids=CARDS.map(c=>c.id).sort(()=>Math.random()-.5).slice(0,5);startSession("all",ids,"随机 5 张");go("cards");};
+document.getElementById("quickJudge").onclick=()=>{playMode="judge";go("play");startJudge();};
+document.getElementById("goalSel").onchange=e=>{S.settings.goal=+e.target.value;save();renderHome();};
+document.getElementById("resetBtn").onclick=()=>{if(confirm("确定清空全部学习记录吗？卡片进度、XP、成就都会归零（讲义内容不受影响）。")){S=blank();save();load();renderHome();toast("学习记录已清空，重新开始 🌱");}};
+
+/* ================= 记忆卡 ================= */
+let session={ids:[],idx:0,flipped:false,filter:"all",label:""};
+let deckFilter="all";
+function renderDecks(){
+  const bar=document.getElementById("deckbar");
+  bar.innerHTML='<button class="chip'+(deckFilter==="all"?" on":"")+'" data-d="all">🗂 全部 '+CARDS.length+' 张</button>'+
+    DECKS.map(d=>'<button class="chip'+(deckFilter===d.id?" on":"")+'" data-d="'+d.id+'">'+d.n+" "+CARDS.filter(c=>c.deck===d.id).length+"</button>").join("");
+  bar.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{deckFilter=b.dataset.d;renderDecks();startSession(deckFilter,buildQueue(deckFilter));});
+  updateCard();
+}
+function startSession(filter,ids,label){
+  session={ids:ids.slice(),idx:0,flipped:false,filter:filter,label:label||(filter==="all"?"今日复习":deckOf(filter).n)};
+  if(!session.ids.length){toast("这一组暂时没有待复习的卡，换一组试试 🎉");}
+  updateCard();
+}
+function updateCard(){
+  const f=document.getElementById("flip");f.classList.remove("on");session.flipped=false;
+  const total=session.ids.length, i=session.idx;
+  if(!total||i>=total){
+    document.getElementById("fQ").textContent=total?"🎉 这一轮完成啦！":"点上方卡组开始，或回「今日」点开始复习";
+    document.getElementById("fA").textContent=total?"本轮 "+total+" 张全部过完，去练一轮判型速测吧。":"";
+    document.getElementById("fNote").textContent="";
+    document.getElementById("fTag").textContent=session.label||"卡组";
+    document.getElementById("fNum").textContent="";document.getElementById("fNum2").textContent="";
+    document.getElementById("sessionInfo").textContent=total?session.label+" · 完成":"选择卡组开始";
+    document.getElementById("sessionBar").style.width=total?"100%":"0%";
+    document.getElementById("gradebar").style.opacity=".4";
+    return;
+  }
+  document.getElementById("gradebar").style.opacity=session.flipped?"1":".45";
+  const c=CARDS.find(x=>x.id===session.ids[i]);
+  const d=deckOf(c.deck);
+  const tag=document.getElementById("fTag");tag.textContent=d.n;tag.style.background=d.c;
+  document.getElementById("fQ").textContent=c.q;
+  document.getElementById("fA").textContent=c.a;
+  document.getElementById("fNote").textContent=c.note?("📌 "+c.note+(S.favs[c.id]?"　⭐ 已收藏":"")):"";
+  document.getElementById("fNum").textContent=(i+1)+" / "+total;
+  document.getElementById("fNum2").textContent=(i+1)+" / "+total;
+  document.getElementById("sessionInfo").textContent=session.label+" · 第 "+(i+1)+" / "+total+" 张";
+  document.getElementById("sessionBar").style.width=Math.round(i/total*100)+"%";
+  const fav=document.getElementById("favBtn");fav.textContent=S.favs[c.id]?"★ 已收藏":"☆ 收藏";
+}
+function flipCard(){
+  if(!session.ids.length||session.idx>=session.ids.length)return;
+  session.flipped=!session.flipped;
+  document.getElementById("flip").classList.toggle("on",session.flipped);
+  document.getElementById("gradebar").style.opacity=session.flipped?"1":".45";
+}
+document.getElementById("flip").onclick=flipCard;
+const INTERVALS=[0,1,2,4,7,15,30,60];
+function grade(g){
+  if(!session.ids.length||session.idx>=session.ids.length)return;
+  if(!session.flipped){flipCard();return;}
+  const id=session.ids[session.idx],t=today();
+  const st=S.cards[id]||{box:0,due:t,reps:0,lapses:0,last:""};
+  if(g===0){st.box=0;st.due=t;st.lapses=(st.lapses||0)+1;}
+  else{const inc=g===1?0:(g===2?1:2);st.box=Math.min(INTERVALS.length-1,st.box+inc);st.due=addDays(t,INTERVALS[st.box]);}
+  st.reps=(st.reps||0)+1;st.last=t;S.cards[id]=st;
+  S.stats.reviews++;
+  S.stats.dayCount[t]=(S.stats.dayCount[t]||0)+1;
+  xp([2,5,8,10][g]);
+  if(g===0){session.ids.push(id);toast("这张今天还会再出现一次 💪");}
+  session.idx++;
+  save();checkBadges();updateCard();renderHome();
+}
+document.getElementById("gradebar").addEventListener("click",e=>{const b=e.target.closest(".grade");if(b)grade(+b.dataset.g);});
+document.getElementById("prevBtn").onclick=()=>{if(session.idx>0){session.idx--;updateCard();}};
+document.getElementById("skipBtn").onclick=()=>{if(session.idx<session.ids.length){session.idx++;updateCard();}};
+document.getElementById("restartBtn").onclick=()=>startSession(session.filter,buildQueue(session.filter));
+document.getElementById("favBtn").onclick=()=>{if(!session.ids.length||session.idx>=session.ids.length)return;const id=session.ids[session.idx];S.favs[id]=!S.favs[id];save();updateCard();toast(S.favs[id]?"已收藏 ⭐":"已取消收藏");};
+
+/* ================= 练习 ================= */
+let playMode="judge",quiz={list:[],i:0,correct:0,locked:false,combo:0,timer:null,left:0};
+function renderPlay(){
+  document.querySelectorAll("#playtabs .chip").forEach(b=>b.classList.toggle("on",b.dataset.p===playMode));
+  if(playMode==="judge")startJudge();
+  else if(playMode==="point")startPoint();
+  else if(playMode==="order")startOrder();
+  else startRush();
+}
+document.getElementById("playtabs").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;playMode=b.dataset.p;clearQuizTimer();renderPlay();});
+function clearQuizTimer(){if(quiz.timer){clearInterval(quiz.timer);quiz.timer=null;}}
+function scoreHead(extra){
+  return '<div class="qhead"><span class="scorebar"><span>✅ <b>'+quiz.correct+'</b></span><span>🔥 连击 <b>'+quiz.combo+'</b></span>'+(extra||"")+'</span><span>'+(quiz.i+1)+' / '+quiz.list.length+'</span></div>';
+}
+function answerCommon(box,idx,ans,explain){
+  if(quiz.locked)return;quiz.locked=true;
+  const btns=box.querySelectorAll(".opt");
+  btns.forEach((b,i)=>{if(i===ans)b.classList.add("right");else if(i===idx)b.classList.add("wrong");else b.classList.add("dim");});
+  S.stats.quizTotal++;
+  if(idx===ans){quiz.correct++;quiz.combo++;S.stats.quizCorrect++;xp(10+Math.min(10,quiz.combo));if(quiz.combo>S.stats.bestCombo)S.stats.bestCombo=quiz.combo;}
+  else{quiz.combo=0;}
+  save();
+  const ex=document.createElement("div");ex.className="explain";ex.textContent=(idx===ans?"✔ 答对了！":"✘ 正确答案："+JUDGE_OPT_LABEL(ans))+"\n"+explain;
+  box.appendChild(ex);
+  const next=document.createElement("button");next.className="btn small";next.style.marginTop="14px";next.textContent=quiz.i+1>=quiz.list.length?"查看成绩 →":"下一题 →";
+  next.onclick=()=>nextQuestion();box.appendChild(next);
+  checkBadges();renderHome();
+}
+function JUDGE_OPT_LABEL(i){return (quiz.list[quiz.i]&&quiz.list[quiz.i].o?quiz.list[quiz.i].o[i]:i);}
+function showChoice(item,extra){
+  const box=document.getElementById("playBox");
+  box.innerHTML=scoreHead(extra)+'<div class="qtitle">'+esc(item.q)+'</div><div class="opts" id="opts"></div>';
+  const opts=box.querySelector("#opts");
+  item.o.forEach((o,i)=>{const b=document.createElement("button");b.className="opt";b.textContent=o;b.onclick=()=>answerCommon(box,i,item.a,item.e||"");opts.appendChild(b);});
+  quiz.locked=false;
+}
+function nextQuestion(){
+  quiz.i++;
+  if(playMode==="rush"&&quiz.left<=0)return endRush();
+  if(quiz.i>=quiz.list.length){
+    if(playMode==="judge"&&quiz.correct===quiz.list.length){S.stats.perfectJudge=(S.stats.perfectJudge||0)+1;save();checkBadges();}
+    const box=document.getElementById("playBox");
+    const acc=Math.round(quiz.correct/quiz.list.length*100);
+    confetti();
+    box.innerHTML='<div style="text-align:center;padding:30px 10px"><div style="font-size:52px">'+(acc>=80?"🎉":"💪")+'</div><h2 style="margin:10px 0">本轮 '+quiz.correct+" / "+quiz.list.length+" · 正确率 "+acc+'%</h2><p style="color:var(--muted);font-size:13.5px">'+(acc>=80?"判型和考点都稳了，去默一遍 9 句骨架吧。":"错题的解析记得看一眼，尤其 B2 和格式差异。")+'</p><button class="btn" id="againBtn" style="margin-top:14px">再来一轮</button></div>';
+    document.getElementById("againBtn").onclick=()=>renderPlay();
+    checkBadges();renderHome();return;
+  }
+  if(playMode==="rush")showChoice(quiz.list[quiz.i],'<span>⏱ <b class="timer" id="timer">'+quiz.left+'s</b></span>');
+  else showChoice(quiz.list[quiz.i]);
+}
+function startJudge(){clearQuizTimer();quiz={list:JUDGE_QUIZ.map(x=>({q:x[0],o:JUDGE_OPTS,a:x[1],e:JUDGE_TIPS[x[1]]})),i:0,correct:0,locked:false,combo:0,timer:null,left:0};
+  const box=document.getElementById("playBox");
+  box.innerHTML='<div style="text-align:center;padding:26px 10px"><div style="font-size:44px">🧭</div><h2 style="margin:8px 0">3 秒判型 · '+quiz.list.length+' 题</h2><p style="color:var(--muted);font-size:13.5px;max-width:520px;margin:0 auto">看时间轴，不看图形。选出模块后会把时态 + P2 主题句一起告诉你。<br>2024—2026 连续三年考 B2，别踩坑。</p><button class="btn" id="startQ" style="margin-top:18px">开始速测</button></div>';
+  document.getElementById("startQ").onclick=()=>showChoice(quiz.list[0]);
+}
+function startPoint(){clearQuizTimer();quiz={list:POINT_QUIZ.slice().sort(()=>Math.random()-.5),i:0,correct:0,locked:false,combo:0,timer:null,left:0};
+  const box=document.getElementById("playBox");
+  box.innerHTML='<div style="text-align:center;padding:26px 10px"><div style="font-size:44px">📌</div><h2 style="margin:8px 0">考点选择 · '+quiz.list.length+' 题</h2><p style="color:var(--muted);font-size:13.5px">字数、署名、格式、时态、一致性、展望句……考前最容易丢的碎分。</p><button class="btn" id="startQ" style="margin-top:18px">开始答题</button></div>';
+  document.getElementById("startQ").onclick=()=>showChoice(quiz.list[0]);
+}
+function startRush(){
+  clearQuizTimer();
+  const bank=RUSH_BANK.slice().sort(()=>Math.random()-.5).slice(0,20);
+  quiz={list:bank,i:0,correct:0,locked:false,combo:0,timer:null,left:60};
+  const box=document.getElementById("playBox");
+  box.innerHTML='<div style="text-align:center;padding:26px 10px"><div style="font-size:44px">⚡</div><h2 style="margin:8px 0">60 秒挑战</h2><p style="color:var(--muted);font-size:13.5px">判型 + 考点混合抽题，答对连击有 XP 加成。时间到自动结算。</p><button class="btn warm" id="startQ" style="margin-top:18px">开始挑战</button></div>';
+  document.getElementById("startQ").onclick=()=>{
+    showChoice(quiz.list[0],'<span>⏱ <b class="timer" id="timer">60s</b></span>');
+    quiz.timer=setInterval(()=>{quiz.left--;const el=document.getElementById("timer");if(el)el.textContent=quiz.left+"s";if(quiz.left<=0){clearQuizTimer();endRush();}},1000);
+  };
+}
+function endRush(){
+  clearQuizTimer();
+  const box=document.getElementById("playBox");
+  const n=Math.max(1,quiz.i+(quiz.locked?1:0));
+  confetti();
+  box.innerHTML='<div style="text-align:center;padding:26px 10px"><div style="font-size:48px">⏱</div><h2 style="margin:8px 0">时间到！答对 '+quiz.correct+" / "+n+' 题</h2><p style="color:var(--muted);font-size:13.5px">最高连击 '+quiz.combo+' · 累计 XP '+S.stats.xp+'</p><button class="btn" id="againBtn" style="margin-top:14px">再挑战一次</button></div>';
+  document.getElementById("againBtn").onclick=()=>renderPlay();
+  checkBadges();renderHome();
+}
+/* --- 骨架拼装 --- */
+function startOrder(){
+  clearQuizTimer();quiz={list:[],i:0,correct:0,locked:false,combo:0,timer:null,left:0};
+  const box=document.getElementById("playBox");
+  const items=ORDER_ITEMS.map((x,i)=>({x:i,v:x})).sort(()=>Math.random()-.5);
+  box.innerHTML='<div class="qhead"><span class="scorebar"><span>🧱 按 P1→P2→P3 的正确顺序点击</span></span><span id="ordProg">0 / 9</span></div><div class="qtitle" style="font-size:16px">南萧简化版 9 句 · 拼装练习</div><div class="orderbox" id="ordbox"></div><div class="explain" style="display:none" id="ordExp"></div><button class="btn ghost small" id="ordReset" style="margin-top:14px">重新打乱</button>';
+  const ob=document.getElementById("ordbox");
+  items.forEach(it=>{const b=document.createElement("button");b.className="orderbtn";b.dataset.i=it.x;b.innerHTML='<span class="idx">?</span><span><b>'+it.v[0]+'</b><br><span style="font-family:var(--serif);color:var(--muted);font-size:12.5px">'+esc(it.v[1])+"</span></span>";b.onclick=()=>{
+    if(b.classList.contains("done"))return;
+    if(+b.dataset.i===quiz.i){b.classList.add("done");b.querySelector(".idx").textContent=quiz.i+1;quiz.i++;quiz.correct++;xp(6);document.getElementById("ordProg").textContent=quiz.i+" / 9";if(quiz.i===9){confetti();const ex=document.getElementById("ordExp");ex.style.display="block";ex.textContent="🎉 完整！P2 / P3 五类题型完全共用，一个字不改；只有 P1 按 A / B1 / B2 / C / D / E 换模块。";S.stats.quizCorrect++;S.stats.quizTotal++;save();checkBadges();renderHome();}}
+    else{b.classList.add("shake");setTimeout(()=>b.classList.remove("shake"),400);quiz.combo=0;toast("顺序不对，再想想：先描述，再点题，然后原因，最后评论");}
+  };ob.appendChild(b);});
+  document.getElementById("ordReset").onclick=startOrder;
+}
+
+/* ================= 讲义 ================= */
+let docIdx=0;
+function renderDocs(){
+  const nav=document.getElementById("docnav");
+  nav.innerHTML=DOCS.map((d,i)=>{
+    if(d.href)return '<a class="docbtn" style="text-decoration:none" href="'+d.href+'" target="_blank" rel="noopener">'+esc(d.t)+" ↗</a>";
+    if(d.pending)return '<button class="docbtn pending" data-i="'+i+'">'+esc(d.t)+"</button>";
+    return '<button class="docbtn'+(i===docIdx&&!PRINT_MODE?" on":"")+'" data-i="'+i+'">'+esc(d.t)+"</button>";
+  }).join("");
+  nav.querySelectorAll(".docbtn[data-i]").forEach(b=>b.onclick=()=>{docIdx=+b.dataset.i;renderDocs();window.scrollTo({top:0,behavior:"smooth"});});
+  const body=document.getElementById("docBody");
+  if(PRINT_MODE){
+    body.innerHTML=DOCS.map((d,i)=>d.f?'<div class="docblock">'+renderMD(MD[i])+"</div>":"").join("");
+    return;
+  }
+  const d=DOCS[docIdx];
+  if(d&&d.pending){
+    body.innerHTML='<div class="docblock"><h1>小作文一页纸 · 27 版（待更新）</h1><p>这里已经预留好位置。27 版小作文资料到位后，会按以下结构填入：</p><ul><li>四种格式：主动写信 / 回复来信 / 通知告示 / 会议纪要</li><li>六类目的句 + 细节句 + 收尾句</li><li>近 4 年组合题写法（介绍 + 邀请、建议 + 理由、计划 + 征询）</li><li>与 04 的逐条差异（只增补，不覆盖）</li></ul><p>现在先看 <b>04 · 小作文定稿模板</b>：六类目的句和三条格式硬规则已经够用。</p><div style="background:#fdf2f0;border-left:5px solid var(--accent);padding:12px 16px;border-radius:0 10px 10px 0;font-size:13px;margin-top:14px">占位规则：文件名 <code>12_小作文一页纸_27新版.md</code>；卡片组 id <code>small27</code>；只增补差异，不替换 04。</div></div>';
+    return;
+  }
+  if(d&&d.href){
+    body.innerHTML='<div class="docblock"><h1>'+esc(d.t)+'</h1><p>这是一份排版版页面，为保持打印版式，单独打开查看。</p><p><a class="btn" href="'+d.href+'" target="_blank" rel="noopener">在新窗口打开 ↗</a></p></div>';
+    return;
+  }
+  body.innerHTML='<div class="docblock">'+renderMD(MD[docIdx])+"</div>";
+}
+document.getElementById("docSearch").addEventListener("input",e=>{
+  const k=e.target.value.trim().toLowerCase(),res=document.getElementById("searchres");
+  if(!k){res.innerHTML="";return;}
+  let out=[];
+  MD.forEach((md,i)=>{if(!md)return;md.split("\n").forEach(line=>{if(line.toLowerCase().includes(k)&&line.trim()&&out.length<40){out.push({i:i,l:line.trim().slice(0,90)});}});});
+  res.innerHTML=out.length?out.map(r=>'<div data-i="'+r.i+'"><b>'+esc(DOCS[r.i].t)+"</b><br>"+esc(r.l)+"</div>").join(""):'<div style="color:var(--muted)">没有找到</div>';
+  res.querySelectorAll("div[data-i]").forEach(d=>d.onclick=()=>{docIdx=+d.dataset.i;renderDocs();window.scrollTo({top:0,behavior:"smooth"});});
+});
+const PRINT_CSS=`
+.cover{text-align:center;padding:60px 20px 36px;border-bottom:2px solid #dcd8d0;page-break-after:always}
+.cover .kicker{font-size:11pt;letter-spacing:4px;color:#7c7e88}
+.cover h1{font-size:28pt;color:#3f4e96;margin:16px 0 8px;letter-spacing:2px;border:none;padding:0}
+.cover .sub{font-size:13pt;color:#42434d}
+.cover .meta{margin-top:22px;display:inline-block;text-align:left;background:#f5f2ec;border-radius:14px;padding:14px 26px;font-size:10.5pt;color:#42434d;line-height:2}
+.cover .toc{margin-top:28px;font-size:10.5pt;color:#7c7e88;line-height:2.1}
+.cover .tip{margin-top:26px;font-size:9.5pt;color:#b9603c}
+.docblock+.docblock{margin-top:0;padding-top:0;border-top:none}
+pre{white-space:pre-wrap}
+pre code{white-space:pre-wrap}
+table{page-break-inside:auto}
+tr{page-break-inside:avoid}
+`;
+function coverHTML(){
+  return '<div class="cover"><div class="kicker">2027 考研 · 英语（二）</div><h1>作文备考手册</h1><div class="sub">一套骨架 · 只换 P1 · 背到闭卷</div>'+
+   '<div class="meta">考试日期：2026-12-19　｜　写作 25 分（小 10 + 大 15）<br>大作文：约 150 词 / 30 分钟　｜　小作文：约 100 词 / 15—18 分钟<br>资料定稿：2026-11-10　｜　原件 00—05 未作改动</div>'+
+   '<div class="toc"><br><b>本册目录</b><br>00 先看这里　｜　01 大作文定稿模板　｜　02 一页纸速背卡<br>03 真题示范　｜　04 小作文　｜　05 小题型　｜　06 六类成篇<br>07 分类速记　｜　10 新增资料取舍　｜　11 一页纸拆解<br>08 / 09 为排版页，单独打开；12 小作文 27 版待更新</div>'+
+   '<div class="tip">三条铁律：只背一套骨架 · 先写对再写高级 · 英语不套英语一 160—200 词模板</div></div>';
+}
+function showPrintPage(){
+  if(document.getElementById("printRoot"))return;
+  const st=document.createElement("style");st.textContent=PRINT_CSS;document.head.appendChild(st);
+  document.body.innerHTML='<article class="docbody" id="printRoot">'+coverHTML()+DOCS.map((d,i)=>d.f?'<div class="docblock">'+renderMD(MD[i])+"</div>":"").join("")+"</article>";
+  document.title="2027 考研英语 · 作文备考手册";
+}
+function doPrint(){if(!PRINT_MODE)showPrintPage();setTimeout(()=>window.print(),250);}
+document.getElementById("printBtn").onclick=doPrint;
+document.getElementById("printBtn2").onclick=doPrint;
+window.addEventListener("beforeprint",()=>{if(!PRINT_MODE)showPrintPage();});
+window.addEventListener("afterprint",()=>{if(!PRINT_MODE)setTimeout(()=>location.reload(),300);});
+
+/* ================= 成就 ================= */
+function renderBadges(){
+  const grid=document.getElementById("badgeGrid");
+  grid.innerHTML=BADGES.map(b=>{const on=S.stats.achievements.includes(b.id);return '<div class="badge'+(on?" on":"")+'"><div class="ico">'+b.ico+"</div><b>"+b.n+"</b><span>"+b.d+"</span></div>";}).join("");
+  document.getElementById("badgeCount").textContent=S.stats.achievements.length+" / "+BADGES.length+" 已解锁";
+}
+
+/* ================= 顶栏工具 ================= */
+document.getElementById("themeBtn").onclick=()=>{S.settings.theme=S.settings.theme==="dark"?"light":"dark";applyTheme();save();};
+function applyTheme(){document.documentElement.setAttribute("data-theme",S.settings.theme||"light");document.getElementById("themeBtn").textContent=S.settings.theme==="dark"?"☀️":"🌙";}
+document.getElementById("exportBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify({app:"英语作文记忆卡",version:1,exportedAt:new Date().toISOString(),data:S},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="英语记忆卡_学习记录_"+today()+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast("学习记录已导出 ⬇");
+};
+document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
+document.getElementById("importFile").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const o=JSON.parse(r.result);const d=o.data||o;S=Object.assign(blank(),d);save();applyTheme();load();renderHome();renderBadges();toast("学习记录已导入 ⬆");}catch(err){toast("文件格式不对，导入失败");}};
+  r.readAsText(f);e.target.value="";
+};
+document.addEventListener("keydown",e=>{
+  if(curView!=="cards")return;
+  if(["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName))return;
+  if(e.code==="Space"){e.preventDefault();flipCard();}
+  else if(["1","2","3","4"].includes(e.key))grade(+e.key-1);
+  else if(e.key==="ArrowRight")document.getElementById("skipBtn").click();
+  else if(e.key==="ArrowLeft")document.getElementById("prevBtn").click();
+});
+
+/* ================= 启动 ================= */
+load();applyTheme();renderHome();renderDecks();renderBadges();renderDocs();
+if(!memoryOK)setTimeout(()=>toast("当前环境无法保存进度，建议双击本文件用浏览器打开"),800);
+if(PRINT_MODE){showPrintPage();}
+if(location.hash.indexOf("selftest")>=0){
+  const errs=[];
+  if(new Set(CARDS.map(c=>c.id)).size!==CARDS.length)errs.push("dup card ids");
+  DECKS.forEach(d=>{if(!CARDS.some(c=>c.deck===d.id))errs.push("empty deck "+d.id);});
+  JUDGE_QUIZ.forEach((x,i)=>{if(x[1]<0||x[1]>=JUDGE_OPTS.length)errs.push("judge answer "+i);});
+  POINT_QUIZ.forEach((x,i)=>{if(x.a<0||x.a>=x.o.length)errs.push("point answer "+i);});
+  S=blank();save();
+  const q=buildQueue("all");
+  startSession("all",q.slice(0,1));
+  const cid=session.ids[0];
+  flipCard();grade(2);
+  const st=S.cards[cid];
+  if(!st||st.box!==1)errs.push("srs box");
+  if(!st||st.due!==addDays(today(),1))errs.push("srs due");
+  if(S.stats.reviews!==1)errs.push("review count");
+  if(S.stats.xp!==8)errs.push("xp");
+  if(!localStorage.getItem(KEY))errs.push("localStorage write");
+  const md=renderMD(MD[1]);
+  if(!md.includes("<table>")||!md.includes("<h2>"))errs.push("markdown render");
+  const mdDocs=DOCS.filter(d=>d.f);if(mdDocs.length!==11||mdDocs.some(d=>{const t=document.getElementById(d.f).textContent;return !t||t.length<500;}))errs.push("doc inject");
+  const res={ok:errs.length===0,errs:errs,cards:CARDS.length,decks:DECKS.length,judge:JUDGE_QUIZ.length,point:POINT_QUIZ.length,badges:BADGES.length,docChars:MD.map(x=>x.length),sampleState:st,unlocked:S.stats.achievements};
+  document.body.innerHTML='<pre id="selftest">'+JSON.stringify(res)+"</pre>";
+}
+</script>
+<script src="./portal.js?v=d9e06705a1"></script>
+<script src="/kaoyan/sync.js"></script>
+</body>
+</html>

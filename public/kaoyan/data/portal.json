@@ -1,0 +1,374 @@
+{
+  "meta": {
+    "title": "27 研考资料库",
+    "subtitle": "政治 · 英语 · 数学 · 专项",
+    "examDate": "2026-12-19",
+    "planStart": "2026-10-20",
+    "planDays": 60,
+    "updated": "2026-11-16",
+    "notice": "资料顺序 ≠ 复习顺序：备考执行仍按「先小作文 7 天 → 后大作文 14 天」。",
+    "privacy": "公共课演示版；进度仅本地保存"
+  },
+  "stats": [
+    {
+      "value": "495",
+      "label": "政治卡",
+      "note": "A 必背 151 张"
+    },
+    {
+      "value": "123",
+      "label": "作文卡",
+      "note": "英语记忆卡"
+    },
+    {
+      "value": "25",
+      "label": "写作分",
+      "note": "小 10 + 大 15"
+    },
+    {
+      "value": "10",
+      "label": "份讲义",
+      "note": "作文定稿资料"
+    }
+  ],
+  "subjects": [
+    {
+      "id": "politics",
+      "name": "政治",
+      "accent": "red",
+      "mainHref": "#/#politics",
+      "summary": "495 张 · A 必背 151 张优先",
+      "groups": [
+        {
+          "name": "主动回忆与速记",
+          "items": [
+            {
+              "title": "主动回忆",
+              "desc": "495 张 · 间隔复习 · 错题本 · 统计",
+              "href": "/kaoyan/politics/app",
+              "badge": "每日",
+              "icon": "cards"
+            },
+            {
+              "title": "知识地图",
+              "desc": "七大板块 · 会议时间轴 · 真题热度",
+              "href": "/kaoyan/jisu",
+              "icon": "map"
+            },
+            {
+              "title": "考前 30 分钟",
+              "desc": "A4 三栏打印版，进考场前扫一遍",
+              "href": "/kaoyan/onepage",
+              "icon": "clock"
+            },
+            {
+              "title": "卡片下载",
+              "desc": "Anki / 墨墨 CSV · 全量备份",
+              "href": "#",
+              "icon": "download"
+            },
+            {
+              "title": "真题与资料索引",
+              "desc": "2016—2026 真题解析 · 一页纸手册 · 全科目索引",
+              "href": "#/",
+              "badge": "索引",
+              "icon": "map"
+            }
+          ]
+        },
+        {
+          "name": "模拟题 · 肖八（2027 版）",
+          "items": [
+            {
+              "title": "肖八 · 逐题精练",
+              "desc": "刷题主界面 · 264 道选择题 · 答错可一键跳同考点历年真题",
+              "href": "#/",
+              "badge": "新增",
+              "icon": "cards"
+            },
+            {
+              "title": "肖八 · 错题本",
+              "desc": "只刷答错与模糊的题 · 上次进度打开即恢复",
+              "href": "#/#mode=wrong",
+              "icon": "dice"
+            }
+          ]
+        },
+        {
+          "name": "真题 · 解题方法 · 知识点",
+          "items": [
+            {
+              "title": "知识点一页纸 · 100 条",
+              "desc": "知识点册全 35 页 · 100 个编号逐条完整收录 · Z02 新变考点 / Z03 全年时政 / 肖八精简考点",
+              "href": "/kaoyan/realexam/#knowledge",
+              "badge": "核心",
+              "icon": "map"
+            },
+            {
+              "title": "解题方法 · 73 条",
+              "desc": "墓碑词 / 绝对化 / 时态 / 夸张 · 先认标志词，再按错因刷同类题",
+              "href": "/kaoyan/realexam/#methods",
+              "badge": "重点",
+              "icon": "map"
+            },
+            {
+              "title": "真题考点专项 / 我的薄弱考点",
+              "desc": "11 套卷 · 377 道真题 + 2 道模拟 · 48 个恒重考点；由肖八错题自动推荐",
+              "href": "/kaoyan/realexam/#weak",
+              "icon": "dice"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "english",
+      "name": "英语",
+      "accent": "blue",
+      "mainHref": "#/#english",
+      "summary": "作文 25 分 · 单词大观（2868 词）已上线",
+      "groups": [
+        {
+          "name": "作文 · 本轮重点",
+          "items": [
+            {
+              "title": "作文记忆卡",
+              "desc": "123 张 · 自动复习排期 · 判型小游戏",
+              "href": "/kaoyan/english-writing",
+              "badge": "主推",
+              "icon": "cards"
+            },
+            {
+              "title": "抄背卡 · 9 句定稿",
+              "desc": "5 页 A4 可打印 · 骨架 + 语料 + 七年数据 + 32 天安排",
+              "href": "/kaoyan/essay/copy-card",
+              "badge": "先抄这一张",
+              "icon": "doc"
+            },
+            {
+              "title": "英语真题套写 · 2020—2026",
+              "desc": "7 年 · 南萧简化版 9 句定稿逐段揭示 · 四档原版对照",
+              "href": "/kaoyan/essay/practice/",
+              "badge": "新",
+              "icon": "pen"
+            },
+            {
+              "title": "随手记 · 碎片卡片墙",
+              "desc": "百余张短卡 · 翻卡 / 搜索 / 随机抽 / 标记已记住",
+              "href": "/kaoyan/quick/",
+              "badge": "随手看",
+              "icon": "cards"
+            },
+            {
+              "title": "先看这里 · 资料总说明",
+              "desc": "资料来源、文件清单、三条铁律",
+              "href": "/kaoyan/essay/docs/00-start",
+              "badge": "讲义",
+              "icon": "doc",
+              "minutes": "约 5 分钟"
+            },
+            {
+              "title": "大作文 · 最终定稿模板（南萧简化版）",
+              "desc": "唯一骨架 9 句（2+5+3）· 175—190 词 · 只填 5 个空 · 七类价值观语料",
+              "href": "/kaoyan/essay/docs/01-big-template",
+              "badge": "讲义",
+              "icon": "doc",
+              "minutes": "约 12 分钟"
+            },
+            {
+              "title": "大作文 · 一页纸速背卡",
+              "desc": "A4 一页纯骨架，每天 5 分钟、考前 3 天",
+              "href": "/kaoyan/essay/docs/02-one-page",
+              "badge": "讲义",
+              "icon": "doc",
+              "minutes": "约 3 分钟"
+            },
+            {
+              "title": "大作文 · 真题套用示范",
+              "desc": "5 篇完整范文，数据取自真题原件",
+              "href": "/kaoyan/essay/docs/03-exam-samples",
+              "badge": "讲义",
+              "icon": "doc",
+              "minutes": "约 15 分钟"
+            },
+            {
+              "title": "小作文 · 定稿模板",
+              "desc": "9 类目的句 + 6 个必背模板 + 格式硬差异",
+              "href": "/kaoyan/essay/docs/04-small-essay",
+              "badge": "讲义",
+              "icon": "doc",
+              "minutes": "约 12 分钟"
+            },
+            {
+              "title": "小题型速查",
+              "desc": "分值步骤 + 英语六大题型分布、避坑五条、题文同序、分数账",
+              "href": "/kaoyan/essay/docs/05-mini-sections",
+              "badge": "讲义",
+              "icon": "doc",
+              "minutes": "约 6 分钟"
+            },
+            {
+              "title": "大作文 · 六类完整成篇",
+              "desc": "A/B1/B2/C/D/E 各一篇成篇 + 混用红线 + 辨析 8 题",
+              "href": "/kaoyan/essay/docs/06-six-types",
+              "badge": "讲义",
+              "icon": "doc",
+              "minutes": "约 15 分钟"
+            },
+            {
+              "title": "作文 · 英语分类速记总表",
+              "desc": "13 份模板裁剪 · 7 类 P1 · 4 种格式 · 2026 真题与三年连考 · 37 天速记路线",
+              "href": "/kaoyan/essay/docs/07-quick-recall",
+              "badge": "讲义",
+              "icon": "doc",
+              "minutes": "约 20 分钟"
+            },
+            {
+              "title": "新增资料集成与英语取舍",
+              "desc": "598 份新资料去重 · 英语边界 · 7 条结论 + 3 处勘误 · 34 天嵌入点",
+              "href": "/kaoyan/essay/docs/10-new-sources",
+              "badge": "讲义",
+              "icon": "doc",
+              "minutes": "约 10 分钟"
+            },
+            {
+              "title": "27 大作文一页纸 · 拆解与取舍",
+              "desc": "五份 PDF + 28 份套写实测 · 宏大叙事方法论 · 四档定位",
+              "href": "/kaoyan/essay/docs/11-onepage-analysis",
+              "badge": "讲义",
+              "icon": "doc",
+              "minutes": "约 12 分钟"
+            },
+            {
+              "title": "备考手册 PDF",
+              "desc": "85 页 · 在线阅读 / 下载打印",
+              "href": "/kaoyan/essay/handbook",
+              "badge": "合订本",
+              "icon": "pdf"
+            }
+          ]
+        },
+        {
+          "name": "词汇",
+          "items": [
+            {
+              "title": "单词大观 · 2868 词",
+              "desc": "南萧速成版 · 推导记忆（思维链路）· 已考词义 · 云同步续做",
+              "href": "/kaoyan/vocab/",
+              "badge": "主推",
+              "icon": "cards"
+            },
+            {
+              "title": "真题词汇自测",
+              "desc": "1772 词 · 翻卡自测 · 1-2-4-7 复习",
+              "href": "/kaoyan/vocab/#drill",
+              "badge": "真题",
+              "icon": "cards"
+            },
+            {
+              "title": "真题词频表",
+              "desc": "词频原表数值 · Top 100/500/1000 · 搜索",
+              "href": "/kaoyan/vocab/#freq",
+              "badge": "词频",
+              "icon": "dice"
+            },
+            {
+              "title": "小题型资料地图",
+              "desc": "阅读 / 完型 / 翻译 / 真题资料清单（本机）",
+              "href": "/kaoyan/vocab/#files",
+              "badge": "索引",
+              "icon": "map"
+            }
+          ]
+        },
+        {
+          "name": "翻译 · 新题型 · 完形",
+          "status": "planned",
+          "note": "资料清单已登记在「小题型资料地图」；完型 / 翻译 / 新题型讲义是 PDF，内容待逐份接入，当前不提取、不编造。",
+          "items": []
+        }
+      ]
+    },
+    {
+      "id": "math",
+      "name": "数学",
+      "accent": "blue",
+      "mainHref": "#/#math",
+      "summary": "知识图谱 · 速查速背 · 模拟卷逐题刷",
+      "groups": [
+        {
+          "name": "数学 · 已接入",
+          "items": [
+            {
+              "title": "真题年份表 · 线代题库 · 60 天排期",
+              "desc": "同一页按年份 / 题库 / 章节 / 排期分区，页内切换即可，不再重复开卡",
+              "href": "#/#math",
+              "badge": "索引",
+              "icon": "map"
+            }
+          ]
+        },
+        {
+          "name": "速查速背 · 模拟卷刷题（已接入）",
+          "items": [
+            {
+              "title": "数学知识图谱 · 30 讲",
+              "desc": "每讲六板块：核心框架 / 关键公式 / 解题步骤 / 技巧 / 误区 / 题型 · KaTeX · 搜索 · 数学默认过滤",
+              "href": "/kaoyan/math2map",
+              "badge": "新上线",
+              "icon": "map"
+            },
+            {
+              "title": "速查速背看板",
+              "desc": "精简要点 · 高数 / 线代按考纲章节 · 公式 / 概念 / 解题技巧与思路 · 翻卡背诵",
+              "href": "/kaoyan/math2",
+              "badge": "主推",
+              "icon": "cards"
+            },
+            {
+              "title": "模拟卷逐题刷",
+              "desc": "一题一条目 · 优先有答案与解析 · 题干与解析原图逐题呈现 · 自评错题本",
+              "href": "/kaoyan/math2mock",
+              "badge": "新增",
+              "icon": "doc"
+            },
+            {
+              "title": "模拟卷 · 错题本",
+              "desc": "只刷做错与模糊的题 · 上次进度打开即恢复",
+              "href": "/kaoyan/math2mock#mode=wrong",
+              "icon": "dice"
+            },
+            {
+              "title": "无答案模拟卷合集",
+              "desc": "未附答案的卷集中存放，明确标注「无答案」，不进逐题清单",
+              "href": "/kaoyan/math2mock#mode=noans",
+              "icon": "map"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "roadmap": [
+    {
+      "subject": "政治",
+      "text": "肖四 / 更多模拟卷待接入（2027 版肖八已上线）",
+      "status": "planned"
+    },
+    {
+      "subject": "英语",
+      "text": "完型 / 翻译 / 新题型讲义内容",
+      "status": "planned"
+    },
+    {
+      "subject": "英语",
+      "text": "历年真题按年份建索引",
+      "status": "planned"
+    },
+    {
+      "subject": "数学",
+      "text": "知识图谱 / 速查看板 / 模拟卷刷题已上线；后续新增模拟卷由构建脚本自动增量入库并去重",
+      "status": "planned"
+    }
+  ]
+}

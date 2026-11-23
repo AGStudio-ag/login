@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作文精华定稿与 36 天方案</title>
+<style>
+:root{
+  --ink:#24252b;--ink2:#4b4c57;--muted:#84868f;--line:#e2ddd3;--paper:#fffdf8;
+  --brand:#3f4e96;--accent:#b9603c;--green:#2f8a68;--red:#c0443c;--soft:#f6f2ea;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#efece4;color:var(--ink);font-family:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;line-height:1.75;-webkit-font-smoothing:antialiased}
+.page{max-width:880px;margin:0 auto;background:var(--paper);padding:44px 52px 56px;box-shadow:0 10px 40px rgba(60,55,45,.12)}
+@media(max-width:700px){.page{padding:24px 18px}}
+.kicker{font-size:11px;letter-spacing:3px;color:var(--muted)}
+h1{font-size:29px;margin:8px 0 6px;color:var(--brand);letter-spacing:1px}
+.sub{font-size:13.5px;color:var(--ink2);margin:0}
+.top{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin:20px 0 4px}
+@media(max-width:640px){.top{grid-template-columns:repeat(2,1fr)}}
+.top div{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center}
+.top b{display:block;font-size:23px;color:var(--brand);line-height:1.3}
+.top span{font-size:11.5px;color:var(--muted)}
+h2{font-size:18px;margin:32px 0 12px;padding-left:12px;border-left:5px solid var(--brand);line-height:1.4}
+h2 small{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+h3{font-size:14px;margin:20px 0 8px;color:var(--accent)}
+p{font-size:13.5px;color:var(--ink2);margin:8px 0}
+b,strong{color:var(--ink)}
+.note{background:linear-gradient(135deg,#f3f4fb,#faf7f0);border:1px solid #dfe1f0;border-left:5px solid var(--brand);border-radius:0 12px 12px 0;padding:14px 18px;margin:16px 0}
+.note p{margin:5px 0;font-size:13.5px}
+.warn{background:#fdf2f0;border-left:5px solid var(--red);border-radius:0 12px 12px 0;padding:12px 16px;margin:14px 0;font-size:13px;color:var(--ink2)}
+.warn b{color:var(--red)}
+.ok{background:#eef6f1;border-left:5px solid var(--green);border-radius:0 12px 12px 0;padding:12px 16px;margin:14px 0;font-size:13px;color:var(--ink2)}
+.ok b{color:var(--green)}
+table{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-weight:700;color:var(--ink)}
+td{color:var(--ink2)}
+tr:nth-child(even) td{background:#fbf9f4}
+.en{font-family:Georgia,"Times New Roman",serif;color:var(--ink);font-size:13px}
+.old{color:var(--red);text-decoration:line-through;text-decoration-thickness:1px}
+.new{color:var(--green);font-weight:600}
+.src{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:12.5px;margin:10px 0;color:var(--ink2)}
+.src b{color:var(--brand)}
+ul,ol{padding-left:21px;font-size:13.5px;color:var(--ink2)}
+li{margin:5px 0}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.chip{font-size:12.5px;padding:5px 11px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--ink2)}
+.chip b{color:var(--brand)}
+.chip.no{background:#faf0ee;border-color:#eed4cf;color:#9b5a52}
+.chip.yes{background:#eef6f1;border-color:#cbe4d8;color:var(--green)}
+.tl{display:grid;gap:10px;margin:14px 0}
+.stage{border:1px solid var(--line);border-radius:13px;background:#fffdf9;overflow:hidden}
+.stage .hd{display:flex;align-items:center;gap:12px;padding:11px 15px;background:var(--soft);border-bottom:1px solid var(--line)}
+.stage .hd .d{font-size:12px;font-weight:800;color:var(--brand);white-space:nowrap}
+.stage .hd .n{font-size:13.5px;font-weight:700;color:var(--ink)}
+.stage .hd .g{margin-left:auto;font-size:11.5px;color:var(--muted);white-space:nowrap}
+.stage .bd{padding:12px 16px;font-size:13px;color:var(--ink2)}
+.stage .bd b{color:var(--ink)}
+.stage .bd ul{margin:6px 0 0;padding-left:19px}
+.check{background:#fff9e8;border:1px dashed #e3c98b;border-radius:8px;padding:7px 11px;margin-top:9px;font-size:12.5px;color:#7a6320}
+.check b{color:#7a6320}
+.calc{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+@media(max-width:640px){.calc{grid-template-columns:1fr}}
+.calcbox{border:1px solid var(--line);border-radius:12px;padding:12px 15px;background:#fffdf9}
+.calcbox h4{margin:0 0 7px;font-size:13px;color:var(--brand)}
+.calcbox p{margin:2px 0;font-size:12.5px}
+.foot{margin-top:32px;padding-top:14px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--muted);text-align:center;line-height:1.9}
+.foot a{color:var(--brand);text-decoration:none}
+@media print{
+  body{background:#fff}
+  .page{box-shadow:none;max-width:none;padding:0;background:#fff}
+  h1{font-size:21pt}h2{font-size:12.5pt;page-break-after:avoid}h3{font-size:10.5pt;page-break-after:avoid}
+  p,td,th,li,.stage .bd,.chip,.note p,.warn,.ok{font-size:9.3pt}
+  .stage,.note,.warn,.ok,.calcbox,.src{page-break-inside:avoid}
+  @page{size:A4;margin:14mm 13mm}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="kicker">2027 考研 · 英语（二） · 写作 25 分</div>
+  <h1>作文精华定稿与 36 天方案</h1>
+  <p class="sub">目标：稳过国家线、确保 50+ ｜ 剩余 36 天 ｜ 每天 30 分钟 ｜ 基础一般，只求写对</p>
+
+  <div class="top">
+    <div><b>11</b><span>句骨架（唯一）</span></div>
+    <div><b>2</b><span>种 P1 必须练</span></div>
+    <div><b>18</b><span>篇练习总量</span></div>
+    <div><b>15</b><span>作文目标分</span></div>
+  </div>
+
+  <div class="note">
+    <p><b>一句话结论：</b>你的资料已经够了，缺的不是新模板，是<b>把“不背什么”划掉</b>。</p>
+    <p>36 天只做四件事：<b>背 10 句 → 背小作文 6 个目的句 → 写 18 篇 → 每篇只改 3 类错</b>。其余资料全部降级为“查得到的字典”。</p>
+  </div>
+
+  <h2>一、先划掉：这些今年不背 <small>省下来的时间给阅读</small></h2>
+  <div class="chips">
+    <span style="font-size:11.5px;color:var(--red);font-weight:800;align-self:center;margin-right:2px">✘ 不背</span>
+    <span class="chip no">D 双图表（英语 16 年未考）</span>
+    <span class="chip no">E 图画 / 文字（16 年未考）</span>
+    <span class="chip no">会议纪要（未考）</span>
+    <span class="chip no">A2 动态多方向（只认一眼）</span>
+    <span class="chip no">13 份下载模板的 P2/P3</span>
+    <span class="chip no">英语一 160—200 词写法</span>
+  </div>
+  <div class="chips">
+    <span style="font-size:11.5px;color:var(--green);font-weight:800;align-self:center;margin-right:2px">✔ 要背</span>
+    <span class="chip yes">A 动态 ★</span>
+    <span class="chip yes">B2 静态多选柱状 ★</span>
+    <span class="chip yes">B1 饼图（认得）</span>
+    <span class="chip yes">C 表格（认得）</span>
+  </div>
+  <div class="warn"><b>为什么敢划掉：</b>2010—2025 共 16 年，Part B <b>100% 是图表</b>，图画/文字一次没考；D 双图表只在 26 英一出现，英语没考过。为 10% 的可能挤掉 A/B2 的训练，不划算。</div>
+
+  <h2>二、大作文：润色后的唯一骨架 <small>只改 3 处，都是“降风险”</small></h2>
+  <table>
+    <tr><th style="width:7%">句</th><th style="width:47%">定稿句（照这个背）</th><th>本次润色 / 提醒</th></tr>
+    <tr><td>1</td><td class="en">The 【bar chart】 illustrates changes in 【主题】 in 【范围】 from 【Y1】 to 【Y3】.</td><td>图表词写具体：bar / line / pie / table。</td></tr>
+    <tr><td>2</td><td class="en">Overall, the figure maintained a 【steady upward】 trajectory, climbing from 【A】 to 【B】.</td><td>下降改 downward / falling；trajectory 可换 trend。</td></tr>
+    <tr><td>3</td><td class="en">Specifically, it rose from 【A】 in 【Y1】 to 【C】 in 【Y2】, and then <span class="new">rose</span> to 【B】 in 【Y3】.</td><td><span class="new">把 surged 改成 rose 作保底</span>：surge 是“激增”，涨幅不大时用会与数据不符，且易拼错；只在涨幅明显更大时才用。</td></tr>
+    <tr><td>4</td><td class="en">This trend clearly reflects 【点题】.</td><td>静态换 This distribution clearly suggests…；表格换 This comparison clearly shows…</td></tr>
+    <tr><td>5</td><td class="en">Several factors may account for this trend.</td><td>静态 this pattern｜表格 this situation｜兜底 this phenomenon。<b>P3 必须同一个词。</b></td></tr>
+    <tr><td>6</td><td class="en">For one thing, 【原因1】 has made it easier for 【人群】 to 【动词原形】.</td><td><span class="new">首选这个句式</span>：比 <span class="en">has made 主题 more 形容词</span> 更万能，不用挑形容词搭配；原句式作备选，二选一冻结。<br><b>注意单复数：</b><span class="en">rising incomes <b>have</b> made…</span> / <span class="en">the growing awareness <b>has</b> made…</span></td></tr>
+    <tr><td>7</td><td class="en">For another, 【人群】 are increasingly willing to 【动词】, <span class="new">because</span> 【原因2 从句】.</td><td><span class="new">with + doing 写不稳就用 because 从句</span>：少一个复杂句，但语法几乎不会错。若 with 已练熟，仍用原句。</td></tr>
+    <tr><td>8</td><td class="en">For instance, many 【families / students / communities】 now 【做什么】, which has further 【结果】.</td><td>例子只写“很多人 + 做什么”，<b>不写数字、不写人名</b>；which 不能省。</td></tr>
+    <tr><td>9</td><td class="en">In my view, this trend is largely 【positive】.</td><td>四种语气：积极 / 中性提醒 / 消极 / 辩证。静态换 this pattern。</td></tr>
+    <tr><td>10</td><td class="en">It is important for 【individuals / schools / employers】 to 【建议1】, while 【the government / the community】 should 【建议2】.</td><td>主体按题目换，<b>别一律写 government</b>（2012 是企业、2020 是学校）。</td></tr>
+    <tr><td>11</td><td class="en">Only in this way can we 【具体结果】.</td><td>绝不写 have a better future / be happy。具体结果见下面第 5 条。</td></tr>
+  </table>
+
+  <h3>只练两种 P1，其余认得</h3>
+  <table>
+    <tr><th style="width:14%">类型</th><th style="width:30%">什么时候用</th><th>四句模板（只背这两组）</th></tr>
+    <tr><td><b>A 动态</b> ★</td><td>有年份 / from…to… / 多个时间点</td><td class="en">The 【line / bar chart】 illustrates changes in … from … to ….<br>Overall, the figure maintained a steady upward trajectory, climbing from … to ….<br>Specifically, it rose from … in … to … in …, and then rose to … in ….<br>This trend clearly reflects ….</td></tr>
+    <tr><td><b>B2 多选柱状</b> ★</td><td>有百分比、各项合计 &gt; 100%、无时间轴</td><td class="en">The 【bar chart】 illustrates the distribution of … among ….<br>As the data show, … ranks first at …%, followed by … at …%.<br>By contrast, only …% of the respondents chose ….<br>This distribution clearly suggests that ….</td></tr>
+    <tr><td>B1 饼图</td><td>百分比、合计 = 100%</td><td>只记首句 <span class="en">The pie chart illustrates the composition of …</span> + 第 3 句 <span class="en">The remaining …% is made up of …</span></td></tr>
+    <tr><td>C 表格</td><td>行列交叉</td><td>只记首句 <span class="en">The table compares …</span> + 第 2 句 <span class="en">The most striking feature is that …</span>；2012 不写 rose</td></tr>
+  </table>
+  <div class="warn"><b>B2 三条红线：</b>不写 <span class="en">The remaining X%</span>、不写 <span class="en">respectively</span>、不写 <span class="en">from…to…</span> 和过去时。2024（91.3 / 84.8 / 54.4 / 32.6%）、2025（90.8 / 68.3 / 34.7 / 31.8 / 18.4%）都是多选题，各项不构成整体。</div>
+
+  <h2>三、小作文：1 套骨架 + 6 个目的句 <small>格式分比语言分好拿</small></h2>
+  <table>
+    <tr><th style="width:50%">骨架（主动写信，闭卷默写）</th><th>说明</th></tr>
+    <tr>
+      <td class="en">Dear 【Mr. Smith / Professor / Sir or Madam】,<br><br>I am Li Ming, and I am writing to 【目的】.<br>【要点①：时间/地点/原因】. 【要点②：安排/请求】.<br><br>I would appreciate it if you could 【动词原形】.<br>Thank you for your time and consideration. I look forward to hearing from you.<br><br>Yours sincerely,<br>Li Ming</td>
+      <td>称呼用<b>逗号</b>；不写地址、不写日期；署名以 Directions 为准（<b>2010—2012 是 Zhang Wei，2013 起 Li Ming</b>）。<br><br><b>回复来信</b>（2017/2018）首句改成 <span class="en">Thank you for your email about …</span>，<b>不写 I am Li Ming</b>。</td>
+    </tr>
+  </table>
+  <h3>6 个目的句（只背这 6 个）</h3>
+  <table>
+    <tr><th>类型</th><th>目的句</th><th>类型</th><th>目的句</th></tr>
+    <tr><td>邀请</td><td class="en">I am writing to invite you to ___</td><td>询问</td><td class="en">I am writing to inquire about ___</td></tr>
+    <tr><td>建议</td><td class="en">I am writing to offer some suggestions on ___</td><td>通知</td><td class="en">This is to inform you that ___</td></tr>
+    <tr><td>感谢</td><td class="en">I am writing to express my sincere gratitude for ___</td><td>投诉</td><td class="en">I am writing to complain about ___</td></tr>
+  </table>
+  <div class="ok"><b>近 4 年都是组合题，不是单一类型：</b>2023「建议 + 理由」、2024「计划 + 征询」、2025「介绍 + 邀请」。<b>目的句写主功能，P2 第一句写要点①，第二句写要点②</b>，骨架一个字不改。</div>
+  <h3>格式三条硬规则（交卷前 60 秒专门查）</h3>
+  <ol>
+    <li>书信：<b>不写标题、不写日期、不写地址</b>；称呼后是逗号；结尾 <span class="en">Yours sincerely,</span> + 署名。</li>
+    <li>通知：<b>NOTICE 居中 + 日期 + 正文 + 落款</b>；<b>不写 Dear、不写 Yours sincerely</b>。</li>
+    <li>纪要：认得 <span class="en">Minutes of Meeting / Date / Attendees / Recorded by</span> 即可，全篇过去时；<b>今年不背</b>。</li>
+  </ol>
+
+  <h2>四、语料：从 42 个词压到 21 个 <small>只背能直接塞进骨架的</small></h2>
+  <table>
+    <tr><th style="width:14%">主题</th><th>3 个词组（够用）</th></tr>
+    <tr><td>教育</td><td class="en">acquire knowledge ｜ practical skills ｜ academic pressure</td></tr>
+    <tr><td>就业</td><td class="en">further study ｜ job satisfaction ｜ career planning</td></tr>
+    <tr><td>科技</td><td class="en">mobile payment ｜ online shopping ｜ social media</td></tr>
+    <tr><td>消费</td><td class="en">rational consumption ｜ purchasing power ｜ quality of life</td></tr>
+    <tr><td>健康</td><td class="en">health literacy ｜ mental health ｜ aging population</td></tr>
+    <tr><td>文化</td><td class="en">cultural confidence ｜ museum visits ｜ leisure activities</td></tr>
+    <tr><td>环境</td><td class="en">low-carbon lifestyle ｜ environmental awareness ｜ sustainable development</td></tr>
+  </table>
+  <h3>3 个原因句（骨架句 6/7 卡壳时用）</h3>
+  <ul>
+    <li class="en">The primary reason is that ___ has become more accessible.</li>
+    <li class="en">Another factor is the growing awareness of ___.</li>
+    <li class="en">This is partly driven by the rapid development of ___.</li>
+  </ul>
+  <h3>5 个“具体展望”（按主题直接抄）</h3>
+  <table>
+    <tr><th style="width:14%">主题</th><th>Only in this way can we …</th></tr>
+    <tr><td>健康</td><td class="en">turn rising health literacy into real health outcomes</td></tr>
+    <tr><td>科技</td><td class="en">enjoy the convenience of technology without exposing ourselves to unnecessary risks</td></tr>
+    <tr><td>消费</td><td class="en">keep consumption within our means</td></tr>
+    <tr><td>教育</td><td class="en">turn knowledge into practical ability</td></tr>
+    <tr><td>环境</td><td class="en">leave a cleaner city for the next generation</td></tr>
+  </table>
+
+  <h2>五、36 天方案 <small>11/13 → 12/19，四阶段，每周有检查点</small></h2>
+  <div class="tl">
+    <div class="stage">
+      <div class="hd"><span class="d">11/13 — 11/19</span><span class="n">阶段一 · 骨架闭卷</span><span class="g">每天 30 分钟</span></div>
+      <div class="bd">
+        <b>大作文：</b>每天抄 1 遍 + 默 1 遍 10 句；只练 A 和 B2 两组 P1。<br>
+        <b>小作文：</b>每天 1 类目的句（6 天过完），每类读 1 篇范文，不写整篇。<br>
+        <b>不做：</b>不套真题、不看 D/E、不背 42 个主题词。
+        <div class="check"><b>11/19 检查点：</b>闭卷默 10 句 ≤ 8 分钟，错 ≤ 2 处；6 个目的句能中英互译。</div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="hd"><span class="d">11/20 — 11/29</span><span class="n">阶段二 · 真题套用</span><span class="g">大 5 篇 + 小 5 篇</span></div>
+      <div class="bd">
+        <b>大作文 5 篇（每篇 30 分钟）：</b>2023 折线（A）→ 2025 多选柱（B2）→ 2024 多选柱（B2 换词）→ 2020 饼（B1）→ 2012 表格（C）。<br>
+        <b>小作文 5 篇（每篇 18 分钟）：</b>2017 回复邀请 → 2018 道歉 → 2020 通知 → 2023 建议 → 2025 介绍+邀请。<br>
+        <b>改法：</b>每篇只改 3 类错——时态、主谓一致、拼写；<b>不整篇重抄</b>。
+        <div class="check"><b>11/29 检查点：</b>10 篇写完；B2 那两篇没有 remaining / respectively；小作文称呼、署名全对。</div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="hd"><span class="d">11/30 — 12/10</span><span class="n">阶段三 · 限时连写</span><span class="g">每周 2 套</span></div>
+      <div class="bd">
+        <b>45 分钟一套：</b>小作文 15 + 大作文 30 + 检查 5，用真题或模拟题，<b>不看资料</b>。<br>
+        <b>其余天：</b>背 21 个主题词 + 3 个原因句 + 5 个展望句；重做 06 的「混用辨析 8 题」。<br>
+        <b>弱项补漏：</b>哪类错超过 3 次，就只练那一类（例如总写错时态，就专门练判型）。
+        <div class="check"><b>12/10 检查点：</b>两套都在 45 分钟内写完；大作文 140—170 词、小作文 90—110 词；B2 不再写错。</div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="hd"><span class="d">12/11 — 12/18</span><span class="n">阶段四 · 只看不写</span><span class="g">每天 15 分钟</span></div>
+      <div class="bd">
+        <b>只看三样：</b>02 一页纸 + 自己写过的 10 篇（看红笔改的地方）+ 错题本。<br>
+        <b>每天：</b>默 1 遍 10 句，保持手感，不写新题。<br>
+        <b>12/15 起：</b>不加任何新句子、不换模板、23:00 前睡。
+        <div class="check"><b>12/18 检查点：</b>一页纸能默；三类错（时态/主谓/拼写）各只剩 1 条以内。</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>每天 30 分钟怎么切</h3>
+  <table>
+    <tr><th>时间</th><th>做什么</th></tr>
+    <tr><td>10 分钟</td><td>默骨架 / 背目的句（隔天交替）</td></tr>
+    <tr><td>15 分钟</td><td>写 1 篇（大小作文隔天交替；阶段一不写整篇，只默句）</td></tr>
+    <tr><td>5 分钟</td><td>改 3 类错 + 往错题本记 1 条</td></tr>
+  </table>
+
+  <h2>六、资料取舍 <small>哪份看、哪份别看</small></h2>
+  <table>
+    <tr><th style="width:15%">类别</th><th style="width:38%">文件</th><th>怎么用</th></tr>
+    <tr><td><b>必看</b></td><td><span class="en">01 定稿模板</span>、<span class="en">02 一页纸</span>、<span class="en">04 小作文</span>、<span class="en">06 六类成篇</span>、<span class="en">09 本文</span></td><td>01/02 背骨架；04 背小作文；06 只看 A/B1/B2/C 四篇；09 当执行表</td></tr>
+    <tr><td>选看</td><td><span class="en">03 真题示范</span>、<span class="en">07 分类速记</span>、<span class="en">08 作战图</span>、记忆卡网页</td><td>套题前对照 1 篇；07 只查 13 份模板处置；08 晕的时候看；网页用来复习排期</td></tr>
+    <tr><td><b>不看</b></td><td>13 份下载模板的 P2/P3、周思成 / 柴荣 / 大道至简、刘琦三小门</td><td>P2/P3 是英语一 200 词体量，一句不进定稿；后三份是字典/精读，不占作文时间</td></tr>
+    <tr><td>不背</td><td>D 双图表、E 图画文字、会议纪要、A2 动态多方向</td><td>最后一周各认一眼写法即可，不占背诵时间</td></tr>
+  </table>
+
+  <h2>七、50 分怎么算 <small>作文只要 15 分，别追 18+</small></h2>
+  <div class="calc">
+    <div class="calcbox">
+      <h4>保底 40 分</h4>
+      <p>阅读 16 + 新题型 4 + 翻译 6 + 完形 2 + 小作文 5 + 大作文 7 = <b>40</b></p>
+      <p>作文 12 分即可。</p>
+    </div>
+    <div class="calcbox">
+      <h4>目标 50+</h4>
+      <p>阅读 22 + 新题型 4 + 翻译 7 + 完形 2 + 小作文 6 + 大作文 9 = <b>50</b></p>
+      <p>作文 15 分即可。</p>
+    </div>
+  </div>
+  <p><b>结论：</b>作文不需要“写得好”，只需要“不跑题、字数够、格式对、语法错误不挡理解”。把追高级词的时间全部还给阅读。</p>
+
+  <h2>八、关于你给的网站 <small>如实说明</small></h2>
+  <div class="src">
+    <b>访问结果（2026-11-13 22:42）：</b>/__disabled_tpl__/templates 整页被「登录大观园账号」弹窗覆盖，需登录码或微信扫码；左侧只能看到 <b>题库 / 批改 / 模板 / 词句练习 / 我的</b> 五个栏目。<b>模板正文不可见，我没有获取、也没有转述其中任何内容。</b>
+  </div>
+  <p>它可见的部分里，唯一能借鉴的是<b>信息架构</b>：把作文拆成「模板（背）→ 词句练习（背语料）→ 题库（套真题）→ 批改（只改 3 类错）」四栏。本文的 36 天方案就是按这四个动作排的，而不是按资料排的。</p>
+  <p>如果你登录后把模板页截图或复制文本发我，我可以再做一轮逐句对照，只取适用于英语的部分。</p>
+
+  <div class="foot">
+    配套：<a href="/kaoyan/english-writing">记忆卡网页</a>（复习排期）　｜　<a href="英语作文备考手册.pdf">备考手册 PDF</a>（37 页）　｜　大作文六类成篇见 06，小作文九类见 04<br>
+    原工作区 00—05 六份原件未改动 · 2026-11-13
+  </div>
+</div>
+</body>
+</html>

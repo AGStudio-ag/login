@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大作文 · 极简作战图</title>
+<style>
+:root{
+  --ink:#24252b;--ink2:#4b4c57;--muted:#83858f;--line:#e2ddd3;--paper:#fffdf8;
+  --brand:#3f4e96;--accent:#b9603c;--green:#2f8a68;--red:#c0443c;--soft:#f6f2ea;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#efece4;color:var(--ink);font-family:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;line-height:1.75;-webkit-font-smoothing:antialiased}
+.page{max-width:860px;margin:0 auto;background:var(--paper);padding:44px 52px 56px;box-shadow:0 10px 40px rgba(60,55,45,.12)}
+@media(max-width:700px){.page{padding:24px 18px}}
+.kicker{font-size:11px;letter-spacing:3px;color:var(--muted)}
+h1{font-size:30px;margin:8px 0 6px;color:var(--brand);letter-spacing:1px}
+.sub{font-size:13.5px;color:var(--ink2);margin:0 0 6px}
+.answer{background:linear-gradient(135deg,#f3f4fb,#faf7f0);border:1px solid #dfe1f0;border-left:6px solid var(--brand);border-radius:0 14px 14px 0;padding:16px 20px;margin:22px 0 8px}
+.answer b{color:var(--brand);font-size:17px}
+.answer p{margin:6px 0 0;font-size:13.5px;color:var(--ink2)}
+h2{font-size:18px;margin:34px 0 12px;padding-left:12px;border-left:5px solid var(--brand);line-height:1.4}
+h2 small{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+p{font-size:13.5px;color:var(--ink2);margin:9px 0}
+b,strong{color:var(--ink)}
+.tag{display:inline-block;font-size:11px;padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--ink2);border:1px solid var(--line);margin-right:5px;white-space:nowrap}
+.tag.red{background:#fbeae8;color:var(--red);border-color:#f0cdc9}
+.tag.green{background:#e9f5ef;color:var(--green);border-color:#c9e5d9}
+.tag.blue{background:#eceefa;color:var(--brand);border-color:#d5d9ef}
+.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0 6px}
+@media(max-width:640px){.nums{grid-template-columns:repeat(2,1fr)}}
+.num{background:var(--paper);border:1px solid var(--line);border-radius:13px;padding:13px 10px;text-align:center}
+.num b{display:block;font-size:25px;color:var(--brand);line-height:1.25}
+.num span{font-size:11.5px;color:var(--muted)}
+.stack{display:grid;gap:10px;margin:16px 0}
+.layer{border:1px solid var(--line);border-radius:13px;padding:13px 16px;background:#fffdf9}
+.layer .h{font-size:12px;color:var(--muted);letter-spacing:1px;margin-bottom:7px}
+.layer.main{background:#eef0fa;border-color:#d6dbf0}
+.layer.main .h{color:var(--brand)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-size:12.5px;padding:6px 11px;border-radius:9px;background:#fff;border:1px solid var(--line);color:var(--ink2)}
+.chip b{color:var(--brand)}
+.chip.hot{background:#fdf1ea;border-color:#f0d5c6;color:var(--accent);font-weight:700}
+.arrow{text-align:center;color:var(--muted);font-size:13px;line-height:1;margin:2px 0}
+table{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-weight:700;color:var(--ink)}
+td{color:var(--ink2)}
+tr:nth-child(even) td{background:#fbf9f4}
+.en{font-family:Georgia,"Times New Roman",serif;color:var(--ink)}
+.essay{background:#fffdf9;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0}
+.essay p{margin:0 0 12px;font-size:14px;line-height:1.9;color:var(--ink);font-family:Georgia,"Times New Roman",serif}
+.essay p:last-child{margin-bottom:0}
+.essay .no{display:inline-block;min-width:20px;font-family:-apple-system,"Segoe UI",sans-serif;font-size:10.5px;color:#fff;background:var(--brand);border-radius:5px;text-align:center;padding:0 4px;margin-right:6px;vertical-align:2px}
+.essay .no.g{background:var(--green)}
+.essay .no.a{background:var(--accent)}
+.changed{background:#fff3c9;border-radius:3px;padding:0 2px}
+.timeline{display:grid;gap:10px;margin:14px 0}
+.tl{display:grid;grid-template-columns:112px 1fr;gap:14px;border:1px solid var(--line);border-radius:12px;padding:12px 15px;background:#fffdf9}
+@media(max-width:560px){.tl{grid-template-columns:1fr;gap:4px}}
+.tl .when{font-size:12px;font-weight:700;color:var(--brand)}
+.tl .what{font-size:13px;color:var(--ink2)}
+.tl .what b{color:var(--ink)}
+.rules{counter-reset:r;display:grid;gap:9px;margin:12px 0}
+.rule{position:relative;padding:11px 15px 11px 46px;background:#fffdf9;border:1px solid var(--line);border-radius:12px;font-size:13.5px;color:var(--ink2)}
+.rule:before{counter-increment:r;content:counter(r);position:absolute;left:13px;top:11px;width:23px;height:23px;border-radius:50%;background:var(--brand);color:#fff;font-size:12px;display:grid;place-items:center;font-weight:700}
+.today{background:#eef6f1;border:1px solid #cbe4d8;border-radius:14px;padding:14px 18px;margin:14px 0}
+.today b{color:var(--green)}
+.today ol{margin:8px 0 0;padding-left:20px;font-size:13.5px;color:var(--ink2)}
+.foot{margin-top:30px;padding-top:14px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--muted);text-align:center}
+.foot a{color:var(--brand);text-decoration:none}
+.warn{background:#fdf2f0;border-left:5px solid var(--red);border-radius:0 12px 12px 0;padding:12px 16px;font-size:13px;color:var(--ink2);margin:12px 0}
+.warn b{color:var(--red)}
+@media print{
+  body{background:#fff}
+  .page{box-shadow:none;max-width:none;padding:0;background:#fff}
+  h1{font-size:22pt}h2{font-size:13pt;page-break-after:avoid}
+  p,td,th,.rule,.tl,.chip{font-size:9.5pt}
+  .essay p{font-size:10pt}
+  .essay,.layer,.tl,.rule,.answer,.warn{page-break-inside:avoid}
+  @page{size:A4;margin:14mm 13mm}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="kicker">2027 考研 · 英语（二） · 写作 25 分</div>
+  <h1>大作文 · 极简作战图</h1>
+  <p class="sub">目标：稳稳过线 40—50 分 ｜ 时间：距考试 36 天 ｜ 基础：不求高级，只求写对</p>
+
+  <div class="answer">
+    <b>先回答那个让你晕的问题：只有 1 套模板，不是 4 套。</b>
+    <p>你最初那几篇「动态图 / 静态图 / 表格 / 兜底」，是<strong>同一套 10 句骨架</strong>换了第一段而已，看起来像 4 篇。<br>
+    真正要背的只有：<strong>10 句骨架（P2/P3 永远不变）+ 6 种第一段写法（A / B1 / B2 / C / D / E）</strong>。其中真正要练的只有 <b>A 动态</b> 和 <b>B2 静态多选柱状</b>；完整成篇不用背，用来对照。</p>
+  </div>
+
+  <div class="nums">
+    <div class="num"><b>1</b><span>套骨架</span></div>
+    <div class="num"><b>11</b><span>句，背到闭卷</span></div>
+    <div class="num"><b>6</b><span>种 P1 写法</span></div>
+    <div class="num"><b>161</b><span>词，你正好达标</span></div>
+  </div>
+
+  <h2>一、结构就长这样 <small>只换最上面一层</small></h2>
+  <div class="stack">
+    <div class="layer">
+      <div class="h">P1 · 换这一层（6 选 1，约 55—65 词）</div>
+      <div class="chips">
+        <span class="chip"><b>A 动态</b> 有年份</span>
+        <span class="chip"><b>B1 饼图</b> 合计 = 100%</span>
+        <span class="chip hot"><b>B2 多选柱状</b> 合计 &gt; 100% ★</span>
+        <span class="chip"><b>C 表格</b></span>
+        <span class="chip"><b>D 双图</b></span>
+        <span class="chip"><b>E</b> 图画文字（兜底）</span>
+      </div>
+    </div>
+    <div class="arrow">↓ 三句描述 + 一句点题 ↓</div>
+    <div class="layer main">
+      <div class="h">P2 · 五类题型完全共用（4 句，约 50—60 词）</div>
+      <div class="chips">
+        <span class="chip">主题句 <b>trend / pattern / situation</b></span>
+        <span class="chip">原因 1</span><span class="chip">原因 2（with + doing）</span><span class="chip">例子（which 从句）</span>
+      </div>
+    </div>
+    <div class="arrow">↓ 一个字都不改 ↓</div>
+    <div class="layer main">
+      <div class="h">P3 · 五类题型完全共用（3 句，约 30—40 词）</div>
+      <div class="chips">
+        <span class="chip">观点（和 P2 用同一个词）</span><span class="chip">两条具体建议（while）</span><span class="chip">Only in this way 展望</span>
+      </div>
+    </div>
+  </div>
+  <p><span class="tag blue">记这一句</span> <b>大作文 = 1 个判型动作 + 10 句骨架 + 数据列全（动态首中尾 / 静态全部类别）+ 主题词。</b>背整篇反而会混。</p>
+  <p><span class="tag blue">整篇在哪</span> <b>06 文件</b>里有六类完整成篇。基础一般时，<b>只把 A 动态、B2 多选柱状各读熟 1 篇</b>当拐杖就够；其余四类认识写法，别六类全背。</p>
+
+  <h2>二、3 秒判型 <small>看时间轴，不看图形</small></h2>
+  <table>
+    <tr><th style="width:34%">题目里出现</th><th style="width:20%">选</th><th style="width:14%">时态</th><th>P2 主题句</th></tr>
+    <tr><td>多个年份 / from...to...</td><td><b>A 动态</b></td><td>过去</td><td>this <b>trend</b></td></tr>
+    <tr><td>只有 %，各项合计 = 100%</td><td><b>B1 饼图</b></td><td>现在</td><td>this <b>pattern</b></td></tr>
+    <tr><td>只有 %，各项合计 &gt; 100%（多选柱状）</td><td><b>B2 多选柱状</b> ★</td><td>现在</td><td>this <b>pattern</b></td></tr>
+    <tr><td>行列交叉的表格</td><td><b>C 表格</b></td><td>看题目</td><td>this <b>situation</b></td></tr>
+    <tr><td>两幅图并排</td><td><b>D 双图表</b></td><td>各图各判</td><td>this <b>trend</b></td></tr>
+    <tr><td>图画 / 一句话</td><td><b>E 兜底</b></td><td>现在</td><td>this <b>phenomenon</b></td></tr>
+  </table>
+  <div class="warn"><b>2024—2026 连续三年考 B2。</b>柱子 ≠ 动态。看到柱子就写 <span class="en">from...to...</span> 和过去时，是这三年最容易丢的分。</div>
+
+  <h2>三、你写的这篇：先给个定心丸 <small>161 词 / 结构对</small></h2>
+  <p>按考场标准，这篇不改大概 <b>9—10 / 15</b>；把下面 4 处改掉，能到 <b>11—12 / 15</b>。你要的 40—50 分，大作文只要 8—10 分就够，所以<strong>不需要推翻重写</strong>。</p>
+  <p><span class="tag green">✔ 对的地方</span> 段落和句数都清楚；词数 161 在 150—170 安全区；饼图用 <span class="en">accounts for the largest share</span> + <span class="en">The remaining...</span> 完全正确；P2 用了 <span class="en">this pattern</span>；结尾 <span class="en">reduce the financial burden</span> 具体、不空喊。</p>
+
+  <h3 style="font-size:14px;margin:20px 0 6px;color:var(--accent)">4 个必须改的地方</h3>
+  <table>
+    <tr><th style="width:42%">你的原句</th><th style="width:26%">问题</th><th>改成</th></tr>
+    <tr>
+      <td class="en">In my view, this <b>distribution</b> is understandable...</td>
+      <td><span class="tag red">硬伤 1</span>P2 用 <span class="en">pattern</span>，P3 用 <span class="en">distribution</span>，不一致。阅卷会看成两套模板拼的。</td>
+      <td class="en">In my view, this <b>pattern</b> is understandable but deserves attention.</td>
+    </tr>
+    <tr>
+      <td class="en">On the other hand, parents attach greater importance to..., <b>so</b> they are willing to...</td>
+      <td><span class="tag red">硬伤 2</span>两个独立分句用 so 连，考场最容易主谓出错；也丢了骨架的 <span class="en">with + doing</span> 复杂句。</td>
+      <td class="en">For another, <b>with parents attaching</b> greater importance to education, many families are <b>increasingly willing to</b> pay for tutoring.</td>
+    </tr>
+    <tr>
+      <td class="en">For instance, many families now spend <b>over 20%</b> of their income on education.</td>
+      <td><span class="tag red">硬伤 3</span>丢了 <span class="en">which has further...</span>；编的 20% 和图表里 education 20% 撞车。</td>
+      <td class="en">For instance, many families now pay for online courses, <b>which has further</b> pushed up education spending.</td>
+    </tr>
+    <tr>
+      <td class="en">Individuals should..., <b>and</b> the government should...</td>
+      <td><span class="tag red">硬伤 4</span>语法没错，但丢了背过的 <span class="en">It is important for... while...</span>，白少一个得分句。</td>
+      <td class="en"><b>It is important for</b> individuals to make a reasonable budget, <b>while</b> the government should stabilize housing prices.</td>
+    </tr>
+  </table>
+
+  <h3 style="font-size:14px;margin:20px 0 6px;color:var(--accent)">3 个可选优化（不改也不影响及格）</h3>
+  <table>
+    <tr><th style="width:34%">位置</th><th>说明</th></tr>
+    <tr><td class="en">This distribution <b>clearly</b> suggests that...</td><td>加一个 <span class="en">clearly</span>，和骨架一致，顺手的事。</td></tr>
+    <tr><td class="en">...the two biggest <b>concerns</b></td><td>占比大 ≠ 最担忧。改成 <span class="en">basic needs still take up more than half of family budgets</span> 更贴图。</td></tr>
+    <tr><td class="en">spend more on rent or <b>mortgage</b></td><td>改 <span class="en">mortgage payments</span> 更准，属于加分细节。</td></tr>
+  </table>
+
+  <h2>四、改好的版本 <small>只动了 5 处，其余原样</small></h2>
+  <div class="essay">
+    <p><span class="no">1</span>The pie chart illustrates the composition of household spending among urban residents in a certain city.</p>
+    <p><span class="no">2</span>As the data show, food accounts for the largest share, at 35%, followed by housing at 25% and education at 20%.</p>
+    <p><span class="no">3</span>The remaining 20% is made up of other expenses.</p>
+    <p><span class="no">4</span>This distribution <span class="changed">clearly</span> suggests that <span class="changed">basic needs still take up more than half of family budgets</span>.</p>
+    <p><span class="no g">5</span>Several factors may account for this pattern.</p>
+    <p><span class="no g">6</span><span class="changed">For one thing</span>, rising housing prices have forced families to spend more on rent or <span class="changed">mortgage payments</span>.</p>
+    <p><span class="no g">7</span><span class="changed">For another, with parents attaching greater importance to education, many families are increasingly willing to</span> pay for tutoring and extracurricular activities.</p>
+    <p><span class="no g">8</span>For instance, many families now pay for online courses and weekend classes, <span class="changed">which has further pushed up education spending</span>.</p>
+    <p><span class="no a">9</span>In my view, this <span class="changed">pattern</span> is understandable but deserves attention.</p>
+    <p><span class="no a">10</span><span class="changed">It is important for</span> individuals to make a reasonable budget, <span class="changed">while</span> the government should stabilize housing prices and improve public services.</p>
+    <p><span class="no a">11</span>Only in this way can we reduce the financial burden on ordinary families.</p>
+  </div>
+  <p><span class="tag blue">词数</span> 改后约 160 词，仍在 140—170。<span class="tag blue">注意</span> 这套只能用于「各项合计 = 100%」的饼图或构成比；遇到 2024/2025 那种多选柱状，<b>第 3 句不能写</b>，要换成 <span class="en">By contrast, only X% chose...</span></p>
+
+  <h2>五、剩下 36 天怎么排 <small>每天 20—30 分钟，不挤占数学和专业课</small></h2>
+  <div class="timeline">
+    <div class="tl"><div class="when">11/13 — 11/19<br>（7 天）</div><div class="what"><b>只干一件事：背 10 句。</b>每天抄 1 遍 + 默 1 遍，只改错的地方。目标：闭卷 8 分钟内默完，一个词不落。别写整篇。</div></div>
+    <div class="tl"><div class="when">11/20 — 11/26<br>（7 天）</div><div class="what"><b>5 篇真题，一天 1 篇：</b>2023 折线（A）→ 2020 饼（B1）→ 2025 多选柱（B2）→ 2024 多选柱（B2 换词）→ 2012 表格（C）。每篇 30 分钟，写完只查时态、主谓、拼写。</div></div>
+    <div class="tl"><div class="when">11/27 — 12/10<br>（14 天）</div><div class="what"><b>大小作文连写。</b>45 分钟一套（小 15 + 大 30），每周 2 套；其余天背小作文 6 类目的句。小作文先写，别改顺序。</div></div>
+    <div class="tl"><div class="when">12/11 — 12/19<br>（9 天）</div><div class="what"><b>不写新题。</b>只看一页纸 + 错题本，每天默 1 遍骨架，只改「时态、主谓、拼写、格式」四类错。</div></div>
+  </div>
+
+  <h2>六、40 / 50 分到底怎么来 <small>别把压力全压在作文上</small></h2>
+  <table>
+    <tr><th>项目</th><th>满分</th><th>保底 40 分</th><th>冲 50 分</th><th>说明</th></tr>
+    <tr><td>阅读 Part A</td><td>40</td><td>18（对 9 题）</td><td>24（对 12 题）</td><td>最大一块，靠真题精改</td></tr>
+    <tr><td>新题型 Part B</td><td>10</td><td>4（对 2 题）</td><td>6（对 3 题）</td><td>练 5 套就有手感</td></tr>
+    <tr><td>翻译</td><td>15</td><td>6</td><td>8</td><td>写通顺、别漏意群</td></tr>
+    <tr><td>完形</td><td>10</td><td>3</td><td>4</td><td>放最后，别死磕</td></tr>
+    <tr><td>小作文</td><td>10</td><td>5</td><td>6</td><td>格式对就有基础分</td></tr>
+    <tr><td>大作文</td><td>15</td><td>8</td><td>10</td><td>不跑题、字数够、少语法错</td></tr>
+    <tr><td><b>合计</b></td><td><b>100</b></td><td><b>44</b></td><td><b>58</b></td><td><b>作文 13—16 分，就够撑住目标</b></td></tr>
+  </table>
+  <p><b>结论：</b>作文不是用来拉分的，是用来「不拖后腿」的。你只要做到不跑题、格式对、字数够、语法错误不挡理解，8—10 分是稳的。把省下的时间给阅读。</p>
+
+  <h2>七、四条保命规则 <small>基础不好就靠这四条</small></h2>
+  <div class="rules">
+    <div class="rule"><b>P2 / P3 一个字不改。</b>你这次改了 4 处，3 处出问题——不是你不会写，是临场造句风险太高。背过的句子错误率最低。</div>
+    <div class="rule"><b>例子句不写数字、不写人名。</b>用 <span class="en">many families / many students / many communities</span>，既安全又不会和图里数据撞车。</div>
+    <div class="rule"><b>判型只看时间轴。</b>柱子 + 年份 = 动态；柱子 + 百分比 = 静态。2024—2026 都是静态多选柱状。</div>
+    <div class="rule"><b>写完只查 4 件事：</b>时态、三单/主谓一致、拼写、数据有没有抄错。别整篇重抄。</div>
+  </div>
+
+  <div class="today">
+    <b>今天（11/13）就做这 3 件事，25 分钟收工：</b>
+    <ol>
+      <li>把上面改好的版本抄 1 遍（15 分钟）——只抄，不背。</li>
+      <li>默 10 句骨架（8 分钟），错的地方标红。</li>
+      <li>打开配套网页，做一轮「判型速测」（5 分钟）。</li>
+    </ol>
+  </div>
+
+  <div class="foot">
+    配套：<a href="/kaoyan/english-writing">英语作文记忆卡.html</a>（103 张卡 · 间隔复习 · 判型游戏）　｜　
+    <a href="英语作文备考手册.pdf">英语作文备考手册.pdf</a>（37 页排版版）<br>
+    原工作区 00—05 六份原件未改动 · 2026-11-13
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>数学 · 模拟卷逐题刷 | 27 研考资料库</title>
+<meta name="description" content="数学模拟卷逐题刷题：优先有答案与解析的题目，一题一条目、题干与解析原图逐题呈现；无答案卷集中标注。">
+<link rel="icon" href="/kaoyan/icons/icon-192.png" type="image/png">
+<link rel="stylesheet" href="/kaoyan/app.css?v=c29db394bb">
+<link rel="stylesheet" href="/kaoyan/refine.css?v=4a591ac066">
+<link rel="stylesheet" href="/kaoyan/portal.css?v=602a24de47">
+<link rel="stylesheet" href="/kaoyan/math2assets/mock/mock.css?v=a029eba690">
+<script>try{var t=localStorage.getItem('zz27_theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body>
+<div class="subnav noprint" style="position:sticky;top:0;z-index:9998;display:flex;gap:6px;align-items:center;overflow-x:auto;padding:7px 12px;background:var(--surface,#fff);border-bottom:1px solid var(--line,#e2e8f0);white-space:nowrap;scrollbar-width:none"><a href="/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">⌂ 主站</a><a href="/kaoyan/math/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:700 11px/1.4 sans-serif;background:#2563eb;color:#fff;border:1px solid transparent">← 数学主页</a><span style="flex:none;color:var(--muted,#94a3b8);font:600 11px sans-serif">·</span><a href="/kaoyan/math/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">主页</a><a href="/kaoyan/math2" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">公式速查</a><a href="/kaoyan/math2map" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">知识地图</a><a href="/kaoyan/math2mock" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--blue,#2563eb);color:#fff;border:1px solid transparent">模拟卷</a></div>
+<header class="mk-top">
+  <a class="mk-back" href="/kaoyan/math2">← 速查速背</a>
+  <a class="mk-back" href="/kaoyan/math2map">知识图谱</a>
+  <div class="mk-top-t"><b>数学 · 模拟卷逐题刷</b><i id="mkDays"></i></div>
+  <a class="mk-switch" href="#">资料库</a>
+</header>
+
+<main class="mk-wrap">
+  <section class="mk-hero">
+    <h1>一题一条目，先看题，再对答案</h1>
+    <p>只整理<b>有答案 / 有解析</b>的模拟卷，按题号切成独立条目，题干与解析都是原卷裁图。
+       默认按 ★ 重要性与题号顺序逐题刷。<b>未附答案的卷不逐题拆</b>，统一收进「无答案合集」并明确标注。</p>
+    <p class="mk-meta" id="mkMeta"></p>
+  </section>
+
+  <div class="mk-modes" id="mkModes">
+    <button type="button" data-mode="drill" class="on">逐题刷</button>
+    <button type="button" data-mode="list">题目列表</button>
+    <button type="button" data-mode="wrong">错题本</button>
+    <button type="button" data-mode="noans">无答案合集</button>
+  </div>
+
+  <section class="mk-bar" id="mkBar">
+    <input id="mkQ" type="search" placeholder="搜索题目 / 考点 / 卷名…" aria-label="搜索题目">
+    <div class="mk-bar-row">
+      <select id="mkType" aria-label="题型"><option value="">全部题型</option><option value="选择">选择题</option><option value="填空">填空题</option><option value="解答">解答题</option><option value="证明">证明题</option></select>
+      <select id="mkTopic" aria-label="考点"><option value="">全部考点</option></select>
+      <select id="mkPaper" aria-label="来源卷"><option value="">全部试卷</option></select>
+      <select id="mkStar" aria-label="优先级"><option value="">全部 ★</option><option value="5">★5 必刷</option><option value="4">★4 及以上</option></select>
+      <label class="mk-chk"><input type="checkbox" id="mkAnsOnly" checked> 只看有解析</label>
+      <button type="button" class="mk-btn" id="mkReset">重置</button>
+    </div>
+  </section>
+
+  <div class="mk-stat" id="mkStat"></div>
+
+  <!-- 逐题模式 -->
+  <section id="mkDrill">
+    <div class="mk-qhead">
+      <button type="button" class="mk-btn" id="mkPrev">← 上一题</button>
+      <div class="mk-qtitle"><b id="mkQTitle"></b><span id="mkQMeta"></span></div>
+      <button type="button" class="mk-btn" id="mkNext">下一题 →</button>
+    </div>
+    <div class="mk-qimg"><img id="mkQImg" alt="题干原卷裁图" loading="lazy"></div>
+    <div class="mk-qact">
+      <button type="button" class="mk-btn main" id="mkShowAns">显示答案 / 解析</button>
+      <span class="mk-qtimer" id="mkTimer">00:00</span>
+    </div>
+    <div class="mk-aimg" id="mkAImgBox" hidden>
+      <div class="mk-ah">答案 / 解析（原卷裁图）</div>
+      <img id="mkAImg" alt="答案与解析原卷裁图" loading="lazy">
+      <p id="mkAnsFallback" class="mk-phint" hidden></p>
+    </div>
+    <div class="mk-rate"><span>本题自评：</span>
+      <button type="button" data-r="right">✓ 做对</button>
+      <button type="button" data-r="fuzzy">≈ 模糊</button>
+      <button type="button" data-r="wrong">✗ 做错</button>
+      <span class="mk-hint" id="mkHint">答完再对解析；自评进错题本并云同步。</span>
+    </div>
+  </section>
+
+  <!-- 列表模式 -->
+  <section id="mkList" hidden><div class="mk-grid" id="mkGrid"></div></section>
+
+  <!-- 无答案合集 -->
+  <section id="mkNoAns" hidden>
+    <div class="mk-warn"><b>⚠ 无答案</b>　以下模拟卷未附答案或解析，<b>不做逐题拆解、不进入刷题清单</b>，
+      统一收进一个文件，供有余力时自行限时练手。请勿在此核对对错。</div>
+    <div id="mkNoAnsBody"></div>
+  </section>
+
+  <div class="mk-empty" id="mkEmpty" hidden>没有匹配的题目，放宽筛选试试。</div>
+  <footer class="mk-foot">题目与解析均为本机模拟卷原页裁图（灰度），按题号切分；进度存本机并自动同步到自己的云库。</footer>
+</main>
+
+<script src="/kaoyan/math2assets/mock/data/questions.js?v=9c1a024612"></script>
+<script src="/kaoyan/math2assets/mock/data/no_answer.js?v=5c60a4a43e"></script>
+<script src="/kaoyan/math2assets/mock/mock.js?v=57da138d2c"></script>
+<script src="/kaoyan/sync.js?v=ad065c5cdb"></script>
+</body>
+</html>

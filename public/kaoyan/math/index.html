@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>数学 · 27 研考资料库</title>
+<link rel="icon" href="/kaoyan/icons/icon-192.png" type="image/png">
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#1e293b;--sub:#64748b;--line:#e2e8f0;--blue:#2563eb;--blue-d:#1d4ed8;--blue-l:#eff6ff;--shadow:0 1px 3px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.05)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.8;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px 70px}
+.hero{background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 55%,#4f46e5 100%);color:#fff;border-radius:0 0 28px 28px;padding:44px 30px 36px;box-shadow:var(--shadow)}
+.hero a{color:#dbeafe;text-decoration:none;font-size:13px}
+.hero .row{display:flex;align-items:center;gap:16px;margin-top:12px}
+.hero .ic{width:58px;height:58px;border-radius:16px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);display:grid;place-items:center;font-size:26px;font-weight:800;flex:none}
+.hero h1{margin:0;font-size:28px;font-weight:800}
+.hero .sub{color:#e6efff;font-size:13.5px;margin:2px 0 0}
+.hero p{margin:12px 0 0;color:#e6efff;font-size:13px}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:16px 0 6px;scrollbar-width:thin}
+.tab{flex:none;padding:8px 15px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--sub);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.tab:hover{border-color:var(--blue);color:var(--blue-d)}
+.tab.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.panel{display:none}
+.panel.on{display:block}
+.gdesc{font-size:12.5px;color:var(--sub);margin:14px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.card{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);transition:.16s;position:relative}
+.card:hover{transform:translateY(-2px);border-color:var(--blue)}
+.card h3{margin:0 0 6px;font-size:15px;font-weight:800;padding-right:44px}
+.card p{margin:0;font-size:12.5px;color:var(--sub);line-height:1.7}
+.badge{position:absolute;right:16px;top:16px;font-size:10px;padding:2px 8px;border-radius:6px;background:var(--blue-l);color:var(--blue-d);font-weight:700}
+.planned{opacity:.65}
+@media(max-width:600px){.hero h1{font-size:22px}.wrap{padding:0 14px 50px}}
+</style>
+</head>
+<body>
+<div class="subnav noprint" style="position:relative;z-index:9998;display:flex;gap:6px;align-items:center;overflow-x:auto;padding:7px 12px;background:var(--surface,#fff);border-bottom:1px solid var(--line,#e2e8f0);white-space:nowrap;scrollbar-width:none"><a href="/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">⌂ 主站</a><a href="/kaoyan/math/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:700 11px/1.4 sans-serif;background:#2563eb;color:#fff;border:1px solid transparent">← 数学主页</a><span style="flex:none;color:var(--muted,#94a3b8);font:600 11px sans-serif">·</span><a href="/kaoyan/math/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--blue,#2563eb);color:#fff;border:1px solid transparent">主页</a><a href="/kaoyan/math2" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">公式速查</a><a href="/kaoyan/math2map" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">知识地图</a><a href="/kaoyan/math2mock" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">模拟卷</a></div>
+<div class="hero">
+  <a href="/">← 主站首页</a>
+  <div class="row"><div class="ic">数</div><div><h1>数学</h1><p class="sub">知识图谱 · 速查 · 模拟卷</p></div></div>
+  <p>知识图谱 · 速查速背 · 模拟卷逐题刷</p>
+</div>
+<div class="wrap">
+  <div class="tabs" id="tabs"></div>
+  <div id="panels"></div>
+</div>
+<script>
+(function(){
+  var G=[{"name": "数学 · 已接入", "items": [{"title": "真题年份表 · 线代题库 · 60 天排期", "desc": "同一页按年份 / 题库 / 章节 / 排期分区，页内切换即可，不再重复开卡", "href": "#/#math", "badge": "索引", "icon": "map"}]}, {"name": "速查速背 · 模拟卷刷题（已接入）", "items": [{"title": "数学知识图谱 · 30 讲", "desc": "每讲六板块：核心框架 / 关键公式 / 解题步骤 / 技巧 / 误区 / 题型 · KaTeX · 搜索 · 数学默认过滤", "href": "/kaoyan/math2map", "badge": "新上线", "icon": "map"}, {"title": "速查速背看板", "desc": "精简要点 · 高数 / 线代按考纲章节 · 公式 / 概念 / 解题技巧与思路 · 翻卡背诵", "href": "/kaoyan/math2", "badge": "主推", "icon": "cards"}, {"title": "模拟卷逐题刷", "desc": "一题一条目 · 优先有答案与解析 · 题干与解析原图逐题呈现 · 自评错题本", "href": "/kaoyan/math2mock", "badge": "新增", "icon": "doc"}, {"title": "模拟卷 · 错题本", "desc": "只刷做错与模糊的题 · 上次进度打开即恢复", "href": "/kaoyan/math2mock#mode=wrong", "icon": "dice"}, {"title": "无答案模拟卷合集", "desc": "未附答案的卷集中存放，明确标注「无答案」，不进逐题清单", "href": "/kaoyan/math2mock#mode=noans", "icon": "map"}]}];
+  var tabs=document.getElementById('tabs'),panels=document.getElementById('panels');
+  G.forEach(function(g,i){
+    var b=document.createElement('button');b.className='tab'+(i===0?' on':'');b.textContent=g.name;
+    b.onclick=function(){Array.prototype.forEach.call(tabs.children,function(x){x.classList.remove('on')});b.classList.add('on');
+      Array.prototype.forEach.call(panels.children,function(x){x.classList.remove('on')});panels.children[i].classList.add('on');};
+    tabs.appendChild(b);
+    var p=document.createElement('div');p.className='panel'+(i===0?' on':'');
+    var items=g.items.map(function(it){
+      if(it.status==='planned')return '<div class="card planned"><span class="badge">规划中</span><h3>'+it.title+'</h3><p>'+(it.note||'筹备中')+'</p></div>';
+      return '<a class="card" href="'+it.href+'">'+(it.badge?'<span class="badge">'+it.badge+'</span>':'')+'<h3>'+it.title+'</h3><p>'+it.desc+'</p></a>';
+    }).join('');
+    p.innerHTML='<div class="gdesc">'+g.name+' · 共 '+g.items.length+' 项</div><div class="grid">'+items+'</div>';
+    panels.appendChild(p);
+  });
+})();
+</script>
+</body>
+</html>

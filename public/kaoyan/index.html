@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="27 研考备考资料库：政治、英语、数学，公共课一站式复习。">
+<title>研考备考资料库 · 2027</title>
+<link rel="icon" href="/kaoyan/favicon.ico" sizes="any">
+<link rel="icon" href="/kaoyan/icons/icon-192.png" type="image/png">
+<style>
+:root{--paper:#faf8f3;--paper2:#f2eee5;--ink:#1c1b19;--ink2:#4a4740;--muted:#8a8579;
+--line:#dcd7cb;--red:#9e2b25;--gold:#b08d57}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);
+font-family:"Songti SC","Noto Serif CJK SC","Source Han Serif SC",Georgia,serif;
+-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.brand{flex-wrap:wrap}
+.sans{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.masthead{max-width:1120px;margin:0 auto;padding:26px 32px 0}
+.topbar{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;
+border-bottom:2px solid var(--ink);padding-bottom:12px}
+.brand{display:flex;align-items:baseline;gap:12px}
+.brand .mark{font-family:Georgia,serif;font-size:29px;font-weight:700;letter-spacing:-1.5px;color:var(--red)}
+.brand .name{font-size:17px;font-weight:700;letter-spacing:.08em}
+.brand .en{font-family:Georgia,serif;font-size:11px;letter-spacing:.22em;color:var(--muted);text-transform:uppercase}
+.topmeta{font-size:11.5px;color:var(--muted);letter-spacing:.1em}
+.hero{max-width:1120px;margin:0 auto;padding:56px 32px 50px;display:grid;grid-template-columns:1fr auto;gap:40px;align-items:end}
+.hero .kicker{font-size:12px;letter-spacing:.32em;color:var(--red);font-weight:700;margin:0 0 18px}
+.hero h1{font-size:clamp(38px,6vw,68px);line-height:1.16;font-weight:700;letter-spacing:.02em;margin:0 0 20px}
+.hero h1 em{font-style:normal;color:var(--red)}
+.hero .lede{font-size:15.5px;line-height:2.05;color:var(--ink2);max-width:620px;margin:0}
+.hero .lede b{color:var(--ink);font-weight:700}
+.issue{text-align:right;flex:none}
+.issue .no{font-family:Georgia,serif;font-size:82px;line-height:.9;color:var(--paper2);
+-webkit-text-stroke:1.5px var(--gold);letter-spacing:-4px}
+.issue .cap{font-size:11px;letter-spacing:.2em;color:var(--muted);margin-top:10px}
+/* 动态倒计时 */
+.cdbar{max-width:1120px;margin:0 auto;padding:0 32px}
+.cdinner{display:flex;justify-content:space-between;align-items:center;gap:26px;flex-wrap:wrap;
+padding:22px 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--line)}
+.cd-kicker{font-size:10.5px;letter-spacing:.26em;color:var(--red);font-weight:700;margin:0 0 7px}
+.cd-left h2{font-size:21px;margin:0 0 5px;font-weight:700;letter-spacing:.02em}
+.cd-date{font-size:11.5px;color:var(--muted);margin:0;letter-spacing:.06em}
+.cd-phase{display:inline-block;margin-top:9px;font-size:11px;font-weight:700;padding:2px 9px;border-radius:4px;
+background:var(--paper2);color:var(--red);letter-spacing:.06em}
+.cd-timer{display:flex;align-items:baseline;gap:1px}
+.cd-cell{text-align:center;min-width:66px}
+.cd-cell b{display:block;font-family:Georgia,serif;font-size:39px;line-height:1;color:var(--ink);
+font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.cd-cell span{font-size:10.5px;color:var(--muted);letter-spacing:.16em}
+.cd-timer i{font-style:normal;color:var(--line);font-size:24px;line-height:1;transform:translateY(-3px);margin:0 3px}
+.cd-cell.sec b{color:var(--red)}
+.cd-done{font-family:Georgia,serif;font-size:24px;color:var(--red);font-weight:700}
+.statsbar{max-width:1120px;margin:0 auto;padding:0 32px 38px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--ink);border-bottom:1px solid var(--line)}
+.stat{padding:18px 20px;border-right:1px solid var(--line)}
+.stat:last-child{border-right:none}
+.stat .n{font-family:Georgia,serif;font-size:27px;color:var(--ink);line-height:1}
+.stat .n small{font-size:13px;color:var(--muted);margin-left:3px}
+.stat .l{font-size:11.5px;color:var(--muted);margin-top:9px;letter-spacing:.06em}
+.section{max-width:1120px;margin:0 auto;padding:0 32px}
+.sechead{display:flex;align-items:baseline;gap:16px;margin:14px 0 0;padding-bottom:12px;border-bottom:1px solid var(--ink)}
+.sechead h2{font-size:20px;margin:0;font-weight:700;letter-spacing:.04em}
+.sechead .en{font-family:Georgia,serif;font-size:11px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase}
+.sechead .cnt{margin-left:auto;font-size:11.5px;color:var(--muted)}
+.subjects{display:grid;grid-template-columns:1fr 1fr}
+.subject{display:grid;grid-template-columns:64px 1fr auto;gap:18px;align-items:start;
+padding:26px 22px 26px 8px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;
+transition:background .18s,padding-left .18s}
+.subject:nth-child(odd){border-right:1px solid var(--line)}
+.subject:hover{background:var(--paper2);padding-left:16px}
+.subject .num{font-family:Georgia,serif;font-size:38px;line-height:1;color:var(--line);transition:color .18s}
+.subject:hover .num{color:var(--red)}
+.subject h3{font-size:19px;margin:1px 0 8px;font-weight:700;letter-spacing:.02em}
+.subject .desc{font-size:13px;line-height:1.9;color:var(--ink2);margin:0}
+.subject .tags{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.subject .tags span{font-size:11px;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:2px}
+.subject .arrow{font-family:Georgia,serif;font-size:19px;color:var(--muted);align-self:center;transition:transform .18s,color .18s}
+.subject:hover .arrow{transform:translateX(4px);color:var(--red)}
+.subject.feature{grid-column:1/-1;border-right:none;background:var(--paper2);padding:26px 22px;display:block}
+.subject.feature .subject-inner{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:18px;align-items:center;width:100%}
+.subject.feature .subject-inner>span:nth-child(2){min-width:0;display:block}
+.subject.feature .subject-inner .tags{display:flex}
+.utility{display:grid;grid-template-columns:repeat(3,1fr);margin-top:0}
+.util{padding:22px 20px;border-right:1px solid var(--line);text-decoration:none;color:inherit;transition:background .18s}
+.util:last-child{border-right:none}
+.util:hover{background:var(--paper2)}
+.util .u-num{font-family:Georgia,serif;font-size:13px;color:var(--red);letter-spacing:.1em}
+.util h4{font-size:15px;margin:9px 0 5px;font-weight:700}
+.util p{font-size:12px;color:var(--muted);margin:0;line-height:1.7}
+.foot{max-width:1120px;margin:60px auto 0;padding:24px 32px 40px;border-top:2px solid var(--ink);
+display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+.foot .sans{letter-spacing:.08em}
+@media(max-width:760px){
+ .masthead,.hero,.statsbar,.section,.foot{padding-left:20px;padding-right:20px}
+ .topmeta{display:none}
+ .hero{grid-template-columns:1fr;padding:40px 20px 34px;gap:18px}
+ .hero h1{font-size:40px}
+ .issue{text-align:left;display:flex;align-items:baseline;gap:14px}
+ .issue .no{font-size:48px}
+ .stats{grid-template-columns:1fr 1fr}
+ .stat:nth-child(2){border-right:none}
+ .stat:nth-child(-n+2){border-bottom:1px solid var(--line)}
+ .subjects{grid-template-columns:1fr}
+ .subject:nth-child(odd){border-right:none}
+ .subject.feature .subject-inner{grid-template-columns:52px 1fr auto;gap:12px}
+ .subject .num{font-size:30px}
+ .utility{grid-template-columns:1fr}
+ .util{border-right:none;border-bottom:1px solid var(--line)}
+}
+</style>
+<link rel="stylesheet" href="./refine.css?v=4a591ac066">
+<link rel="stylesheet" href="./portal.css?v=602a24de47">
+<style id="wp-study-guard">.wp-fab,.wp-panel{display:none!important}</style>
+</head>
+<body data-portal-mode="study">
+<header class="masthead">
+  <div class="topbar">
+    <div class="brand"><span class="mark">27</span><span class="name">研考备考资料库</span><span class="en sans">Study Archive</span></div>
+    <div class="topmeta sans">2027 考研 · 个人复习资料 · 进度存于本机</div>
+  </div>
+</header>
+
+<section class="hero">
+  <div>
+    <p class="kicker sans">THREE SUBJECTS · ONE PLACE</p>
+    <h1>把三科资料<br>收进<em>一个书架</em></h1>
+    <p class="lede">政治、英语、数学——每科都有独立主页，进去之后板块之间随手切换，<b>不必再退回这里找入口</b>。手册、题库、真题、图表，都放在它该在的地方。</p>
+  </div>
+  <div class="issue"><div class="no">27</div><div class="cap sans">CLASS OF 2027 · VOL. 01</div></div>
+</section>
+
+<section class="cdbar">
+  <div class="cdinner">
+    <div class="cd-left">
+      <p class="cd-kicker sans">COUNTDOWN TO EXAM</p>
+      <h2>距 2027 考研初试</h2>
+      <p class="cd-date sans" id="cdDate">2026 年 12 月 19 日</p>
+      <span class="cd-phase sans" id="cdPhase">—</span>
+    </div>
+    <div class="cd-timer" id="cdTimer" aria-live="polite">
+      <div class="cd-cell"><b id="cdD">—</b><span class="sans">天</span></div>
+      <i>:</i>
+      <div class="cd-cell"><b id="cdH">—</b><span class="sans">时</span></div>
+      <i>:</i>
+      <div class="cd-cell"><b id="cdM">—</b><span class="sans">分</span></div>
+      <i>:</i>
+      <div class="cd-cell sec"><b id="cdS">—</b><span class="sans">秒</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="statsbar">
+  <div class="stats">
+    <div class="stat"><div class="n">495<small>张</small></div><div class="l sans">政治主动回忆卡</div></div>
+    <div class="stat"><div class="n">2868<small>词</small></div><div class="l sans">英语词汇大观</div></div>
+    
+    <div class="stat"><div class="n">7<small>年</small></div><div class="l sans">真题覆盖 2018–2025</div></div>
+  </div>
+</section>
+
+<main class="section">
+  <div class="sechead"><h2>三科目录</h2><span class="en sans">Subject Index</span><span class="cnt sans">01 — 03</span></div>
+  <div class="subjects">
+    <a class="subject" id="politics" href="/kaoyan/politics/">
+      <span class="num">01</span>
+      <span><h3>考研政治</h3><p class="desc">495 张主动回忆卡，间隔复习与错题本；知识地图、考前 30 分钟、肖八逐题与真题考点专项。</p>
+      <span class="tags sans"><span>主动回忆</span><span>知识地图</span><span>肖八 264 题</span></span></span>
+      <span class="arrow">→</span>
+    </a>
+    <a class="subject" id="english" href="/kaoyan/english/">
+      <span class="num">02</span>
+      <span><h3>英语</h3><p class="desc">作文记忆卡与定稿模板、2868 词大观、小题型训练与七年真题套写，按题型分区推进。</p>
+      <span class="tags sans"><span>作文 25 分</span><span>词汇</span><span>真题套写</span></span></span>
+      <span class="arrow">→</span>
+    </a>
+    <a class="subject" id="math" href="/kaoyan/math/">
+      <span class="num">03</span>
+      <span><h3>数学</h3><p class="desc">30 讲知识图谱、速查速背看板、模拟卷逐题刷与错题本，公式与题型一页可查。</p>
+      <span class="tags sans"><span>知识图谱</span><span>速查速背</span><span>模拟卷</span></span></span>
+      <span class="arrow">→</span>
+    </a>
+  </div>
+
+  <div class="sechead" style="margin-top:44px"><h2>全站工具</h2><span class="en sans">Utilities</span><span class="cnt sans">INDEX · DOWNLOAD · SUBJECT</span></div>
+  <div class="utility">
+    <a class="util" href="#"><span class="u-num sans">A /</span><h4>全部资料索引</h4><p>公共课资料统一检索，按学科与题型归档。</p></a>
+    <a class="util" href="#"><span class="u-num sans">B /</span><h4>下载与备份</h4><p>Anki / 墨墨卡片导出，进度备份与恢复。</p></a>
+    <a class="util" href="#/"><span class="u-num sans">C /</span><h4>科目主界面</h4><p>单科全部功能集中一页，点开即用。</p></a>
+  </div>
+</main>
+
+<footer class="foot">
+  <span>个人备考资料，仅供自己复习使用。</span>
+  <span class="sans">PROGRESS SAVED LOCALLY · 2027</span>
+</footer>
+<script src="./portal.js?v=d9e06705a1"></script>
+<script>
+/* 2027 考研初试倒计时：2026-12-19 上午 8:30 开考 */
+(function(){
+  var target = new Date(2026, 11, 19, 8, 30, 0);
+  var dEl=document.getElementById('cdD'),hEl=document.getElementById('cdH'),
+      mEl=document.getElementById('cdM'),sEl=document.getElementById('cdS'),
+      phEl=document.getElementById('cdPhase'),dtEl=document.getElementById('cdDate'),
+      tmEl=document.getElementById('cdTimer');
+  if(!dEl) return;
+  var wd=['日','一','二','三','四','五','六'];
+  dtEl.textContent='2026 年 12 月 19 日 · 周'+wd[target.getDay()]+' · 上午 8:30 开考';
+  function pad(n){return n<10?'0'+n:''+n}
+  function phase(days){
+    if(days>120)return '基础期 · 还有充裕时间';
+    if(days>60) return '强化期 · 建议进入专项突破';
+    if(days>30) return '冲刺前期 · 真题为主';
+    if(days>14) return '冲刺期 · 高频考点复盘';
+    if(days>7)  return '最后两周 · 错题优先';
+    if(days>0)  return '最后一周 · 只看速记表';
+    return '初试进行中/已结束';
+  }
+  function tick(){
+    var now=Date.now(),diff=target.getTime()-now;
+    if(diff<=0){
+      tmEl.innerHTML='<span class="cd-done">初试已开始 · 稳住心态</span>';
+      phEl.textContent='初试进行中/已结束';
+      return;
+    }
+    var d=Math.floor(diff/86400000),
+        h=Math.floor(diff%86400000/3600000),
+        m=Math.floor(diff%3600000/60000),
+        s=Math.floor(diff%60000/1000);
+    dEl.textContent=d;hEl.textContent=pad(h);mEl.textContent=pad(m);sEl.textContent=pad(s);
+    phEl.textContent=phase(d);
+  }
+  tick();
+  setInterval(tick,1000);
+})();
+</script>
+</body>
+</html>

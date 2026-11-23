@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>数学 · 速查速背 | 27 研考资料库</title>
+<meta name="description" content="数学精简速查速背：公式、概念定理、解题小技巧与思路，按考纲章节，高数线代优先，不堆砌资料。">
+<link rel="icon" href="/kaoyan/icons/icon-192.png" type="image/png">
+<link rel="stylesheet" href="/kaoyan/app.css?v=c29db394bb">
+<link rel="stylesheet" href="/kaoyan/refine.css?v=4a591ac066">
+<link rel="stylesheet" href="/kaoyan/portal.css?v=602a24de47">
+<link rel="stylesheet" href="/kaoyan/math2assets/sheet.css?v=922d0517d1">
+<script>try{var t=localStorage.getItem('zz27_theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body>
+<div class="subnav noprint" style="position:sticky;top:0;z-index:9998;display:flex;gap:6px;align-items:center;overflow-x:auto;padding:7px 12px;background:var(--surface,#fff);border-bottom:1px solid var(--line,#e2e8f0);white-space:nowrap;scrollbar-width:none"><a href="/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">⌂ 主站</a><a href="/kaoyan/math/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:700 11px/1.4 sans-serif;background:#2563eb;color:#fff;border:1px solid transparent">← 数学主页</a><span style="flex:none;color:var(--muted,#94a3b8);font:600 11px sans-serif">·</span><a href="/kaoyan/math/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">主页</a><a href="/kaoyan/math2" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--blue,#2563eb);color:#fff;border:1px solid transparent">公式速查</a><a href="/kaoyan/math2map" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">知识地图</a><a href="/kaoyan/math2mock" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">模拟卷</a></div>
+<header class="m2-top">
+  <a class="m2-back" href="#">← 资料库</a>
+  <div class="m2-top-t"><b>数学 · 速查速背</b><i id="m2Days"></i></div>
+  <a class="m2-switch" href="/kaoyan/math2map">知识图谱</a>
+  <a class="m2-switch" href="/kaoyan/math2mock">模拟卷刷题 →</a>
+</header>
+
+<main class="m2-wrap">
+  <section class="m2-hero">
+    <h1>只留要背的：公式、概念、解题的关键一步</h1>
+    <p>按考纲章节重编的<b>精简要点</b>，不是资料堆砌。技巧卡写的是「看到题怎么下手」，
+       例如单根特征值求特征向量的速算法。参考本机公式总结、大观知识点与救命讲义，
+       <b>结论经过压缩与核对</b>；数学不考概率论，相关页不纳入。</p>
+    <p class="m2-hero-meta" id="m2Meta"></p>
+  </section>
+
+  <section class="m2-bar">
+    <input id="m2Q" type="search" placeholder="搜索公式 / 定理 / 技巧关键词，如「特征值」「点火」「中值定理」…" aria-label="搜索要点">
+    <div class="m2-bar-row">
+      <div class="m2-tabs" id="m2Tabs">
+        <button type="button" data-subj="all" class="on">全部</button>
+        <button type="button" data-subj="高数">高等数学</button>
+        <button type="button" data-subj="线代">线性代数</button>
+      </div>
+      <select id="m2Ch" aria-label="章节筛选"><option value="">全部章节</option></select>
+      <select id="m2Type" aria-label="类型筛选"><option value="">全部类型</option></select>
+      <select id="m2Star" aria-label="重要性筛选"><option value="">全部 ★</option><option value="5">只看 ★5</option><option value="4">★4 及以上</option></select>
+      <select id="m2Sort" aria-label="排序"><option value="chapter">按章节顺序</option><option value="star">按重要性</option><option value="random">随机</option></select>
+      <label class="m2-chk"><input type="checkbox" id="m2Weak"> 只看未掌握</label>
+      <label class="m2-chk"><input type="checkbox" id="m2Recite"> 背诵遮挡</label>
+      <button type="button" class="m2-btn" id="m2Random">抽一张</button>
+      <button type="button" class="m2-btn" id="m2Print">打印</button>
+      <button type="button" class="m2-btn" id="m2Reset">重置</button>
+    </div>
+  </section>
+
+  <div class="m2-stat" id="m2Stat"></div>
+  <div class="m2-grid" id="m2Grid"></div>
+  <div class="m2-empty" id="m2Empty" hidden>没有匹配的要点，换个关键词或放宽筛选。</div>
+  <footer class="m2-foot">精简自本机公式总结、大观知识点、救命讲义与证明题专项；只写结论与思路，不堆砌原页。进度存本机并自动同步到自己的云库。</footer>
+</main>
+
+<script src="/kaoyan/math2assets/data/cheatsheet.js?v=b8c6c3f579"></script>
+<script src="/kaoyan/math2assets/sheet.js?v=06b7b3894b"></script>
+<script src="/kaoyan/sync.js?v=ad065c5cdb"></script>
+</body>
+</html>

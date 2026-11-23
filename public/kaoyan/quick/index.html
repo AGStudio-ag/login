@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f3eee3">
+<meta name="description" content="2027 考研随手记：作文骨架、专项、数学、英语小题型的碎片短卡。">
+<title>随手记 · 碎片卡片墙</title>
+<link rel="icon" href="/kaoyan/icons/icon-192.png" type="image/png">
+<link rel="stylesheet" href="../app.css?v=c29db394bb">
+<link rel="stylesheet" href="../refine.css?v=4a591ac066">
+<link rel="stylesheet" href="../portal.css?v=602a24de47">
+<link rel="stylesheet" href="./quick.css?v=8236f5292c">
+<style id="wp-study-guard">.wp-fab,.wp-panel{display:none!important}</style>
+<script>try{var t=localStorage.getItem('zz27_theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body data-portal-mode="study">
+<header class="pt-topbar">
+  <a class="pt-brand" href="#"><span class="pt-seal">记</span>
+    <span><b>随手记</b><i>碎片短卡 · 随手翻随手看</i></span></a>
+  <nav class="sj-tabs" aria-label="模式切换">
+    <button type="button" id="qkModeWall" class="on">卡片墙</button>
+    <button type="button" id="qkModeSingle">单卡翻背</button>
+  </nav>
+  <div class="top-actions">
+    <span class="pt-days" data-countdown>距初试 — 天</span>
+    <a class="wp-top-link on-light" href="#" aria-label="返回资料库">📚 <span class="wp-label">资料库</span></a>
+    <button class="pt-theme" type="button" data-portal-theme aria-label="切换亮暗主题">☾</button>
+  </div>
+</header>
+
+<main class="qk-main">
+  <div class="qk-hero">
+    <h1>随手记，随手看</h1>
+    <p>把定稿资料里最该记住的短句拆成卡片：作文 11 句骨架、判型与混用红线、小作文格式、专项 记号与器件、数学 60 天结论、英语小题型。<b>每张都标了来源，内容全部摘录自你的资料，没有编造</b>。标记「已记住」只存在本机浏览器。</p>
+    <div class="qk-stats">
+      <div class="qk-stat"><b id="qkTotal">—</b><span>碎片短卡</span></div>
+      <div class="qk-stat"><b id="qkDone">—</b><span>已记住</span></div>
+      <div class="qk-stat"><b id="qkCats">—</b><span>分类</span></div>
+      <div class="qk-stat"><b id="qkShown">—</b><span>当前筛选</span></div>
+    </div>
+  </div>
+
+  <div class="qk-note"><b>怎么用</b>：卡片墙里轻点任意一张翻面；切到「单卡翻背」可空格翻面、← → 切卡、R 随机抽一张、标记已记住。搜索同时匹配正面、背面和分类。适合碎片时间扫几张，不替代系统背模板。</div>
+
+  <div class="qk-bar">
+    <input id="qkQ" type="search" placeholder="搜索短卡（正面 / 背面 / 分类）…" aria-label="搜索短卡">
+    <button type="button" id="qkRand">🎲 随机抽一张</button>
+    <button type="button" id="qkExpand">展开全部</button>
+    <button type="button" id="qkClear">清标记</button>
+  </div>
+  <div class="qk-chips" id="qkChips"></div>
+  <div class="qk-info" id="qkInfo"></div>
+
+  <div class="qk-wall on" id="qkWall"></div>
+  <div class="qk-single" id="qkSingle"></div>
+  <div class="qk-ctrl" id="qkCtrl" style="display:none">
+    <button type="button" id="qkPrev">← 上一张</button>
+    <button type="button" id="qkNext">下一张 →</button>
+    <button type="button" id="qkDoneBtn" class="primary">标记已记住</button>
+    <span class="pos" id="qkPos"></span>
+  </div>
+</main>
+
+<script src="./data/cards.js?v=f204eeaddf"></script>
+<script src="./app.js?v=be007654f7"></script>
+<script src="../sync.js?v=ad065c5cdb"></script>
+<script src="../portal.js?v=d9e06705a1"></script>
+</body>
+</html>

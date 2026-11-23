@@ -1,0 +1,30 @@
+
+/* ===== 字体与数字精修：仅作用于引用 app.css 的页面 ===== */
+:root{
+  --wp-sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB",
+            "Microsoft YaHei UI","Microsoft YaHei","Noto Sans SC",sans-serif;
+}
+body{font-family:var(--wp-sans);font-variant-numeric:tabular-nums lining-nums}
+/* 原先 --serif 会回退到 SimSun，小字号发虚：标题统一改成清晰的黑体粗字 */
+.brand-text b,.section-head h2,.lib-head h1,.lib-section-head h2,.lib-mini b,
+.dl-hero h1,.card h3,.hs b,.eyebrow{font-family:var(--wp-sans);font-weight:700;letter-spacing:.01em}
+.lib-head h1{letter-spacing:.005em}
+/* 数字：等宽数字，中文混排不再跳 */
+.brand-text b,.lib-mini b,.countdown,.hs b,.stat b,.fi,.num,
+.lib-meta,.lib-section-head span,.lib-note,.footer{font-variant-numeric:tabular-nums lining-nums;
+  font-feature-settings:"tnum" 1,"lnum" 1}
+/* 过小字号上调，避免糊成一片 */
+.lib-meta{font-size:11px;white-space:normal;line-height:1.5}
+.lib-mini span{font-size:10.5px}
+.lib-mini b{font-size:17px}
+.lib-section-head span{font-size:11.5px}
+.lib-section-head h2{font-size:15px}
+.lib-txt b{font-size:13.5px}
+.lib-note{font-size:11.5px;line-height:1.75}
+.lib-sub{font-size:12.5px}
+.lib-tile{padding:12px 13px;gap:11px}
+.lib-ic{width:32px;height:32px}
+.lib-ic svg{width:17px;height:17px}
+.footer{font-size:11.5px}
+.dl-row>span:nth-child(2)>span{font-size:11.5px;line-height:1.6}
+.section-head span{font-size:11.5px}

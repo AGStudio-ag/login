@@ -1,0 +1,70 @@
+{
+ "generated": "2026-11-16",
+ "years": [
+  {
+   "year": 2020,
+   "grades": [
+    "full",
+    "simple",
+    "standard",
+    "brainless"
+   ]
+  },
+  {
+   "year": 2021,
+   "grades": [
+    "full",
+    "simple",
+    "standard",
+    "brainless"
+   ]
+  },
+  {
+   "year": 2022,
+   "grades": [
+    "full",
+    "simple",
+    "standard",
+    "brainless"
+   ]
+  },
+  {
+   "year": 2023,
+   "grades": [
+    "full",
+    "simple",
+    "standard",
+    "brainless"
+   ]
+  },
+  {
+   "year": 2024,
+   "grades": [
+    "full",
+    "simple",
+    "standard",
+    "brainless"
+   ]
+  },
+  {
+   "year": 2025,
+   "grades": [
+    "full",
+    "simple",
+    "standard",
+    "brainless"
+   ]
+  },
+  {
+   "year": 2026,
+   "grades": [
+    "full",
+    "simple",
+    "standard",
+    "brainless"
+   ]
+  }
+ ],
+ "missing": [],
+ "note": "档位以实际下载为准；缺失档位在页面上显示为待取得，不生成空内容。"
+}

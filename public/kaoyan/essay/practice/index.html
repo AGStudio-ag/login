@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4a5aa8">
+<title>英语真题套写 · 2020—2026</title>
+<link rel="stylesheet" href="practice.css?v=35ff97c4ba">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo" href="#" title="返回资料库">✍️</a>
+    <div class="tt">
+      <h1>英语真题套写 · 2020—2026</h1>
+      <p>南萧简化版 9 句定稿为主 · 原版四档仅作对照 · 175—190 词</p>
+    </div>
+    <div class="topright">
+      <a class="tbtn" href="/kaoyan/english-writing">记忆卡</a>
+      <a class="tbtn" href="/kaoyan/essay/docs/11-onepage-analysis">11 号讲义</a>
+      <a class="tbtn" href="#">资料库</a>
+      <button class="tbtn" id="themeBtn" title="切换深浅色">🌙</button>
+      <button class="tbtn" id="printBtn" title="打印本篇">🖨</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="lead">
+    <div>
+      <b>怎么用：</b>先自己判型 → 点「下一步」逐段揭示 → 写完再看「原版对照」。
+      <span class="muted">默认走南萧简化版 9 句骨架（175—190 词）；原版是 9 句 180—215 词，只用来对照思路和语料，不背。</span>
+    </div>
+    <div class="leadlinks">
+      <a href="/kaoyan/essay/docs/02-one-page">一页纸速背卡</a>
+      <a href="/kaoyan/essay/docs/03-exam-samples">5 篇范文</a>
+      <a href="/kaoyan/essay/docs/06-six-types">六类成篇</a>
+    </div>
+  </section>
+
+  <nav class="yearbar" id="yearbar" aria-label="年份"></nav>
+
+  <section class="qcard" id="qcard"></section>
+
+  <div class="modebar">
+    <div class="seg" role="tablist">
+      <button class="segbtn on" data-mode="draft" role="tab">定稿套写（默认）</button>
+      <button class="segbtn" data-mode="original" role="tab">原版对照</button>
+    </div>
+    <div class="modetip" id="modetip"></div>
+  </div>
+
+  <section id="draftPane" class="pane">
+    <div class="stepbar" id="stepbar"></div>
+    <div class="stage" id="stage"></div>
+    <div class="actions">
+      <button class="btn ghost" id="prevBtn">← 上一步</button>
+      <button class="btn" id="nextBtn">下一步 →</button>
+      <button class="btn ghost" id="allBtn">显示全部</button>
+      <button class="btn ghost" id="resetBtn">重置</button>
+      <button class="btn ghost" id="copyBtn">复制全文</button>
+      <span class="wc" id="wc"></span>
+    </div>
+  </section>
+
+  <section id="originalPane" class="pane" hidden>
+    <div class="gradebar" id="gradebar"></div>
+    <div class="origmeta" id="origmeta"></div>
+    <div class="origlist" id="origlist"></div>
+    <div class="origwhy" id="origwhy"></div>
+  </section>
+
+  <section class="notes">
+    <h2>交卷前 60 秒</h2>
+    <ul>
+      <li>3 段、9 句（2+5+3）、175—190 词、不写标题。</li>
+      <li>B2 不写 <code>The remaining X%</code>、不写 <code>from...to...</code>，<b>四类五类必须全列</b>。</li>
+      <li>P2 与 P3 主题词一致：trend / pattern / situation / phenomenon 全篇只用一个。</li>
+      <li>静态图每一类都列；主题词在第 1、3、8 句必须同一个。</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="foot">
+  定稿内容来自本站 01 / 02 / 03 / 06；原版对照来自南萧极简考研《27 大作文一页纸》英语套写文件（B 站 UP 主「南萧时刻自信冷静」）。
+  <a href="#">返回资料库</a>
+</footer>
+
+<script src="data/lessons.js?v=651d555221"></script>
+<script src="practice.js?v=2865d1e030"></script>
+</body>
+</html>

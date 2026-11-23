@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>考研数学 · 可视化知识图谱（30 讲） | 27 研考资料库</title>
+<meta name="description" content="30 讲可视化知识图谱：每讲含核心框架、关键公式、解题步骤、技巧提示、常见误区、常考题型；KaTeX 渲染、知识点搜索、数学考纲默认过滤。">
+<link rel="icon" href="/kaoyan/icons/icon-192.png" type="image/png">
+<link rel="stylesheet" href="/kaoyan/math2assets/map/vendor/katex/katex.min.css?v=717bc9ae78">
+<link rel="stylesheet" href="/kaoyan/math2assets/map/map.css?v=2920b838fc">
+</head>
+<body data-theme="dark">
+<div class="subnav noprint" style="position:sticky;top:0;z-index:9998;display:flex;gap:6px;align-items:center;overflow-x:auto;padding:7px 12px;background:var(--surface,#fff);border-bottom:1px solid var(--line,#e2e8f0);white-space:nowrap;scrollbar-width:none"><a href="/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">⌂ 主站</a><a href="/kaoyan/math/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:700 11px/1.4 sans-serif;background:#2563eb;color:#fff;border:1px solid transparent">← 数学主页</a><span style="flex:none;color:var(--muted,#94a3b8);font:600 11px sans-serif">·</span><a href="/kaoyan/math/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">主页</a><a href="/kaoyan/math2" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">公式速查</a><a href="/kaoyan/math2map" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--blue,#2563eb);color:#fff;border:1px solid transparent">知识地图</a><a href="/kaoyan/math2mock" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">模拟卷</a></div>
+<header class="kg-top">
+  <div class="kg-brand"><b>考研数学 · 知识图谱</b><span>30 讲六板块 · 数学默认过滤</span></div>
+  <div class="kg-top-right">
+    <input id="kgSearch" type="search" placeholder="搜索知识点 / 公式 / 误区…" aria-label="搜索知识点">
+    <button type="button" id="kgOnly2" class="kg-toggle on" title="只看数学适用讲次">数学模式</button>
+    <button type="button" id="kgTheme" class="kg-toggle" title="切换明暗主题">浅色</button>
+    <a href="/kaoyan/math2" class="kg-link">速查速背</a>
+    <a href="/kaoyan/math2mock" class="kg-link">逐题刷</a>
+    <a href="#" class="kg-link">资料库</a>
+  </div>
+</header>
+
+<div class="kg-layout">
+  <aside class="kg-side" id="kgSide">
+    <div class="kg-side-h">讲次导航 <span id="kgLecCount"></span></div>
+    <div id="kgNav"></div>
+  </aside>
+  <main class="kg-main" id="kgMain">
+    <div class="kg-intro" id="kgIntro">
+      <h1>按讲展开，一讲六块</h1>
+      <p>从「核心知识框架 → 关键公式 → 解题步骤 → 技巧提示 → 常见误区 → 常考题型」完整走一遍。
+         公式由 KaTeX 渲染，比图片清晰；搜索框可三秒定位知识点。</p>
+      <p class="kg-note">你考数学：高数第 10—15 讲、线代第 22 讲、概率 23—30 讲属于数一/数三专项，
+         已默认收起。需要时点右上角「数学模式」切换查看。</p>
+    </div>
+    <div id="kgContent"></div>
+  </main>
+</div>
+
+<script src="/kaoyan/math2assets/map/vendor/katex/katex.min.js?v=e6bfe5deeb"></script>
+<script src="/kaoyan/math2assets/map/data/lec_ga1.js?v=a464a47074"></script>
+<script src="/kaoyan/math2assets/map/data/lec_ga2.js?v=518fd17852"></script>
+<script src="/kaoyan/math2assets/map/data/lec_la_prob.js?v=34c00fca57"></script>
+<script src="/kaoyan/math2assets/map/map.js?v=9f47a8395f"></script>
+<script src="/kaoyan/sync.js?v=ad065c5cdb"></script>
+</body>
+</html>

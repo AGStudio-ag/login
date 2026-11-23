@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f4efe4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="政治回忆">
+<meta name="format-detection" content="telephone=no">
+<meta name="description" content="27 考研政治主动回忆系统：495 张问答卡、间隔复习、错题本、进度统计，数据保存在本机浏览器。">
+<title>27 考研政治 · 主动回忆</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/kaoyan/icons/icon-180.png">
+<link rel="icon" href="/kaoyan/icons/icon-192.png" type="image/png">
+<link rel="stylesheet" href="/kaoyan/app.css?v=c29db394bb">
+<link rel="stylesheet" href="/kaoyan/refine.css?v=4a591ac066">
+<link rel="stylesheet" href="/kaoyan/portal.css?v=602a24de47">
+<script>
+try{
+  var t = localStorage.getItem('zz27_theme');
+  if(!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.dataset.theme = t;
+}catch(e){}
+</script>
+<style id="wp-study-guard">.wp-fab,.wp-panel{display:none!important}</style>
+</head>
+<body data-portal-mode="study">
+<div class="subnav noprint" style="position:sticky;top:0;z-index:9998;display:flex;gap:6px;align-items:center;overflow-x:auto;padding:7px 12px;background:var(--surface,#fff);border-bottom:1px solid var(--line,#e2e8f0);white-space:nowrap;scrollbar-width:none"><a href="/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">⌂ 主站</a><a href="/kaoyan/politics/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:700 11px/1.4 sans-serif;background:#2563eb;color:#fff;border:1px solid transparent">← 政治主页</a><span style="flex:none;color:var(--muted,#94a3b8);font:600 11px sans-serif">·</span><a href="/kaoyan/politics/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">主页</a><a href="/kaoyan/politics/app" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--blue,#2563eb);color:#fff;border:1px solid transparent">主动回忆</a><a href="/kaoyan/jisu" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">知识地图</a><a href="/kaoyan/onepage" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">考前30分钟</a><a href="#/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">肖八精练</a><a href="/kaoyan/realexam/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">真题专项</a><a href="#" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">卡片下载</a><a href="#/" style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;white-space:nowrap;text-decoration:none;font:600 11px/1.4 sans-serif;background:var(--surface2,rgba(127,127,127,.09));color:var(--ink2,#475569);border:1px solid var(--line,#e2e8f0)">资料索引</a></div>
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="#/today" aria-label="回到今日">
+      <span class="seal">27</span>
+      <span class="brand-text"><b>考研政治</b><i>主动回忆</i></span>
+    </a>
+    <div class="top-actions">
+      <a class="icon-btn" href="#" title="全部资料" aria-label="全部资料">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.4C10.4 4.9 8.3 4.3 6 4.3v14.3c2.3 0 4.4.6 6 2.1 1.6-1.5 3.7-2.1 6-2.1V4.3c-2.3 0-4.4.6-6 2.1Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 6.4v14.2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      </a>
+      <a class="countdown" id="countdown" href="#/stats" title="初试倒计时">—</a>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="切换亮暗主题">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs" aria-label="主导航">
+    <a href="#/today" data-route="today"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5 12 4l8 4.5v9L12 22l-8-4.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 8.5 12 13l8-4.5M12 13v9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>今日</span></a>
+    <a href="#/browse" data-route="browse"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="4" width="7" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="13" width="7" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="13" width="7" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span>卡库</span></a>
+    <a href="#/stats" data-route="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>统计</span></a>
+    <a href="#/me" data-route="me"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5 20c.7-3.6 3.5-5.4 7-5.4s6.3 1.8 7 5.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>我的</span></a>
+  </nav>
+
+  <main id="view" class="view" tabindex="-1">
+    <div class="card" style="text-align:center;padding:46px 20px;color:var(--muted);font-size:12.5px">正在载入 495 张卡片…</div>
+  </main>
+
+  <footer class="footer">
+    <span>内容来自个人整理资料，仅供个人复习使用。</span>
+    <span>进度只保存在本机浏览器 · <a href="#/me">备份 / 恢复</a></span>
+  </footer>
+</div>
+
+<div id="overlay" aria-live="polite"></div>
+<div id="toast" class="toast" role="status"></div>
+<noscript><div style="padding:24px;text-align:center">需要启用 JavaScript 才能使用复习系统。</div></noscript>
+
+<script src="/kaoyan/data/cards.js?v=84a377cecf"></script>
+<script src="/kaoyan/app.js?v=502b20d1ac"></script>
+<script src="/kaoyan/portal.js?v=d9e06705a1"></script>
+<script src="/kaoyan/sync.js?v=ad065c5cdb"></script>
+</body>
+</html>

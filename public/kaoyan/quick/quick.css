@@ -1,0 +1,55 @@
+
+.qk-main{max-width:1080px;margin:0 auto;padding:22px 20px 90px}
+.qk-hero{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:14px}
+.qk-hero h1{font-size:22px;font-weight:800;margin:0 0 6px}
+.qk-hero p{font-size:12.5px;color:var(--ink2);line-height:1.8;margin:0}
+.qk-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.qk-stat{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+.qk-stat b{display:block;font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink)}
+.qk-stat span{font-size:11.5px;color:var(--ink2)}
+.qk-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.qk-bar input{flex:1;min-width:190px;padding:9px 13px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);font-size:12.5px}
+.qk-bar input:focus{border-color:var(--blue);outline:none}
+.qk-bar button{padding:8px 13px;border-radius:10px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.qk-bar button.on{background:var(--blue);border-color:transparent;color:#fff}
+html[data-theme="dark"] .qk-bar button.on,
+html[data-theme="dark"] .qk-ctrl button.primary{color:#13110d}
+.qk-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.qk-chip{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);
+  font-size:11.5px;cursor:pointer;color:var(--ink2)}
+.qk-chip.on{background:var(--blue);border-color:transparent;color:#fff;font-weight:700}
+html[data-theme="dark"] .qk-chip.on{color:#13110d}
+.qk-info{font-size:11.5px;color:var(--ink2);margin-bottom:10px;font-variant-numeric:tabular-nums}
+.qk-wall{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media(max-width:900px){.qk-wall{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.qk-wall{grid-template-columns:1fr}}
+.qk-card{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:13px 14px;
+  cursor:pointer;min-height:104px;transition:border-color .15s,background .15s}
+.qk-card:hover{border-color:var(--line2)}
+.qk-card.done{border-color:var(--jade);background:var(--jade-soft)}
+.qk-card .cat{font-size:10.5px;color:var(--blue);font-weight:700;letter-spacing:.03em}
+.qk-card .q{font-size:13px;font-weight:700;color:var(--ink);margin:5px 0 6px;line-height:1.55}
+.qk-card .a{font-size:12px;color:var(--ink2);line-height:1.75;white-space:pre-wrap}
+.qk-card .src{font-size:10.5px;color:var(--muted);margin-top:8px;display:block}
+.qk-card .hidden{font-size:11.5px;color:var(--muted);font-style:italic}
+.qk-single{display:none;border:1px solid var(--line);border-radius:16px;background:var(--surface);
+  padding:26px 24px;min-height:260px;cursor:pointer}
+.qk-single.on{display:block}
+.qk-single .cat{font-size:11px;color:var(--blue);font-weight:700}
+.qk-single .q{font-size:20px;font-weight:800;color:var(--ink);margin:10px 0 16px;line-height:1.5}
+.qk-single .a{font-size:14px;color:var(--ink2);line-height:1.9;white-space:pre-wrap}
+.qk-single .hidden{font-size:13px;color:var(--muted);font-style:italic}
+.qk-single .src{font-size:11px;color:var(--muted);margin-top:18px;display:block}
+.qk-ctrl{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center}
+.qk-ctrl button{padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);font-size:12px;font-weight:600;cursor:pointer}
+.qk-ctrl button.primary{background:var(--jade);color:#fff;border-color:transparent}
+.qk-ctrl .pos{font-size:11.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.qk-note{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:11px 15px;
+  font-size:12px;color:var(--ink2);line-height:1.8;margin-bottom:14px}
+.qk-note b{color:var(--ink)}
+.qk-empty{padding:26px;text-align:center;color:var(--ink2);font-size:12.5px}
+@media(max-width:640px){.qk-stats{grid-template-columns:repeat(2,1fr)}}
+@media print{.pt-topbar,.qk-bar,.qk-chips,.qk-ctrl,.wp-fab,.wp-panel{display:none!important}}
