@@ -1,5 +1,5 @@
 /* 27 考研政治 · 主动回忆 — offline shell */
-const CACHE = 'zz27-portal-fe133c1f';
+const CACHE = 'zz27-portal-demo-20261124';
 const ASSETS = [
   './',
   './index.html',
