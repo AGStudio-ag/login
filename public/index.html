@@ -403,6 +403,21 @@ h2{font-size:24px;font-weight:900;line-height:1.3}
 
 <script src="shared.js"></script>
 <script>
+// 一次性自愈：资料库旧 SW 曾以 scope=/ 注册并可能缓存本页，清掉它再有条件重载
+(function(){
+  var FLAG='ag_clear_legacy_sw_v1';
+  try{ if(sessionStorage.getItem(FLAG)) return; }catch(e){}
+  try{ sessionStorage.setItem(FLAG,'1'); }catch(e){}
+  if(!('serviceWorker' in navigator) || location.search.indexOf('swfix=1')>=0) return;
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    var bad=regs.filter(function(r){ return (r.scope||'').replace(/\/$/,'')===location.origin.replace(/\/$/,''); });
+    if(!bad.length) return;
+    Promise.all(bad.map(function(r){return r.unregister();})).then(function(){
+      if('caches' in window){ caches.keys().then(function(ks){ return Promise.all(ks.map(function(k){return caches.delete(k);})); }).then(function(){ location.reload(); }); }
+      else location.reload();
+    });
+  }).catch(function(){});
+})();
 var tt;
 function toast(m){
   var t=document.getElementById('toast');

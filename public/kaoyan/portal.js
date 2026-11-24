@@ -246,16 +246,9 @@ var PORTAL_DATA = {"meta":{"title":"27 研考资料库","subtitle":"政治 · �
   // 注册 Service Worker，并在新版本就绪后自动刷新，避免一直看到旧缓存页面
   function registerSW(){
     if(!('serviceWorker' in navigator)) return;
-    var hadController = !!navigator.serviceWorker.controller;  // 已有旧 SW 控制 = 更新场景
-    var reloaded = false;
-    navigator.serviceWorker.addEventListener('controllerchange', function(){
-      if(hadController && !reloaded){ reloaded = true; location.reload(); }
-    });
-    // 用根绝对路径：子目录页（/drill/、/quick/）里 './sw.js' 会解析成 /drill/sw.js 而 404。
-    // 再拼上本脚本的内容版本参数：每次部署 portal.js 内容变化 → 注册 URL 变化 →
-    // 浏览器必定安装新 SW（skipWaiting + 清旧缓存），不受 sw.js 的 max-age 影响。
+    // scope 限定在 /kaoyan/：避免资料库的 SW 控制主站页面（登录页等）
     var v = (window.__CS_VER || '');
-    navigator.serviceWorker.register('/kaoyan/sw.js' + (v ? '?v=' + v : ''), {scope:'/'}).catch(function(){});
+    navigator.serviceWorker.register('/kaoyan/sw.js' + (v ? '?v=' + v : ''), {scope:'/kaoyan/'}).catch(function(){});
   }
 
   function init(){
