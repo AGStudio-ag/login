@@ -510,6 +510,15 @@ body.dark .pkg:hover { box-shadow: 0 12px 24px -10px rgba(0,0,0,0.5); border-col
 }
 @keyframes couponSweep { from { transform: translateX(-70%); opacity: 1; } to { transform: translateX(70%); opacity: 0; } }
 
+/* 支付步骤引导 */
+.pay-guide{display:flex;gap:10px;margin:0 0 20px;padding:14px 16px;border-radius:var(--radius-md);background:var(--amber-subtle);border:1px solid rgba(245,158,11,.35)}
+.pay-guide__num{flex:none;width:22px;height:22px;border-radius:50%;background:var(--amber);color:#fff;display:grid;place-items:center;font:800 12px/1 var(--font-sans)}
+.pay-guide__body{min-width:0}
+.pay-guide__body b{display:block;font-size:13px;color:var(--text-primary);margin-bottom:5px}
+.pay-guide__body ol{margin:0;padding-left:18px;font-size:12.5px;line-height:1.9;color:var(--text-secondary)}
+.pay-guide__body em{font-style:normal;font-weight:800;color:var(--green)}
+.pay-note{margin-top:12px;padding:11px 13px;border-radius:var(--radius-sm);background:var(--green-subtle);border:1px solid rgba(16,185,129,.3);color:var(--green);font-size:12.5px;line-height:1.7}
+.pay-note b{font-weight:800}
 .coupon-banner { display: none; margin: 0 0 var(--s-4); padding: 12px 16px; border-radius: var(--radius-sm); background: var(--blue-subtle); border: 1px dashed rgba(37,99,235,.4); color: var(--blue); font-size: 13px; font-weight: 600; align-items: center; gap: 8px; }
 .coupon-banner.show { display: flex; animation: bannerIn .35s cubic-bezier(.2,.8,.2,1); }
 @keyframes bannerIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
@@ -723,7 +732,7 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
       <button class="side-item" data-nav="invite"><svg class="ico"><use href="#i-gift"/></svg> 邀请</button>
       <button class="side-item" data-nav="feedback"><svg class="ico"><use href="#i-message"/></svg> 留言</button>
       <button class="side-item" data-nav="logs"><svg class="ico"><use href="#i-history"/></svg> 记录</button>
-      <a class="side-item" href="/market"><svg class="ico"><use href="#i-store"/></svg> 二手市场</a>
+      <a class="side-item" href="/market"><svg class="ico"><use href="#i-store"/></svg> 二手市场 <span style="font-size:10px;opacity:.6;font-weight:400;">（建设中）</span></a>
 
       <div class="side-group-label">支持</div>
       <button class="side-item" data-nav="buy" style="color: var(--heart);">
@@ -1041,9 +1050,9 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
           <div class="field"><label>学号</label><input type="text" id="profileStudentId" disabled></div>
           <div class="field"><label>姓名</label><input type="text" id="profileName" placeholder="请输入姓名"></div>
           <div class="field">
-            <label>考勤密码</label>
+            <label>考勤密码 <span style="font-size:11px;color:var(--text-tertiary);font-weight:400;">（一般不用填）</span></label>
             <input type="password" id="profileAttendancePassword" placeholder="留空则不修改" autocomplete="new-password">
-            <p class="hint">默认密码 <code style="font-family:var(--mono);background:var(--bg);padding:2px 6px;border-radius:4px;color:var(--red);">Ahgydx@920</code>，改过就填新密码。</p>
+            <p class="hint">改过学校密码的话，<b>直接用新密码重新登录就会自动同步</b>，不用在这里填。这里只用于「已登录、暂时不想退出」时的应急更新。</p>
           </div>
           <div class="field"><label>邮箱</label><input type="text" id="profileEmail" disabled></div>
           <div class="field"><label>本学期服务状态</label><input type="text" id="profileVip" disabled></div>
@@ -1098,8 +1107,8 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
             </button>
             <a class="more-item" href="/market">
               <svg class="ico" style="color:var(--pink);"><use href="#i-store"/></svg>
-              <span>二手市场</span>
-              <small>校园闲置交易</small>
+              <span>二手市场 <span style="font-size:10px;opacity:.6;">（建设中）</span></span>
+              <small>校园闲置交易·暂未开放</small>
             </a>
             <a class="more-item" href="https://pd.qq.com/s/9fkh0w8xw" target="_blank" rel="noopener">
               <svg class="ico qq-ico" style="color:var(--blue);"><use href="#i-qq"/></svg>
@@ -1203,7 +1212,7 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
       <!-- ================= 赞助 ================= -->
       <div id="page-buy" class="page">
         <h1 class="page-title">赞助支持</h1>
-        <p class="page-sub">完全自愿，帮助服务器与日常运行。支付后权益自动发放。</p>
+        <p class="page-sub">完全自愿，帮助服务器与日常运行。付款后回到本页填备注短码并确认，权益实时到账。</p>
 
         <div class="card" style="margin-bottom:var(--s-5);">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
@@ -1220,6 +1229,17 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
 
         <div id="paymentArea" class="card hidden">
           <h2 class="card-heading"><svg class="ico" style="color:var(--blue);"><use href="#i-qrcode"/></svg> 扫码赞助</h2>
+          <div class="pay-guide">
+            <div class="pay-guide__num">i</div>
+            <div class="pay-guide__body">
+              <b>怎么付款？三步，到账是实时的</b>
+              <ol>
+                <li>点下方二维码放大，按上方金额付款（微信 / 支付宝都行）</li>
+                <li>付款后<strong>回到这个页面</strong>，在下面填入付款时的备注或交易单号后 4 位</li>
+                <li>点「确认我已支付」——<em>权益立即到账</em>，不用等审核</li>
+              </ol>
+            </div>
+          </div>
           <div style="text-align:center;margin:16px 0">
             <div style="font-family:var(--mono); font-size:32px;font-weight:700;letter-spacing:-0.03em;color:var(--text-primary);" id="paymentAmount">¥0.00</div>
             <p id="paymentCouponNote" style="display:none;font-size:12px;color:var(--green);margin-top:6px;"></p>
@@ -1237,10 +1257,12 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
 
           <div id="claimSection" class="hidden" style="margin-top:20px;background:var(--bg);border-radius:var(--radius-sm);padding:16px;border:1px solid var(--border);">
             <div class="field">
-              <label>支付备注 / 短码</label>
-              <input type="text" id="paymentRef" placeholder="填写支付备注或短码" maxlength="60" autocomplete="off">
+              <label>支付备注 / 交易单号后 4 位</label>
+              <input type="text" id="paymentRef" placeholder="例如：刚才付款时填的备注，或微信/支付宝单号后4位" maxlength="60" autocomplete="off">
+              <p class="hint">填任意一个即可，至少 4 个字。只是用来核对，填错也不影响到账。</p>
             </div>
-            <button class="btn btn-primary btn-block" onclick="claimPayment()" id="claimBtn">确认我已支付</button>
+            <button class="btn btn-primary btn-block" onclick="claimPayment()" id="claimBtn">确认我已支付 · 立即到账</button>
+            <div class="pay-note"><b>点完立刻生效：</b>会员/次数当场到账，页面会显示新的到期时间，不用等人工审核。</div>
           </div>
 
           <div id="paymentResult" class="hidden" style="margin-top:16px"></div>
@@ -2648,7 +2670,10 @@ function renderProfileAccount(wx, notify) {
 async function updateProfile() {
   const body = { name: document.getElementById('profileName').value.trim() };
   const pwd = document.getElementById('profileAttendancePassword').value.trim();
-  if (pwd) body.attendancePassword = pwd;
+  if (pwd) {
+    if (!confirm('此处仅更新本地保存的签到密码，不会校验是否正确。\n\n请确认填写的是学校考勤系统当前的密码；填错会导致自动签到失败。\n\n若不确定，直接退出后用新密码重新登录即可自动同步（更稳妥）。')) return;
+    body.attendancePassword = pwd;
+  }
   try {
     const data = await api('/user/profile', { method: 'PUT', body });
     if (data.success) {
@@ -3024,7 +3049,7 @@ function closeQrModal(event) {
 }
 
 async function claimPayment() {
-  if (!qrViewed) { showToast('请先点击放大二维码', 'error'); return; }
+  if (!qrViewed) { showToast('请先点一下上方二维码放大查看，再回来确认支付', 'error'); return; }
   if (!sponsorOrder) { showToast('请先选择档位', 'error'); return; }
   const ref = document.getElementById('paymentRef').value.trim();
   if (ref.length < 4) { showToast('请填写备注或单号后4位', 'error'); return; }
