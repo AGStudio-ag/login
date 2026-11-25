@@ -4913,6 +4913,40 @@ app.get('/api/payment/order/:orderNo', authMiddleware, async (req, res) => {
   }
 });
 
+// 当前用户自己的支付记录：成功/失败/过期都返回，按创建时间倒序
+app.get('/api/payment/orders', authMiddleware, async (req, res) => {
+  try {
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 50));
+    const docs = await PaymentOrder.find({ userId: req.user._id })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+    const orders = docs.map(o => ({
+      orderNo: o.orderNo,
+      packageName: o.packageName || membership.tierLabel(o.tier),
+      durationLabel: o.durationLabel || '',
+      packageType: o.packageType || 'days',
+      tier: o.tier,
+      amount: o.amount,
+      couponDiscount: o.couponDiscount || 0,
+      days: o.days || 0,
+      counts: o.counts || 0,
+      status: o.status,
+      reviewStatus: o.reviewStatus || '',
+      payMethod: o.payMethod || '',
+      payCode: o.payCode || '',
+      createdAt: o.createdAt,
+      claimAt: o.claimAt || null,
+      grantedAt: o.grantedAt || null,
+      paidAt: o.paidAt || null,
+      expireAt: o.expireAt || null
+    }));
+    res.json({ success: true, orders });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 app.get('/api/payment/notify', (req, res) => {
   res.json({ code: 1, msg: 'ok', data: { heartbeat: 'ok', time: new Date().toISOString() } });
 });

@@ -519,6 +519,17 @@ body.dark .pkg:hover { box-shadow: 0 12px 24px -10px rgba(0,0,0,0.5); border-col
 .pay-guide__body em{font-style:normal;font-weight:800;color:var(--green)}
 .pay-note{margin-top:12px;padding:11px 13px;border-radius:var(--radius-sm);background:var(--green-subtle);border:1px solid rgba(16,185,129,.3);color:var(--green);font-size:12.5px;line-height:1.7}
 .pay-note b{font-weight:800}
+.pay-hist-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.pay-hist-row:last-child{border-bottom:0}
+.pay-hist-main{flex:1;min-width:140px}
+.pay-hist-title{font-size:13px;font-weight:700;color:var(--text-primary)}
+.pay-hist-sub{font-size:11.5px;color:var(--text-tertiary);margin-top:3px;font-family:var(--mono)}
+.pay-hist-right{text-align:right;flex:none}
+.pay-hist-amt{font:700 14px/1 var(--mono);color:var(--text-primary)}
+.pay-hist-badge{display:inline-block;margin-top:6px;font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px}
+.pay-hist-badge.ok{background:var(--green-subtle);color:var(--green)}
+.pay-hist-badge.wait{background:var(--amber-subtle);color:var(--amber)}
+.pay-hist-badge.no{background:var(--bg);color:var(--text-tertiary)}
 .coupon-banner { display: none; margin: 0 0 var(--s-4); padding: 12px 16px; border-radius: var(--radius-sm); background: var(--blue-subtle); border: 1px dashed rgba(37,99,235,.4); color: var(--blue); font-size: 13px; font-weight: 600; align-items: center; gap: 8px; }
 .coupon-banner.show { display: flex; animation: bannerIn .35s cubic-bezier(.2,.8,.2,1); }
 @keyframes bannerIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
@@ -1269,6 +1280,15 @@ body.dark .modal-mask { background:rgba(0,0,0,.8); }
         </div>
 
         <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+            <h2 class="card-heading" style="margin:0;"><svg class="ico" style="color:var(--blue);"><use href="#i-history"/></svg> 我的支付记录</h2>
+            <button class="btn btn-secondary btn-sm" onclick="loadPaymentHistory(true)" id="payHistoryRefresh">刷新</button>
+          </div>
+          <p class="hint" style="margin-bottom:10px;">包含已到账、待支付、已过期与已撤销的全部记录，按时间倒序。</p>
+          <div id="paymentHistory"><p class="loading">加载中…</p></div>
+        </div>
+
+        <div class="card">
           <h2 class="card-heading"><svg class="ico" style="color:var(--amber);"><use href="#i-ticket"/></svg> 兑换卡密</h2>
           <div class="field">
             <input type="text" id="redeemCode" placeholder="输入卡密" style="text-transform:uppercase" autocomplete="off">
@@ -1548,7 +1568,7 @@ const PAGE_LOADERS = {
   profile: loadProfile,
   invite: loadInviteInfo,
   feedback: loadMyFeedback,
-  buy: loadPackages,
+  buy: () => { loadPackages(); loadPaymentHistory(); },
   logs: loadLogs
 };
 
@@ -3060,7 +3080,7 @@ async function claimPayment() {
     btn.disabled = false; btn.textContent = '确认我已支付';
     if (data.success) {
       renderSponsorSuccess(data.order || sponsorOrder, data.vipTier);
-      await loadUserInfo(); loadProfile(); showToast('已到账', 'success');
+      await loadUserInfo(); loadProfile(); loadPaymentHistory(); showToast('已到账', 'success');
     } else { showToast(data.message || '提交失败', 'error'); }
   } catch (e) { btn.disabled = false; btn.textContent = '确认我已支付'; showToast((e && e.message) || '网络错误', 'error'); }
 }
@@ -3068,6 +3088,47 @@ async function claimPayment() {
 /* ============================================================
    Logs
    ============================================================ */
+async function loadPaymentHistory(manual) {
+  const box = document.getElementById('paymentHistory');
+  if (!box) return;
+  if (manual) {
+    const btn = document.getElementById('payHistoryRefresh');
+    if (btn) { btn.disabled = true; btn.textContent = '刷新中…'; }
+  } else {
+    box.innerHTML = '<p class="loading">加载中…</p>';
+  }
+  const statusText = {
+    pending: ['待支付', 'wait'], claimed: ['待支付', 'wait'], paid: ['待核对', 'wait'],
+    granted: ['已到账', 'ok'], expired: ['已过期', 'no'], rejected: ['已撤销', 'no']
+  };
+  try {
+    const data = await api('/payment/orders?limit=50', { method: 'GET' });
+    const orders = (data && data.orders) || [];
+    if (!orders.length) { box.innerHTML = '<p class="empty">暂无支付记录</p>'; return; }
+    box.innerHTML = orders.map(o => {
+      const st = statusText[o.status] || [o.status, 'no'];
+      const when = new Date(o.grantedAt || o.claimAt || o.paidAt || o.createdAt).toLocaleString('zh-CN', { hour12: false });
+      const kind = o.packageType === 'counts' ? (o.counts + ' 次签到额度') : (o.durationLabel || (o.days + ' 天'));
+      const review = o.reviewStatus === 'rejected' ? ' · 已驳回' : (o.status === 'granted' && o.reviewStatus === 'unreviewed' ? ' · 待后台核对' : '');
+      return '<div class="pay-hist-row">'
+        + '<div class="pay-hist-main">'
+        + '<div class="pay-hist-title">' + escapeHTML(o.packageName || '赞助订单') + ' · ' + escapeHTML(kind) + '</div>'
+        + '<div class="pay-hist-sub">' + escapeHTML(when) + ' · 短码 ' + escapeHTML(o.payCode || o.orderNo.slice(-4)) + (o.couponDiscount ? ' · 优惠 ¥' + Number(o.couponDiscount).toFixed(2) : '') + '</div>'
+        + '</div>'
+        + '<div class="pay-hist-right"><div class="pay-hist-amt">¥' + Number(o.amount || 0).toFixed(2) + '</div>'
+        + '<span class="pay-hist-badge ' + st[1] + '">' + st[0] + review + '</span></div>'
+        + '</div>';
+    }).join('');
+  } catch (e) {
+    box.innerHTML = '<p class="empty">加载失败，请点刷新重试</p>';
+  } finally {
+    if (manual) {
+      const btn = document.getElementById('payHistoryRefresh');
+      if (btn) { btn.disabled = false; btn.textContent = '刷新'; }
+    }
+  }
+}
+
 async function loadLogs() {
   try {
     const data = await api('/sign/logs?limit=50');
